@@ -147,15 +147,37 @@ struct RecipeRowView: View {
 
 
 
+#Preview("Grid") {
+    let recipes = [
+        Recipe(name: "Spaghetti Bolognese", servings: 4),
+        Recipe(name: "Short", servings: 2),
+        Recipe(name: "Thai Green Curry with Jasmine Rice", servings: 6),
+        Recipe(name: "Eggs", servings: 1),
+    ]
+    let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    return NavigationStack {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(recipes) { recipe in
+                    RecipeCardView(recipe: recipe).frame(maxWidth: .infinity)
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Recipes")
+    }
+}
+
 struct RecipeCardView: View {
     let recipe: Recipe
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Image / placeholder header
-            ZStack(alignment: .bottomLeading) {
+            // Image with overlaid content
+            ZStack(alignment: .bottom) {
                 Color.clear
-                    .frame(height: 140)
+                    .frame(height: 160)
                     .overlay(
                         Group {
                             if let data = recipe.imageData, let image = UIImage(data: data) {
@@ -178,43 +200,44 @@ struct RecipeCardView: View {
                     )
                     .clipped()
 
-                // Metadata pills overlaid on image
-                HStack(spacing: 6) {
+                // Metadata + name stacked — bottom leading
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
-                        Image(systemName: "list.bullet")
-                            .font(.caption2)
-                        Text("\(recipe.ingredients.count)")
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.ultraThinMaterial, in: Capsule())
+                        HStack(spacing: 4) {
+                            Image(systemName: "list.bullet")
+                                .font(.caption2)
+                            Text("\(recipe.ingredients.count)")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.regularMaterial, in: Capsule())
 
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.2")
-                            .font(.caption2)
-                        Text("\(Int(recipe.servings))")
-                            .font(.caption2)
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.2")
+                                .font(.caption2)
+                            Text("\(Int(recipe.servings))")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.regularMaterial, in: Capsule())
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.ultraThinMaterial, in: Capsule())
+
+                    Text(recipe.name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(8)
             }
-
-            // Title
-            Text(recipe.name)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
         .background(Color(.secondarySystemGroupedBackground))

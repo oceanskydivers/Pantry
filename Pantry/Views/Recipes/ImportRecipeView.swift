@@ -46,7 +46,7 @@ struct ImportRecipeView: View {
                 }
             }
             .sheet(item: $pendingImport) { wrapper in
-                AddRecipeView(importedRecipe: wrapper.recipe, sourceURL: wrapper.sourceURL, imageData: wrapper.imageData)
+                AddRecipeView(importedRecipe: wrapper.recipe, sourceURL: wrapper.sourceURL, imageData: wrapper.imageData, onSave: { dismiss() })
             }
         }
         .presentationDetents([.fraction(0.3)])

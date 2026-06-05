@@ -199,6 +199,7 @@ struct AddRecipeView: View {
     @Environment(\.dismiss) private var dismiss
 
     var existingRecipe: Recipe?
+    var onSave: (() -> Void)? = nil
 
     // Identifiable wrapper to guarantee stable identity during insertions, deletions, and moves
     struct IngredientLine: Identifiable, Hashable {
@@ -235,7 +236,8 @@ struct AddRecipeView: View {
     }
 
     /// Initialise with data pre-filled from an import, ready for the user to review and edit.
-    init(importedRecipe: ImportedRecipe, sourceURL: String, imageData: Data?) {
+    init(importedRecipe: ImportedRecipe, sourceURL: String, imageData: Data?, onSave: (() -> Void)? = nil) {
+        self.onSave = onSave
         self.existingRecipe = nil
         _name = State(initialValue: importedRecipe.name)
         _servings = State(initialValue: importedRecipe.servings)
@@ -595,6 +597,7 @@ struct AddRecipeView: View {
         }
 
         dismiss()
+        onSave?()
     }
 }
 
