@@ -3,12 +3,14 @@ import SwiftData
 
 @Model
 final class InventoryLog {
+    @Attribute(.unique) var id: UUID
     var date: Date
     var change: Double
     var note: String
     var item: InventoryItem?
 
     init(change: Double, note: String = "", date: Date = Date()) {
+        self.id = UUID()
         self.date = date
         self.change = change
         self.note = note

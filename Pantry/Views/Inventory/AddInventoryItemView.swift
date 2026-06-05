@@ -100,6 +100,7 @@ struct AddInventoryItemView: View {
     private func save() {
         let initial = Double(initialQuantityText) ?? 0
         let current = Double(currentQuantityText) ?? initial
+        let savedItem: InventoryItem
 
         if let item = existingItem {
             let delta = current - item.currentQuantity
@@ -109,12 +110,12 @@ struct AddInventoryItemView: View {
             item.initialQuantity = initial
             item.currentQuantity = current
             item.dateBought = dateBought
-
             if delta != 0 {
                 let log = InventoryLog(change: delta, note: "Manual edit")
                 log.item = item
                 modelContext.insert(log)
             }
+            savedItem = item
         } else {
             let item = InventoryItem(
                 name: name.trimmingCharacters(in: .whitespaces),
@@ -125,14 +126,15 @@ struct AddInventoryItemView: View {
                 dateBought: dateBought
             )
             modelContext.insert(item)
-
             if current > 0 {
                 let log = InventoryLog(change: current, note: "Initial stock")
                 log.item = item
                 modelContext.insert(log)
             }
+            savedItem = item
         }
 
+        SyncService.shared.syncInventoryItem(savedItem)
         dismiss()
     }
 

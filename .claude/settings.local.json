@@ -6,7 +6,9 @@
       "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Views/Inventory)",
       "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Views/Shopping)",
       "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Services)",
-      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Pantry.xcodeproj -scheme Pantry -destination 'generic/platform=iOS Simulator' -configuration Debug build)"
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Pantry.xcodeproj -scheme Pantry -destination 'generic/platform=iOS Simulator' -configuration Debug build)",
+      "Bash(xcodegen generate *)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -resolvePackageDependencies -project Pantry.xcodeproj -scheme Pantry)"
     ]
   }
 }

@@ -334,6 +334,7 @@ struct AdjustQuantitySheet: View {
         let log = InventoryLog(change: change, note: note)
         log.item = item
         modelContext.insert(log)
+        SyncService.shared.syncInventoryItem(item)
         dismiss()
     }
 }

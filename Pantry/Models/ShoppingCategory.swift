@@ -3,6 +3,7 @@ import SwiftData
 
 @Model
 final class ShoppingCategory {
+    var cloudID: UUID
     var name: String
     var sortOrder: Int
 
@@ -10,6 +11,7 @@ final class ShoppingCategory {
     var items: [ShoppingItem]
 
     init(name: String, sortOrder: Int = 0) {
+        self.cloudID = UUID()
         self.name = name
         self.sortOrder = sortOrder
         self.items = []

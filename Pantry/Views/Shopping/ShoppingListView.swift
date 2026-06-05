@@ -81,14 +81,9 @@ struct ShoppingListView: View {
     private func addNewItem(to category: ShoppingCategory) {
         let newItem = ShoppingItem(name: "", category: category)
         modelContext.insert(newItem)
-        
-        // 1. Force SwiftData to instantly generate a permanent ID
         try? modelContext.save()
-        
-        // Pass focus immediately; the item row's .onAppear will capture this and display the keyboard
-        withAnimation {
-            focusedItemId = newItem.id
-        }
+        withAnimation { focusedItemId = newItem.id }
+        // Sync happens when item name is committed (validateAndCleanUp in ShoppingItemRow)
     }
 
     private func addCategory() {
@@ -96,6 +91,7 @@ struct ShoppingListView: View {
         guard !trimmed.isEmpty else { return }
         let category = ShoppingCategory(name: trimmed, sortOrder: categories.count)
         modelContext.insert(category)
+        SyncService.shared.syncShoppingCategory(category)
         newCategoryName = ""
     }
 
@@ -104,15 +100,15 @@ struct ShoppingListView: View {
         ordered.move(fromOffsets: from, toOffset: to)
         for (i, cat) in ordered.enumerated() {
             cat.sortOrder = i
+            SyncService.shared.syncShoppingCategory(cat)
         }
         try? modelContext.save()
     }
 
     private func clearAllChecked() {
         for category in categories {
-            for item in category.checkedItems {
-                modelContext.delete(item)
-            }
+            for item in category.checkedItems { modelContext.delete(item) }
+            SyncService.shared.syncShoppingCategory(category)
         }
     }
 }
@@ -168,6 +164,7 @@ struct ShoppingCategorySection: View {
                         Label("Rename", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
+                        SyncService.shared.deleteShoppingCategory(id: category.cloudID)
                         modelContext.delete(category)
                     } label: {
                         Label("Delete Category", systemImage: "trash")
@@ -182,7 +179,10 @@ struct ShoppingCategorySection: View {
             TextField("Category name", text: $newName)
             Button("Rename") {
                 let trimmed = newName.trimmingCharacters(in: .whitespaces)
-                if !trimmed.isEmpty { category.name = trimmed }
+                if !trimmed.isEmpty {
+                    category.name = trimmed
+                    SyncService.shared.syncShoppingCategory(category)
+                }
             }
             Button("Cancel", role: .cancel) {}
         }
@@ -190,9 +190,8 @@ struct ShoppingCategorySection: View {
 
     private func deleteItems(at offsets: IndexSet, from list: [ShoppingItem]) {
         let itemsToDelete = offsets.map { list[$0] }
-        for item in itemsToDelete {
-            modelContext.delete(item)
-        }
+        for item in itemsToDelete { modelContext.delete(item) }
+        SyncService.shared.syncShoppingCategory(category)
     }
 }
 
@@ -207,6 +206,7 @@ struct ShoppingItemRow: View {
             Button {
                 withAnimation(.spring(duration: 0.2)) {
                     item.isChecked.toggle()
+                    if let cat = item.category { SyncService.shared.syncShoppingCategory(cat) }
                 }
             } label: {
                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
@@ -257,6 +257,7 @@ struct ShoppingItemRow: View {
         } else {
             item.name = trimmed
         }
+        if let cat = item.category { SyncService.shared.syncShoppingCategory(cat) }
     }
 }
 

@@ -64,7 +64,9 @@ struct InventoryView: View {
     private func deleteItems(offsets: IndexSet, from location: String) {
         let locationItems = grouped[location] ?? []
         for index in offsets {
-            modelContext.delete(locationItems[index])
+            let item = locationItems[index]
+            SyncService.shared.deleteInventoryItem(id: item.id)
+            modelContext.delete(item)
         }
     }
 }
@@ -137,6 +139,7 @@ struct InventoryRowView: View {
         let log = InventoryLog(change: change)
         log.item = item
         modelContext.insert(log)
+        SyncService.shared.syncInventoryItem(item)
     }
 
     private func formatQuantity(_ val: Double) -> String {

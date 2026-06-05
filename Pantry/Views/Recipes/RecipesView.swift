@@ -136,6 +136,7 @@ struct RecipesView: View {
             )) {
                 Button("Delete", role: .destructive) {
                     if let recipe = recipeToDelete {
+                        SyncService.shared.deleteRecipe(id: recipe.id)
                         modelContext.delete(recipe)
                         recipeToDelete = nil
                     }
@@ -151,7 +152,9 @@ struct RecipesView: View {
 
     private func deleteRecipes(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(filtered[index])
+            let recipe = filtered[index]
+            SyncService.shared.deleteRecipe(id: recipe.id)
+            modelContext.delete(recipe)
         }
     }
 }

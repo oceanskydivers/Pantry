@@ -596,6 +596,7 @@ struct AddRecipeView: View {
             modelContext.insert(ingredient)
         }
 
+        SyncService.shared.syncRecipe(recipe)
         dismiss()
         onSave?()
     }
