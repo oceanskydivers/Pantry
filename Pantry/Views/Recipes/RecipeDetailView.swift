@@ -21,10 +21,20 @@ struct RecipeDetailView: View {
     @State private var scaledServings: Double
     @State private var showingEdit = false
     @State private var selectedTab: RecipeDetailTab = .ingredients
+    
+    // Cache the decoded UIImage to prevent main-thread re-decoding during animations
+    @State private var cachedImage: UIImage?
 
     init(recipe: Recipe) {
         self.recipe = recipe
         _scaledServings = State(initialValue: recipe.servings)
+        
+        // Pre-decode image data if present
+        if let data = recipe.imageData {
+            _cachedImage = State(initialValue: UIImage(data: data))
+        } else {
+            _cachedImage = State(initialValue: nil)
+        }
     }
 
     private var sortedIngredients: [Ingredient] {
@@ -34,8 +44,8 @@ struct RecipeDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // MARK: - Photo Header
-                if let data = recipe.imageData, let image = UIImage(data: data) {
+                // MARK: - Photo Header (Flicker-Free)
+                if let image = cachedImage {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -151,6 +161,14 @@ struct RecipeDetailView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(recipe.name)
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: recipe.imageData) { _, newData in
+            // Keep the cached image synchronized when editing the recipe changes the photo
+            if let data = newData {
+                cachedImage = UIImage(data: data)
+            } else {
+                cachedImage = nil
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") { showingEdit = true }
