@@ -10,12 +10,15 @@ enum RecipeLayout: String, CaseIterable, Identifiable {
 
 struct RecipesView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismissSearch) private var dismissSearch
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
 
     @AppStorage("recipeViewLayout") private var layout: RecipeLayout = .grid
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var showingAddSheet = false
     @State private var showingImportSheet = false
+    @State private var recipeToDelete: Recipe?
 
     private let columns = [
         GridItem(.flexible()),
@@ -37,36 +40,60 @@ struct RecipesView: View {
                         description: Text("Add your first recipe using the + button above.")
                     )
                 } else {
-                    Group {
-                        if layout == .list {
-                            List {
+                    if layout == .list {
+                        List {
+                            ForEach(filtered) { recipe in
+                                NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
+                                    RecipeRowView(recipe: recipe)
+                                }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        recipeToDelete = recipe
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                            }
+                            .onDelete(perform: deleteRecipes)
+                        }
+                    } else {
+                        ScrollView {
+                            LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(filtered) { recipe in
-                                    NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                                        RecipeRowView(recipe: recipe)
+                                    NavigationLink(value: recipe) {
+                                        RecipeCardView(recipe: recipe)
+                                            .frame(maxWidth: .infinity)
                                     }
-                                }
-                                .onDelete(perform: deleteRecipes)
-                            }
-                        } else {
-                            ScrollView {
-                                LazyVGrid(columns: columns, spacing: 12) {
-                                    ForEach(filtered) { recipe in
-                                        NavigationLink(value: recipe) {
-                                            RecipeCardView(recipe: recipe)
-                                                .frame(maxWidth: .infinity)
+                                    .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            recipeToDelete = recipe
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
                                         }
-                                        .buttonStyle(.plain)
+                                    } preview: {
+                                        RecipeCardView(recipe: recipe)
+                                            .frame(width: 200)
+                                            .background(Color(.secondarySystemGroupedBackground))
                                     }
                                 }
-                                .padding(16)
                             }
-                            .background(Color(.systemGroupedBackground))
-                            .navigationDestination(for: Recipe.self) { recipe in
-                                RecipeDetailView(recipe: recipe)
-                            }
+                            .padding(16)
+                        }
+                        .scrollDismissesKeyboard(.immediately)
+                        .background(Color(.systemGroupedBackground))
+                        .navigationDestination(for: Recipe.self) { recipe in
+                            RecipeDetailView(recipe: recipe)
                         }
                     }
-                    .searchable(text: $searchText, prompt: "Search recipes")
+                }
+            }
+            .searchable(text: $searchText, isPresented: $isSearching, prompt: "Search recipes")
+            .onSubmit(of: .search) {
+                if searchText.isEmpty {
+                    isSearching = false
+                } else {
+                    dismissSearch()
                 }
             }
             .navigationTitle("Recipes")
@@ -102,6 +129,22 @@ struct RecipesView: View {
             }
             .sheet(isPresented: $showingImportSheet) {
                 ImportRecipeView()
+            }
+            .alert("Delete Recipe", isPresented: Binding(
+                get: { recipeToDelete != nil },
+                set: { if !$0 { recipeToDelete = nil } }
+            )) {
+                Button("Delete", role: .destructive) {
+                    if let recipe = recipeToDelete {
+                        modelContext.delete(recipe)
+                        recipeToDelete = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    recipeToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete \"\(recipeToDelete?.name ?? "this recipe")\"?")
             }
         }
     }

@@ -17,9 +17,11 @@ enum RecipeDetailTab: Int, CaseIterable, Identifiable {
 struct RecipeDetailView: View {
     @Bindable var recipe: Recipe
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     @State private var scaledServings: Double
     @State private var showingEdit = false
+    @State private var showingDeleteAlert = false
     @State private var selectedTab: RecipeDetailTab = .ingredients
     
     // Cache the decoded UIImage to prevent main-thread re-decoding during animations
@@ -185,6 +187,19 @@ struct RecipeDetailView: View {
                         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
                     }
                 }
+                // MARK: - Delete Button
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Delete Recipe", systemImage: "trash")
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                }
             }
             .padding()
         }
@@ -206,6 +221,15 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $showingEdit) {
             AddRecipeView(existingRecipe: recipe)
+        }
+        .alert("Delete Recipe", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(recipe)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete \"\(recipe.name)\"? This cannot be undone.")
         }
     }
 }
