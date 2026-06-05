@@ -16,6 +16,7 @@
 		70EDFF8E07D24CB1EFF9EF39 /* AddInventoryItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B7161553EA2DB8B3543FC7 /* AddInventoryItemView.swift */; };
 		7567884B377F0D3625B35EFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D50567F005318E49277C33EC /* Assets.xcassets */; };
 		899328B92FD361CF0026D3C3 /* Color+App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899328B82FD361CF0026D3C3 /* Color+App.swift */; };
+		899328BB2FD36CA60026D3C3 /* IMG_7775.png in Resources */ = {isa = PBXBuildFile; fileRef = 899328BA2FD36CA60026D3C3 /* IMG_7775.png */; };
 		92D0E3440CDDD5A6B9E1142A /* Ingredient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D9C477F3C5795D7803EFF1 /* Ingredient.swift */; };
 		9FA28AF9B8A7367CB1BC0373 /* Recipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A3E4081CD8BC082ED4952E /* Recipe.swift */; };
 		ACEC4EBF25266AE4919BCB58 /* ShoppingCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297697CE126FD8E904A1DD77 /* ShoppingCategory.swift */; };
@@ -43,6 +44,7 @@
 		59274078D919D99517DD2B2A /* ImportRecipeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportRecipeView.swift; sourceTree = "<group>"; };
 		6A1D1BD9A03A8EBD0B143F5B /* RecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipesView.swift; sourceTree = "<group>"; };
 		899328B82FD361CF0026D3C3 /* Color+App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+App.swift"; sourceTree = "<group>"; };
+		899328BA2FD36CA60026D3C3 /* IMG_7775.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = IMG_7775.png; sourceTree = "<group>"; };
 		95B2AD112AC45ACF63B1B589 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2D65CE693B526DD1890E3A2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
 		A5D9C477F3C5795D7803EFF1 /* Ingredient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ingredient.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 		899328B72FD361CC0026D3C3 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				899328BA2FD36CA60026D3C3 /* IMG_7775.png */,
 				899328B82FD361CF0026D3C3 /* Color+App.swift */,
 			);
 			path = Extensions;
@@ -225,6 +228,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7567884B377F0D3625B35EFB /* Assets.xcassets in Resources */,
+				899328BB2FD36CA60026D3C3 /* IMG_7775.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
