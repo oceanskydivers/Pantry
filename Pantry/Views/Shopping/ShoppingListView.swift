@@ -148,9 +148,13 @@ struct ShoppingCategorySection: View {
             Button {
                 onAddItem()
             } label: {
-                Label("Add Item", systemImage: "plus")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.accentColor)
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                    Text("Add Item")
+                }
+                .font(.body)
+                .fontWeight(.medium)
+                .foregroundStyle(Color.accentColor)
             }
         } header: {
             HStack {
@@ -254,4 +258,9 @@ struct ShoppingItemRow: View {
             item.name = trimmed
         }
     }
+}
+
+#Preview {
+    @FocusState var focusedItemId: PersistentIdentifier?
+    ShoppingItemRow(item: ShoppingItem(name: "Test Item", category: nil), focusedItemId: $focusedItemId)
 }

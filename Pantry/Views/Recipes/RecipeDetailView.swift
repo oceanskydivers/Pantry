@@ -41,21 +41,34 @@ struct RecipeDetailView: View {
         recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    private var sourceHost: String {
+        guard let urlString = recipe.sourceURL, let url = URL(string: urlString) else { return "" }
+        return url.host() ?? urlString
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // MARK: - Photo Header (Flicker-Free)
+                // MARK: - Photo Header with Clean Border
                 if let image = cachedImage {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
                         .frame(height: 200)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(.systemGray5), lineWidth: 1)
+                        )
                         .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
                 } else {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color(.systemGray6))
                         .frame(height: 110)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(.systemGray5), lineWidth: 1)
+                        )
                         .overlay(
                             VStack(spacing: 6) {
                                 Image(systemName: "fork.knife")
@@ -66,16 +79,6 @@ struct RecipeDetailView: View {
                                     .foregroundStyle(.secondary)
                             }
                         )
-                }
-
-                // MARK: - Link to Original Recipe
-                if let url = recipe.sourceURL, !url.isEmpty {
-                    Link(destination: URL(string: url) ?? URL(string: "https://apple.com")!) {
-                        Label("View Original Recipe", systemImage: "link")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 4)
-                    }
                 }
 
                 // MARK: - Servings Quote Card
@@ -108,7 +111,7 @@ struct RecipeDetailView: View {
                                     scaledServings: scaledServings,
                                     originalServings: recipe.servings
                                 )
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 16) // Spacing between ingredients
                                 
                                 if index < sortedIngredients.count - 1 {
                                     Divider()
@@ -125,7 +128,7 @@ struct RecipeDetailView: View {
                         } else {
                             ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
                                 InstructionStepView(number: index + 1, text: step)
-                                    .padding(.vertical, 12)
+                                    .padding(.vertical, 16) // Spacing between instructions
                                 
                                 if index < recipe.instructions.count - 1 {
                                     Divider()
@@ -154,6 +157,33 @@ struct RecipeDetailView: View {
                     }
                     .padding()
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                }
+
+                // MARK: - Integrated Original Recipe Link Card
+                if let urlString = recipe.sourceURL, !urlString.isEmpty {
+                    Link(destination: URL(string: urlString) ?? URL(string: "https://apple.com")!) {
+                        HStack {
+                            Label("Source:", systemImage: "link")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            Text(sourceHost.isEmpty ? "View Original Recipe" : sourceHost)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.appAccent)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.footnote)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    }
                 }
             }
             .padding()
@@ -204,7 +234,7 @@ struct ServingsScalerView: View {
                     }
                     .font(.caption)
                     .fontWeight(.bold)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.appAccent)
                 }
             }
             
@@ -269,28 +299,34 @@ struct IngredientRowView: View {
     let originalServings: Double
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(spacing: 12) {
+            // Left Column indicator: height stretches dynamically with the parent HStack's fixed size
+            Capsule()
+                .fill(Color.appAccent)
+                .frame(width: 4)
+            
             let amount = ingredient.formattedAmount(for: scaledServings, originalServings: originalServings)
-            let amountAndUnit = [amount, ingredient.unit].filter { !$0.isEmpty }.joined(separator: " ")
+            let unitAndName = [ingredient.unit, ingredient.name].filter { !$0.isEmpty }.joined(separator: " ")
             
-            if !amountAndUnit.isEmpty {
-                Text(amountAndUnit)
-                    .font(.body)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.accentColor)
-            } else {
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 6))
-                    .foregroundStyle(Color.accentColor.opacity(0.5))
-                    .baselineOffset(2)
+            // Concatenated Text flow so that long names wrap smoothly back to the left margin
+            Group {
+                if !amount.isEmpty {
+                    Text(amount + " ")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    + Text(unitAndName)
+                        .foregroundStyle(.primary)
+                } else {
+                    Text(unitAndName)
+                        .foregroundStyle(.primary)
+                }
             }
-            
-            Text(ingredient.name)
-                .font(.body)
-                .foregroundStyle(.primary)
+            .font(.body)
+            .multilineTextAlignment(.leading)
             
             Spacer()
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -299,21 +335,41 @@ struct InstructionStepView: View {
     let number: Int
     let text: String
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Text("\(number)")
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 26, height: 26)
-                .background(Color.accentColor.opacity(0.12), in: Circle())
+    @State private var isMultiline: Bool = false
 
+    var body: some View {
+        HStack(spacing: 12) {
+            // Left Column indicator: height stretches dynamically with the parent HStack's fixed size
+            VStack {
+                Text("\(number)")
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.appAccent)
+                if isMultiline {
+                    Capsule()
+                        .fill(Color.appAccent)
+                        .frame(width: 4)
+                }
+            }
+
+            // Concatenated Text flow so that long instructions wrap smoothly back to the left margin
             Text(text)
-                .font(.body)
                 .foregroundStyle(.primary)
+                .font(.body)
                 .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+                .background(
+                    // Measure rendered height; if taller than a single line, the text wraps
+                    GeometryReader { geo in
+                        Color.clear.onAppear {
+                            let singleLineHeight = UIFont.preferredFont(forTextStyle: .body).lineHeight
+                            isMultiline = geo.size.height > singleLineHeight * 1.5
+                        }
+                    }
+                )
+
+            Spacer()
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

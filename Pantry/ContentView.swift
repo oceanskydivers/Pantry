@@ -18,5 +18,6 @@ struct ContentView: View {
                     Label("Shopping", systemImage: "cart")
                 }
         }
+        .tint(.appAccent)
     }
 }
