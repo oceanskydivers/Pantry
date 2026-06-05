@@ -65,6 +65,12 @@ actor RecipeImporter {
 
     private func parseRecipeJSON(_ json: Any) -> ImportedRecipe? {
         if let dict = json as? [String: Any] {
+            // Handle @graph wrapper (common in Yoast SEO / WordPress sites)
+            if let graph = dict["@graph"] as? [[String: Any]] {
+                for node in graph {
+                    if let recipe = parseRecipeDict(node) { return recipe }
+                }
+            }
             return parseRecipeDict(dict)
         }
         if let array = json as? [[String: Any]] {
@@ -115,6 +121,10 @@ actor RecipeImporter {
         if let num = value as? Int { return Double(num) }
         if let str = value as? String, let num = Double(str.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) {
             return max(1, num)
+        }
+        // Handle array yield e.g. ["8"] or ["8 servings"]
+        if let array = value as? [Any], let first = array.first {
+            return parseServings(first)
         }
         return 4
     }

@@ -3,7 +3,7 @@ import SwiftData
 import PhotosUI
 import UIKit
 
-// MARK: - UITextField wrapper that holds keyboard focus across row insertions
+// MARK: - UITextView wrapper for ingredients (supports multiline wrapping)
 
 private struct IngredientTextField: UIViewRepresentable {
     @Binding var text: String
@@ -14,43 +14,181 @@ private struct IngredientTextField: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeUIView(context: Context) -> UITextField {
-        let tf = UITextField()
-        tf.placeholder = placeholder
-        tf.delegate = context.coordinator
-        tf.returnKeyType = .next
-        tf.autocorrectionType = .yes
-        tf.autocapitalizationType = .sentences
-        tf.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return tf
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.delegate = context.coordinator
+        tv.font = UIFont.preferredFont(forTextStyle: .body)
+        tv.backgroundColor = .clear
+        tv.isScrollEnabled = false
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.returnKeyType = .next
+        tv.autocorrectionType = .yes
+        tv.autocapitalizationType = .sentences
+        tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return tv
     }
 
-    func updateUIView(_ tf: UITextField, context: Context) {
+    func updateUIView(_ tv: UITextView, context: Context) {
         context.coordinator.parent = self
-        if tf.text != text { tf.text = text }
-        // Only request focus, never programmatically resign — UIKit handles dismiss
-        if shouldBeFocused && !tf.isFirstResponder {
-            tf.becomeFirstResponder()
+        if tv.text != text { tv.text = text }
+        context.coordinator.updatePlaceholder(tv)
+        if shouldBeFocused && !tv.isFirstResponder {
+            tv.becomeFirstResponder()
         }
     }
 
-    class Coordinator: NSObject, UITextFieldDelegate {
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView tv: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIScreen.main.bounds.width
+        let size = tv.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: size.height)
+    }
+
+    class Coordinator: NSObject, UITextViewDelegate {
         var parent: IngredientTextField
+        weak var placeholderLabel: UILabel?
+        var submitHandled = false
+
         init(_ parent: IngredientTextField) { self.parent = parent }
 
-        func textField(_ tf: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-            if let r = Range(range, in: tf.text ?? "") {
-                parent.text = (tf.text ?? "").replacingCharacters(in: r, with: string)
+        func updatePlaceholder(_ tv: UITextView) {
+            if placeholderLabel == nil {
+                let label = UILabel()
+                label.text = parent.placeholder
+                label.font = tv.font
+                label.textColor = .placeholderText
+                label.numberOfLines = 0
+                label.translatesAutoresizingMaskIntoConstraints = false
+                tv.addSubview(label)
+                NSLayoutConstraint.activate([
+                    label.topAnchor.constraint(equalTo: tv.topAnchor),
+                    label.leadingAnchor.constraint(equalTo: tv.leadingAnchor),
+                    label.trailingAnchor.constraint(equalTo: tv.trailingAnchor)
+                ])
+                placeholderLabel = label
+            }
+            placeholderLabel?.isHidden = !tv.text.isEmpty
+        }
+
+        func textViewDidChange(_ tv: UITextView) {
+            parent.text = tv.text
+            placeholderLabel?.isHidden = !tv.text.isEmpty
+            tv.invalidateIntrinsicContentSize()
+        }
+
+        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            if text == "\n" {
+                let trimmed = tv.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty { submitHandled = true }
+                parent.onSubmit()
+                return false
             }
             return true
         }
 
-        func textFieldShouldReturn(_ tf: UITextField) -> Bool {
-            parent.onSubmit()
-            return false
+        func textViewDidEndEditing(_ tv: UITextView) {
+            if submitHandled {
+                submitHandled = false
+                return
+            }
+            parent.onEndEditing()
+        }
+    }
+}
+
+// MARK: - UITextView wrapper for multi-line instruction steps
+
+private struct InstructionTextView: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let shouldBeFocused: Bool
+    let onSubmit: () -> Void
+    let onEndEditing: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.delegate = context.coordinator
+        tv.font = UIFont.preferredFont(forTextStyle: .body)
+        tv.backgroundColor = .clear
+        tv.isScrollEnabled = false
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        // Use "next" return key to match ingredient behaviour
+        tv.returnKeyType = .next
+        tv.autocorrectionType = .yes
+        tv.autocapitalizationType = .sentences
+        tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return tv
+    }
+
+    func updateUIView(_ tv: UITextView, context: Context) {
+        context.coordinator.parent = self
+        // Update text only when it differs to avoid clobbering the cursor
+        if tv.text != text {
+            tv.text = text
+        }
+        context.coordinator.updatePlaceholder(tv)
+        if shouldBeFocused && !tv.isFirstResponder {
+            tv.becomeFirstResponder()
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView tv: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIScreen.main.bounds.width
+        let size = tv.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: size.height)
+    }
+
+    class Coordinator: NSObject, UITextViewDelegate {
+        var parent: InstructionTextView
+        weak var placeholderLabel: UILabel?
+        var submitHandled = false
+
+        init(_ parent: InstructionTextView) { self.parent = parent }
+
+        func updatePlaceholder(_ tv: UITextView) {
+            if placeholderLabel == nil {
+                let label = UILabel()
+                label.text = parent.placeholder
+                label.font = tv.font
+                label.textColor = .placeholderText
+                label.translatesAutoresizingMaskIntoConstraints = false
+                tv.addSubview(label)
+                NSLayoutConstraint.activate([
+                    label.topAnchor.constraint(equalTo: tv.topAnchor),
+                    label.leadingAnchor.constraint(equalTo: tv.leadingAnchor)
+                ])
+                placeholderLabel = label
+            }
+            placeholderLabel?.isHidden = !tv.text.isEmpty
         }
 
-        func textFieldDidEndEditing(_ tf: UITextField) {
+        func textViewDidChange(_ tv: UITextView) {
+            parent.text = tv.text
+            placeholderLabel?.isHidden = !tv.text.isEmpty
+            tv.invalidateIntrinsicContentSize()
+        }
+
+        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            // Treat return key as "submit / next step"
+            if text == "\n" {
+                let trimmed = tv.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty { submitHandled = true }
+                parent.onSubmit()
+                return false
+            }
+            return true
+        }
+
+        func textViewDidEndEditing(_ tv: UITextView) {
+            if submitHandled {
+                submitHandled = false
+                return
+            }
             parent.onEndEditing()
         }
     }
@@ -73,20 +211,56 @@ struct AddRecipeView: View {
         }
     }
 
+    struct InstructionStep: Identifiable, Hashable {
+        let id: UUID
+        var text: String
+
+        init(id: UUID = UUID(), text: String = "") {
+            self.id = id
+            self.text = text
+        }
+    }
+
     @State private var name = ""
     @State private var servings = 4.0
     @State private var notes = ""
     @State private var sourceURL = ""
-    @State private var instructions: [String] = [""]
+    @State private var instructionSteps: [InstructionStep] = [InstructionStep()]
     @State private var ingredientLines: [IngredientLine] = [IngredientLine()]
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageData: Data?
 
-    // Manage local reordering edit mode
-    @State private var editMode: EditMode = .inactive
+    init(existingRecipe: Recipe? = nil) {
+        self.existingRecipe = existingRecipe
+    }
 
-    // ID of the ingredient row that should hold keyboard focus
+    /// Initialise with data pre-filled from an import, ready for the user to review and edit.
+    init(importedRecipe: ImportedRecipe, sourceURL: String, imageData: Data?) {
+        self.existingRecipe = nil
+        _name = State(initialValue: importedRecipe.name)
+        _servings = State(initialValue: importedRecipe.servings)
+        _notes = State(initialValue: importedRecipe.notes)
+        _sourceURL = State(initialValue: sourceURL)
+        _imageData = State(initialValue: imageData)
+        let steps = importedRecipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        _instructionSteps = State(initialValue: steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) })
+        let lines = importedRecipe.ingredients.map { ing -> IngredientLine in
+            let amountText: String
+            if ing.amount <= 0 { amountText = "" }
+            else if ing.amount == ing.amount.rounded() { amountText = "\(Int(ing.amount))" }
+            else { amountText = String(format: "%.2g", ing.amount) }
+            let parts = [amountText, ing.unit, ing.name].filter { !$0.isEmpty }
+            return IngredientLine(text: parts.joined(separator: " "))
+        }
+        _ingredientLines = State(initialValue: lines.isEmpty ? [IngredientLine()] : lines)
+    }
+
+    // Separate edit modes for each reorderable section
+    @State private var ingredientEditMode: EditMode = .inactive
+    @State private var instructionEditMode: EditMode = .inactive
+
     @State private var focusedIngredientID: UUID? = nil
+    @State private var focusedInstructionID: UUID? = nil
 
     private var isEditing: Bool { existingRecipe != nil }
     private var title: String { isEditing ? "Edit Recipe" : "New Recipe" }
@@ -100,14 +274,7 @@ struct AddRecipeView: View {
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
 
-                    HStack {
-                        Text("Servings")
-                        Spacer()
-                        Stepper(value: $servings, in: 0.5...100, step: 0.5) {
-                            Text(servings == servings.rounded() ? "\(Int(servings))" : String(format: "%.1f", servings))
-                                .fontWeight(.semibold)
-                        }
-                    }
+                    ServingsTextField(servings: $servings, minimum: 0.5)
                 }
 
                 Section("Photo") {
@@ -138,6 +305,7 @@ struct AddRecipeView: View {
                     }
                 }
 
+                // MARK: Ingredients
                 Section {
                     ForEach($ingredientLines) { $line in
                         IngredientTextField(
@@ -147,50 +315,34 @@ struct AddRecipeView: View {
                             onSubmit: {
                                 let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
                                 if trimmed.isEmpty {
-                                    // Dismiss keyboard and remove the empty row
                                     focusedIngredientID = nil
                                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                                     withAnimation(.easeInOut(duration: 0.2)) {
-                                        if let index = ingredientLines.firstIndex(where: { $0.id == line.id }) {
-                                            ingredientLines.remove(at: index)
-                                        }
-                                        if ingredientLines.isEmpty {
-                                            ingredientLines = [IngredientLine()]
-                                        }
+                                        ingredientLines.removeAll { $0.id == line.id }
+                                        if ingredientLines.isEmpty { ingredientLines = [IngredientLine()] }
                                     }
                                 } else if let index = ingredientLines.firstIndex(where: { $0.id == line.id }) {
                                     let newLine = IngredientLine()
                                     ingredientLines.insert(newLine, at: index + 1)
-                                    // Set focus ID before SwiftUI re-renders so the new field
-                                    // calls becomeFirstResponder on its first updateUIView pass
                                     focusedIngredientID = newLine.id
                                 }
                             },
                             onEndEditing: {
-                                // Remove empty rows when the user taps away
                                 let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
                                 if trimmed.isEmpty {
                                     withAnimation(.easeInOut(duration: 0.2)) {
-                                        if let index = ingredientLines.firstIndex(where: { $0.id == line.id }) {
-                                            ingredientLines.remove(at: index)
-                                        }
-                                        if ingredientLines.isEmpty {
-                                            ingredientLines = [IngredientLine()]
-                                        }
+                                        ingredientLines.removeAll { $0.id == line.id }
+                                        if ingredientLines.isEmpty { ingredientLines = [IngredientLine()] }
                                     }
                                 }
                             }
                         )
                         .frame(maxWidth: .infinity)
                     }
-                    .onDelete { offsets in
-                        ingredientLines.remove(atOffsets: offsets)
-                    }
-                    .onMove { from, to in
-                        ingredientLines.move(fromOffsets: from, toOffset: to)
-                    }
+                    .onDelete { offsets in ingredientLines.remove(atOffsets: offsets) }
+                    .onMove { from, to in ingredientLines.move(fromOffsets: from, toOffset: to) }
 
-                    if editMode == .inactive {
+                    if ingredientEditMode == .inactive {
                         Button {
                             let newLine = IngredientLine()
                             ingredientLines.append(newLine)
@@ -203,39 +355,78 @@ struct AddRecipeView: View {
                     HStack {
                         Text("Ingredients")
                         Spacer()
-                        Button(editMode == .active ? "Done" : "Reorder") {
+                        Button(ingredientEditMode == .active ? "Done" : "Edit") {
                             withAnimation {
-                                editMode = editMode == .active ? .inactive : .active
+                                ingredientEditMode = ingredientEditMode == .active ? .inactive : .active
                             }
                         }
                         .font(.subheadline)
                         .fontWeight(.medium)
                     }
                 }
+                .environment(\.editMode, $ingredientEditMode)
 
-                Section("Instructions") {
-                    ForEach(instructions.indices, id: \.self) { i in
+                // MARK: Instructions
+                Section {
+                    ForEach($instructionSteps) { $step in
                         HStack(alignment: .top, spacing: 8) {
-                            Text("\(i + 1).")
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 8)
-                            TextField("Step \(i + 1)", text: $instructions[i], axis: .vertical)
-                                .lineLimit(2...5)
+                            InstructionTextView(
+                                text: $step.text,
+                                placeholder: "Step \(stepNumber(for: step))",
+                                shouldBeFocused: focusedInstructionID == step.id,
+                                onSubmit: {
+                                    let trimmed = step.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if trimmed.isEmpty {
+                                        focusedInstructionID = nil
+                                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            instructionSteps.removeAll { $0.id == step.id }
+                                            if instructionSteps.isEmpty { instructionSteps = [InstructionStep()] }
+                                        }
+                                    } else if let index = instructionSteps.firstIndex(where: { $0.id == step.id }) {
+                                        let newStep = InstructionStep()
+                                        instructionSteps.insert(newStep, at: index + 1)
+                                        focusedInstructionID = newStep.id
+                                    }
+                                },
+                                onEndEditing: {
+                                    let trimmed = step.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if trimmed.isEmpty {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            instructionSteps.removeAll { $0.id == step.id }
+                                            if instructionSteps.isEmpty { instructionSteps = [InstructionStep()] }
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
-                    .onDelete { offsets in
-                        instructions.remove(atOffsets: offsets)
-                    }
-                    .onMove { from, to in
-                        instructions.move(fromOffsets: from, toOffset: to)
-                    }
+                    .onDelete { offsets in instructionSteps.remove(atOffsets: offsets) }
+                    .onMove { from, to in instructionSteps.move(fromOffsets: from, toOffset: to) }
 
-                    Button {
-                        instructions.append("")
-                    } label: {
-                        Label("Add Step", systemImage: "plus")
+                    if instructionEditMode == .inactive {
+                        Button {
+                            let newStep = InstructionStep()
+                            instructionSteps.append(newStep)
+                            focusedInstructionID = newStep.id
+                        } label: {
+                            Label("Add Step", systemImage: "plus")
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("Instructions")
+                        Spacer()
+                        Button(instructionEditMode == .active ? "Done" : "Edit") {
+                            withAnimation {
+                                instructionEditMode = instructionEditMode == .active ? .inactive : .active
+                            }
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     }
                 }
+                .environment(\.editMode, $instructionEditMode)
 
                 Section("Notes") {
                     TextField("Any extra notes...", text: $notes, axis: .vertical)
@@ -244,7 +435,6 @@ struct AddRecipeView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .environment(\.editMode, $editMode)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -258,6 +448,10 @@ struct AddRecipeView: View {
         }
     }
 
+    private func stepNumber(for step: InstructionStep) -> Int {
+        (instructionSteps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1
+    }
+
     private func loadExisting() {
         guard let recipe = existingRecipe else { return }
         name = recipe.name
@@ -265,7 +459,9 @@ struct AddRecipeView: View {
         notes = recipe.notes
         sourceURL = recipe.sourceURL ?? ""
         imageData = recipe.imageData
-        instructions = recipe.instructions.isEmpty ? [""] : recipe.instructions
+
+        let steps = recipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        instructionSteps = steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) }
 
         let sorted = recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }
         ingredientLines = sorted.isEmpty ? [IngredientLine()] : sorted.map { ingredient in
@@ -292,33 +488,23 @@ struct AddRecipeView: View {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return (0, "", "") }
 
-        // 1. Extract leading quantity/number (includes fractions, vulgar fractions, and spaces/dashes)
         let quantityPattern = #"^([0-9\s./\-½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]+)"#
         guard let regex = try? NSRegularExpression(pattern: quantityPattern),
               let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..., in: trimmed)),
               let quantityRange = Range(match.range(at: 1), in: trimmed) else {
-            // No numerical prefix; whole line is the ingredient name (e.g. "salt to taste")
             return (0, "", trimmed)
         }
 
         let rawQuantity = String(trimmed[quantityRange]).trimmingCharacters(in: .whitespacesAndNewlines)
         let remainingText = String(trimmed[quantityRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-
         let amount = parseAmount(rawQuantity)
 
-        if remainingText.isEmpty {
-            return (amount, "", "")
-        }
+        if remainingText.isEmpty { return (amount, "", "") }
 
-        // 2. Extract Unit
         let words = remainingText.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        guard let firstWord = words.first else {
-            return (amount, "", remainingText)
-        }
+        guard let firstWord = words.first else { return (amount, "", remainingText) }
 
-        // Standardize common unit comparisons
         let cleanFirstWord = firstWord.trimmingCharacters(in: .punctuationCharacters).lowercased()
-
         let commonUnits: Set<String> = [
             "cup", "cups", "c", "c.",
             "tbsp", "tbsps", "tablespoon", "tablespoons", "tbs", "tbs.",
@@ -339,11 +525,9 @@ struct AddRecipeView: View {
         ]
 
         if commonUnits.contains(cleanFirstWord) {
-            let unit = firstWord
             let name = words.dropFirst().joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-            return (amount, unit, name)
+            return (amount, firstWord, name)
         } else {
-            // No recognized unit word; remaining text is all name (e.g., "1 onion")
             return (amount, "", remainingText)
         }
     }
@@ -359,18 +543,13 @@ struct AddRecipeView: View {
             "⅛": 0.125, "⅜": 0.375, "⅝": 0.625, "⅞": 0.875
         ]
         if let val = vulgarFractions[clean] { return val }
-
         if let doubleVal = Double(clean) { return doubleVal }
 
-        // Handle mixed numbers (e.g., "1 1/2" or "1-1/2")
         let components = clean.components(separatedBy: CharacterSet(charactersIn: " -")).filter { !$0.isEmpty }
         if components.count == 2 {
-            let wholePart = Double(components[0]) ?? 0
-            let fractionPart = parseAmount(components[1])
-            return wholePart + fractionPart
+            return (Double(components[0]) ?? 0) + parseAmount(components[1])
         }
 
-        // Handle simple fractions (e.g. "1/2")
         let fractionComponents = clean.split(separator: "/")
         if fractionComponents.count == 2,
            let numerator = Double(fractionComponents[0]),
@@ -389,15 +568,15 @@ struct AddRecipeView: View {
         recipe.notes = notes
         recipe.sourceURL = sourceURL.isEmpty ? nil : sourceURL
         recipe.imageData = imageData
-        recipe.instructions = instructions.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        recipe.instructions = instructionSteps
+            .map { $0.text.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
 
         if existingRecipe == nil {
             modelContext.insert(recipe)
         }
 
-        for existing in recipe.ingredients {
-            modelContext.delete(existing)
-        }
+        for existing in recipe.ingredients { modelContext.delete(existing) }
         recipe.ingredients = []
 
         for (i, line) in ingredientLines.enumerated() {
@@ -418,3 +597,31 @@ struct AddRecipeView: View {
         dismiss()
     }
 }
+
+// MARK: - ServingsTextField
+
+struct ServingsTextField: View {
+    @Binding var servings: Double
+    var minimum: Double? = nil
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack {
+            Text("Servings")
+            Spacer()
+            TextField("1", value: $servings, format: .number.precision(.fractionLength(0...2)))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .focused($isFocused)
+                .onChange(of: isFocused) { _, focused in
+                    if !focused, let min = minimum, servings < min {
+                        servings = min
+                    }
+                }
+        }
+        .contentShape(Rectangle())
+        .highPriorityGesture(TapGesture().onEnded { isFocused = true })
+    }
+}
+

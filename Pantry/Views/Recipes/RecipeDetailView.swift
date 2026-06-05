@@ -19,71 +19,92 @@ struct RecipeDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
+                // Recipe Hero Image or Clean Placeholder Card
                 if let data = recipe.imageData, let image = UIImage(data: data) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 240)
-                        .clipped()
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
                 } else {
-                    Rectangle()
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(Color(.systemGray6))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 160)
+                        .frame(height: 120)
                         .overlay(
-                            Image(systemName: "photo")
-                                .font(.system(size: 40))
-                                .foregroundStyle(.secondary)
+                            VStack(spacing: 8) {
+                                Image(systemName: "fork.knife")
+                                    .font(.title2)
+                                    .foregroundStyle(.secondary)
+                                Text("Add a photo to this recipe")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         )
                 }
 
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Original Recipe Link
                     if let url = recipe.sourceURL, !url.isEmpty {
                         Link(destination: URL(string: url) ?? URL(string: "https://apple.com")!) {
                             Label("View Original Recipe", systemImage: "link")
                                 .font(.subheadline)
+                                .fontWeight(.medium)
                         }
                     }
 
+                    // Scaler Controls
                     ServingsScalerView(
                         originalServings: recipe.servings,
                         scaledServings: $scaledServings
                     )
 
+                    // Ingredients Section
                     if !sortedIngredients.isEmpty {
-                        SectionHeader(title: "Ingredients")
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(sortedIngredients) { ingredient in
-                                IngredientRowView(
-                                    ingredient: ingredient,
-                                    scaledServings: scaledServings,
-                                    originalServings: recipe.servings
-                                )
+                        VStack(alignment: .leading, spacing: 14) {
+                            SectionHeader(title: "Ingredients")
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(sortedIngredients) { ingredient in
+                                    IngredientRowView(
+                                        ingredient: ingredient,
+                                        scaledServings: scaledServings,
+                                        originalServings: recipe.servings
+                                    )
+                                }
                             }
                         }
                     }
 
+                    // Instructions Section
                     if !recipe.instructions.isEmpty {
-                        SectionHeader(title: "Instructions")
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
-                                InstructionStepView(number: index + 1, text: step)
+                        VStack(alignment: .leading, spacing: 14) {
+                            SectionHeader(title: "Instructions")
+                            VStack(alignment: .leading, spacing: 16) {
+                                ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
+                                    InstructionStepView(number: index + 1, text: step)
+                                }
                             }
                         }
                     }
 
+                    // Notes Section
                     if !recipe.notes.isEmpty {
-                        SectionHeader(title: "Notes")
-                        Text(recipe.notes)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "Notes")
+                            Text(recipe.notes)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(4)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(.systemGray6).opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                        }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 32)
             }
+            .padding(.horizontal)
+            .padding(.vertical, 16)
         }
         .navigationTitle(recipe.name)
         .navigationBarTitleDisplayMode(.large)
@@ -103,44 +124,64 @@ struct ServingsScalerView: View {
     @Binding var scaledServings: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Servings")
-                    .font(.headline)
-                Spacer()
-                if scaledServings != originalServings {
-                    Button("Reset") { scaledServings = originalServings }
-                        .font(.caption)
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-
-            HStack(spacing: 16) {
+        HStack(spacing: 12) {
+            Label("Servings", systemImage: "person.2")
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+            
+            Spacer()
+            
+            HStack(spacing: 0) {
                 Button {
-                    if scaledServings > 0.5 { scaledServings = max(0.5, scaledServings - 0.5) }
+                    if scaledServings > 0.5 {
+                        withAnimation(.interactiveSpring) {
+                            scaledServings = max(0.5, scaledServings - 0.5)
+                        }
+                    }
                 } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(scaledServings > 0.5 ? Color.accentColor : Color.secondary)
+                    Image(systemName: "minus")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                 }
                 .disabled(scaledServings <= 0.5)
-
+                
                 Text(formatServings(scaledServings))
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .frame(minWidth: 40, alignment: .center)
-
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .frame(minWidth: 32)
+                
                 Button {
-                    scaledServings += 0.5
+                    withAnimation(.interactiveSpring) {
+                        scaledServings += 0.5
+                    }
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.accentColor)
+                    Image(systemName: "plus")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                 }
             }
+            .background(Color(.systemGray6), in: Capsule())
+            
+            if scaledServings != originalServings {
+                Button("Reset") {
+                    withAnimation(.interactiveSpring) {
+                        scaledServings = originalServings
+                    }
+                }
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(Color.accentColor)
+            }
         }
-        .padding()
-        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(Color(.systemGray6).opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func formatServings(_ val: Double) -> String {
@@ -155,14 +196,27 @@ struct IngredientRowView: View {
     let originalServings: Double
 
     var body: some View {
-        HStack {
-            Circle()
-                .fill(Color.accentColor.opacity(0.2))
-                .frame(width: 6, height: 6)
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             let amount = ingredient.formattedAmount(for: scaledServings, originalServings: originalServings)
-            let parts = [amount, ingredient.unit, ingredient.name].filter { !$0.isEmpty }
-            Text(parts.joined(separator: " "))
+            let amountAndUnit = [amount, ingredient.unit].filter { !$0.isEmpty }.joined(separator: " ")
+            
+            if !amountAndUnit.isEmpty {
+                Text(amountAndUnit)
+                    .font(.body)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.accentColor)
+            } else {
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 6))
+                    .foregroundStyle(Color.accentColor.opacity(0.5))
+                    .baselineOffset(2)
+            }
+            
+            Text(ingredient.name)
                 .font(.body)
+                .foregroundStyle(.primary)
+            
+            Spacer()
         }
     }
 }
@@ -172,15 +226,18 @@ struct InstructionStepView: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 14) {
             Text("\(number)")
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(width: 28, height: 28)
-                .background(Color.accentColor, in: Circle())
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 26, height: 26)
+                .background(Color.accentColor.opacity(0.12), in: Circle())
 
             Text(text)
                 .font(.body)
+                .foregroundStyle(.primary)
+                .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -189,8 +246,12 @@ struct InstructionStepView: View {
 struct SectionHeader: View {
     let title: String
     var body: some View {
-        Text(title)
-            .font(.title2)
-            .fontWeight(.bold)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundStyle(.primary)
+            Divider()
+        }
     }
 }
