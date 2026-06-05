@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Models)",
+      "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Views/Recipes)",
+      "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Views/Inventory)",
+      "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Views/Shopping)",
+      "Bash(mkdir -p /Users/oceanskydivers/Documents/Pantry/Pantry/Services)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Pantry.xcodeproj -scheme Pantry -destination 'generic/platform=iOS Simulator' -configuration Debug build)"
+    ]
+  }
+}

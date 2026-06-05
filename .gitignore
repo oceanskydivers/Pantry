@@ -1,0 +1,37 @@
+# Xcode
+# Build generated files
+build/
+DerivedData/
+
+# User settings - keeps window positions and local state out of Git
+xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# IMPORTANT: Do NOT ignore shared data if you want to share schemes with teammates
+# !xcshareddata/
+# !xcschemes/
+
+# Packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+
+# CocoaPods
+# It is recommended to commit Pods/ to ensure builds are reproducible, 
+# but some developers prefer to ignore it and run 'pod install' locally.
+# Pods/
+
+# Carthage
+Carthage/Build/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
