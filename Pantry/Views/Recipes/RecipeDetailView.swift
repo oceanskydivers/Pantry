@@ -1,12 +1,26 @@
 import SwiftUI
 import SwiftData
 
+enum RecipeDetailTab: Int, CaseIterable, Identifiable {
+    case ingredients = 0
+    case instructions = 1
+
+    var id: Int { self.rawValue }
+    var title: String {
+        switch self {
+        case .ingredients: return "Ingredients"
+        case .instructions: return "Instructions"
+        }
+    }
+}
+
 struct RecipeDetailView: View {
     @Bindable var recipe: Recipe
     @Environment(\.modelContext) private var modelContext
 
     @State private var scaledServings: Double
     @State private var showingEdit = false
+    @State private var selectedTab: RecipeDetailTab = .ingredients
 
     init(recipe: Recipe) {
         self.recipe = recipe
@@ -19,95 +33,124 @@ struct RecipeDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Recipe Hero Image or Clean Placeholder Card
+            VStack(alignment: .leading, spacing: 20) {
+                // MARK: - Photo Header
                 if let data = recipe.imageData, let image = UIImage(data: data) {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(height: 220)
+                        .frame(height: 200)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+                        .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
                 } else {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color(.systemGray6))
-                        .frame(height: 120)
+                        .frame(height: 110)
                         .overlay(
-                            VStack(spacing: 8) {
+                            VStack(spacing: 6) {
                                 Image(systemName: "fork.knife")
                                     .font(.title2)
                                     .foregroundStyle(.secondary)
-                                Text("Add a photo to this recipe")
+                                Text("No photo added yet")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         )
                 }
 
-                VStack(alignment: .leading, spacing: 24) {
-                    // Original Recipe Link
-                    if let url = recipe.sourceURL, !url.isEmpty {
-                        Link(destination: URL(string: url) ?? URL(string: "https://apple.com")!) {
-                            Label("View Original Recipe", systemImage: "link")
+                // MARK: - Link to Original Recipe
+                if let url = recipe.sourceURL, !url.isEmpty {
+                    Link(destination: URL(string: url) ?? URL(string: "https://apple.com")!) {
+                        Label("View Original Recipe", systemImage: "link")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 4)
+                    }
+                }
+
+                // MARK: - Servings Quote Card
+                ServingsScalerView(
+                    originalServings: recipe.servings,
+                    scaledServings: $scaledServings
+                )
+
+                // MARK: - Segmented Tab Picker
+                Picker("Recipe Section", selection: $selectedTab) {
+                    ForEach(RecipeDetailTab.allCases) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                // MARK: - Content Card Panel
+                VStack(alignment: .leading, spacing: 0) {
+                    if selectedTab == .ingredients {
+                        if sortedIngredients.isEmpty {
+                            Text("No ingredients listed.")
                                 .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                    }
-
-                    // Scaler Controls
-                    ServingsScalerView(
-                        originalServings: recipe.servings,
-                        scaledServings: $scaledServings
-                    )
-
-                    // Ingredients Section
-                    if !sortedIngredients.isEmpty {
-                        VStack(alignment: .leading, spacing: 14) {
-                            SectionHeader(title: "Ingredients")
-                            VStack(alignment: .leading, spacing: 12) {
-                                ForEach(sortedIngredients) { ingredient in
-                                    IngredientRowView(
-                                        ingredient: ingredient,
-                                        scaledServings: scaledServings,
-                                        originalServings: recipe.servings
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Instructions Section
-                    if !recipe.instructions.isEmpty {
-                        VStack(alignment: .leading, spacing: 14) {
-                            SectionHeader(title: "Instructions")
-                            VStack(alignment: .leading, spacing: 16) {
-                                ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
-                                    InstructionStepView(number: index + 1, text: step)
-                                }
-                            }
-                        }
-                    }
-
-                    // Notes Section
-                    if !recipe.notes.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "Notes")
-                            Text(recipe.notes)
-                                .font(.body)
                                 .foregroundStyle(.secondary)
-                                .lineSpacing(4)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(.systemGray6).opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 24)
+                        } else {
+                            ForEach(Array(sortedIngredients.enumerated()), id: \.element.id) { index, ingredient in
+                                IngredientRowView(
+                                    ingredient: ingredient,
+                                    scaledServings: scaledServings,
+                                    originalServings: recipe.servings
+                                )
+                                .padding(.vertical, 12)
+                                
+                                if index < sortedIngredients.count - 1 {
+                                    Divider()
+                                }
+                            }
+                        }
+                    } else {
+                        if recipe.instructions.isEmpty {
+                            Text("No instructions listed.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 24)
+                        } else {
+                            ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
+                                InstructionStepView(number: index + 1, text: step)
+                                    .padding(.vertical, 12)
+                                
+                                if index < recipe.instructions.count - 1 {
+                                    Divider()
+                                }
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+
+                // MARK: - Shared Notes Card
+                if !recipe.notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Notes", systemImage: "note.text")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+
+                        Text(recipe.notes)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 16)
+            .padding()
         }
+        .background(Color(.systemGroupedBackground))
         .navigationTitle(recipe.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") { showingEdit = true }
@@ -119,69 +162,80 @@ struct RecipeDetailView: View {
     }
 }
 
+// MARK: - Servings Quote Card View
 struct ServingsScalerView: View {
     let originalServings: Double
     @Binding var scaledServings: Double
 
     var body: some View {
-        HStack(spacing: 12) {
-            Label("Servings", systemImage: "person.2")
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            HStack(spacing: 0) {
-                Button {
-                    if scaledServings > 0.5 {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Servings", systemImage: "person.2")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                
+                Spacer()
+                
+                if scaledServings != originalServings {
+                    Button("Reset") {
                         withAnimation(.interactiveSpring) {
-                            scaledServings = max(0.5, scaledServings - 0.5)
+                            scaledServings = originalServings
                         }
                     }
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                }
-                .disabled(scaledServings <= 0.5)
-                
-                Text(formatServings(scaledServings))
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(.bold)
-                    .monospacedDigit()
-                    .frame(minWidth: 32)
-                
-                Button {
-                    withAnimation(.interactiveSpring) {
-                        scaledServings += 0.5
-                    }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                    .foregroundStyle(Color.accentColor)
                 }
             }
-            .background(Color(.systemGray6), in: Capsule())
             
-            if scaledServings != originalServings {
-                Button("Reset") {
-                    withAnimation(.interactiveSpring) {
-                        scaledServings = originalServings
+            HStack {
+                Text("Scale quantities")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                HStack(spacing: 0) {
+                    Button {
+                        if scaledServings > 0.5 {
+                            withAnimation(.interactiveSpring) {
+                                scaledServings = max(0.5, scaledServings - 0.5)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "minus")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                    }
+                    .disabled(scaledServings <= 0.5)
+                    
+                    Text(formatServings(scaledServings))
+                        .font(.body)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .frame(minWidth: 36)
+                    
+                    Button {
+                        withAnimation(.interactiveSpring) {
+                            scaledServings += 0.5
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                     }
                 }
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(Color.accentColor)
+                .background(Color(.systemGray6), in: Capsule())
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 14)
-        .background(Color(.systemGray6).opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func formatServings(_ val: Double) -> String {
@@ -190,6 +244,7 @@ struct ServingsScalerView: View {
     }
 }
 
+// MARK: - Ingredient Row View
 struct IngredientRowView: View {
     let ingredient: Ingredient
     let scaledServings: Double
@@ -221,6 +276,7 @@ struct IngredientRowView: View {
     }
 }
 
+// MARK: - Instruction Row View
 struct InstructionStepView: View {
     let number: Int
     let text: String
@@ -243,15 +299,3 @@ struct InstructionStepView: View {
     }
 }
 
-struct SectionHeader: View {
-    let title: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundStyle(.primary)
-            Divider()
-        }
-    }
-}
