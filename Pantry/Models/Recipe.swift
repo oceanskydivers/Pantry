@@ -9,6 +9,7 @@ final class Recipe {
     var notes: String
     var instructions: [String]
     var imageData: Data?
+    var imageStoragePath: String?
     var servings: Double
     var createdAt: Date
 

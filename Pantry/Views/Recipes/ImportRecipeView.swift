@@ -9,6 +9,13 @@ struct ImportRecipeView: View {
     @State private var errorMessage: String?
     @State private var pendingImport: PendingImportWrapper?
 
+    private var clipboardURL: String? {
+        guard let string = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let url = URL(string: string), url.scheme == "https" || url.scheme == "http"
+        else { return nil }
+        return string
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -19,6 +26,35 @@ struct ImportRecipeView: View {
                         .autocorrectionDisabled()
                         .focused($isURLFieldFocused)
                         .onAppear { isURLFieldFocused = true }
+
+                    if let clip = clipboardURL {
+                        Button {
+                            urlString = clip
+                            isURLFieldFocused = false
+                            Task { await fetchRecipe() }
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.clipboard")
+                                    .foregroundStyle(.black)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Paste & Import")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.black)
+                                    Text(clip)
+                                        .font(.caption)
+                                        .foregroundStyle(.black.opacity(0.6))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    }
                 }
 
                 if let error = errorMessage {

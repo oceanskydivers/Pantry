@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseStorage
 import SwiftData
 
 // MARK: - SyncService
@@ -192,9 +193,12 @@ final class SyncService {
 
     func syncRecipe(_ recipe: Recipe) {
         guard !isApplyingCloudUpdate, let uid = currentUID else { return }
-        let data = encodeRecipe(recipe)
-        let path = "users/\(uid)/recipes/\(recipe.id.uuidString)"
-        Task { try? await self.db.document(path).setData(data) }
+        Task {
+            await uploadImageIfNeeded(for: recipe, uid: uid)
+            let data = encodeRecipe(recipe)
+            let path = "users/\(uid)/recipes/\(recipe.id.uuidString)"
+            try? await self.db.document(path).setData(data)
+        }
     }
 
     func deleteRecipe(id: UUID) {
@@ -229,6 +233,43 @@ final class SyncService {
         Task { try? await self.db.document(path).delete() }
     }
 
+    // MARK: - Firebase Storage helpers
+
+    /// Uploads imageData to Storage (if not already uploaded) and sets imageStoragePath on the recipe.
+    private func uploadImageIfNeeded(for recipe: Recipe, uid: String) async {
+        guard let imageData = recipe.imageData else {
+            // Image was removed — delete from Storage if we have a path
+            if let path = recipe.imageStoragePath {
+                try? await Storage.storage().reference(withPath: path).delete()
+                recipe.imageStoragePath = nil
+            }
+            return
+        }
+        let expectedPath = "users/\(uid)/recipes/\(recipe.id.uuidString)/photo.jpg"
+        if recipe.imageStoragePath == expectedPath { return }
+
+        let ref = Storage.storage().reference(withPath: expectedPath)
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        _ = try? await ref.putDataAsync(imageData, metadata: metadata)
+        recipe.imageStoragePath = expectedPath
+        try? modelContainer?.mainContext.save()
+    }
+
+    /// Downloads image bytes from Storage and caches them into the recipe's local imageData.
+    private func fetchAndCacheImage(path: String, recipeID: UUID) async {
+        guard let context = modelContainer?.mainContext else { return }
+        let descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == recipeID })
+        guard let recipe = (try? context.fetch(descriptor))?.first else { return }
+        guard recipe.imageData == nil else { return }
+        let ref = Storage.storage().reference(withPath: path)
+        if let data = try? await ref.data(maxSize: 10 * 1024 * 1024) {
+            guard let fresh = (try? context.fetch(descriptor))?.first else { return }
+            fresh.imageData = data
+            try? context.save()
+        }
+    }
+
     // MARK: - Encoding (local → dict)
 
     private func encodeRecipe(_ recipe: Recipe) -> [String: Any] {
@@ -241,6 +282,7 @@ final class SyncService {
             "createdAt": Timestamp(date: recipe.createdAt)
         ]
         if let url = recipe.sourceURL { d["sourceURL"] = url }
+        if let path = recipe.imageStoragePath { d["imageStoragePath"] = path }
         d["ingredients"] = recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }.map { ing in
             ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
         }
@@ -301,6 +343,11 @@ final class SyncService {
         recipe.notes = data["notes"] as? String ?? ""
         recipe.instructions = data["instructions"] as? [String] ?? []
         recipe.sourceURL = data["sourceURL"] as? String
+        if let path = data["imageStoragePath"] as? String, path != recipe.imageStoragePath {
+            recipe.imageStoragePath = path
+            let recipeID = recipe.id
+            Task { await self.fetchAndCacheImage(path: path, recipeID: recipeID) }
+        }
         if let ts = data["createdAt"] as? Timestamp { recipe.createdAt = ts.dateValue() }
 
         if let ings = data["ingredients"] as? [[String: Any]] {

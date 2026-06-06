@@ -56,6 +56,7 @@ final class FirebaseManager {
         if let anon = prevUID, anon != result.user.uid {
             await SyncService.shared.migrateData(from: anon, to: result.user.uid)
         }
+        currentUser = Auth.auth().currentUser
     }
 
     func createAccount(email: String, password: String, displayName: String) async throws {
@@ -136,16 +137,19 @@ final class FirebaseManager {
             do {
                 let result = try await user.link(with: credential)
                 await updateDisplayName(displayName, for: result.user)
+                currentUser = Auth.auth().currentUser
             } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
                 // Credential belongs to a different account — migrate local data then sign in
                 let anonUID = user.uid
                 let newResult = try await Auth.auth().signIn(with: credential)
                 await SyncService.shared.migrateData(from: anonUID, to: newResult.user.uid)
                 await updateDisplayName(displayName, for: newResult.user)
+                currentUser = Auth.auth().currentUser
             }
         } else {
             let result = try await Auth.auth().signIn(with: credential)
             await updateDisplayName(displayName, for: result.user)
+            currentUser = Auth.auth().currentUser
         }
     }
 

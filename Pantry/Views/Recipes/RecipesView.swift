@@ -10,7 +10,6 @@ enum RecipeLayout: String, CaseIterable, Identifiable {
 
 struct RecipesView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismissSearch) private var dismissSearch
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
 
     @AppStorage("recipeViewLayout") private var layout: RecipeLayout = .grid
@@ -88,18 +87,9 @@ struct RecipesView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, isPresented: $isSearching, prompt: "Search recipes")
-            .onSubmit(of: .search) {
-                if searchText.isEmpty {
-                    isSearching = false
-                } else {
-                    dismissSearch()
-                }
-            }
             .navigationTitle("Recipes")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    // Layout Toggle Button
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             layout = (layout == .list) ? .grid : .list
@@ -111,7 +101,12 @@ struct RecipesView: View {
                         )
                     }
 
-                    // Add Recipe Menu Button
+                    Button {
+                        withAnimation(.spring(duration: 0.3)) { isSearching = true }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+
                     Menu {
                         Button(action: { showingAddSheet = true }) {
                             Label("Add Manually", systemImage: "square.and.pencil")
@@ -147,6 +142,17 @@ struct RecipesView: View {
             } message: {
                 Text("Are you sure you want to delete \"\(recipeToDelete?.name ?? "this recipe")\"?")
             }
+            .overlay(alignment: .bottom) {
+                if isSearching {
+                    FloatingSearchBar(text: $searchText) {
+                        withAnimation(.spring(duration: 0.3)) {
+                            isSearching = false
+                            searchText = ""
+                        }
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
     }
 
@@ -158,6 +164,59 @@ struct RecipesView: View {
         }
     }
 }
+
+// MARK: - Floating Search Bar
+
+private struct FloatingSearchBar: View {
+    @Binding var text: String
+    let onDismiss: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("Search recipes", text: $text)
+                    .focused($isFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
+            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 32))
+            .shadow(color: .secondary, radius: 5)
+
+            Button {
+                onDismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+                    .glassBackground()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .onAppear { isFocused = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            if text.isEmpty { onDismiss() }
+        }
+    }
+}
+
+// MARK: - Recipe Row View
 
 struct RecipeRowView: View {
     let recipe: Recipe
@@ -190,9 +249,6 @@ struct RecipeRowView: View {
     }
 }
 
-
-
-
 #Preview("Grid") {
     let recipes = [
         Recipe(name: "Spaghetti Bolognese", servings: 4),
@@ -215,12 +271,27 @@ struct RecipeRowView: View {
     }
 }
 
+#Preview("Recipes") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Recipe.self, configurations: config)
+    let recipes = [
+        Recipe(name: "Spaghetti Bolognese", servings: 4),
+        Recipe(name: "Short", servings: 2),
+        Recipe(name: "Thai Green Curry with Jasmine Rice", servings: 6),
+        Recipe(name: "Eggs", servings: 1),
+    ]
+    for recipe in recipes {
+        container.mainContext.insert(recipe)
+    }
+    return RecipesView()
+        .modelContainer(container)
+}
+
 struct RecipeCardView: View {
     let recipe: Recipe
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Image with overlaid content
             ZStack(alignment: .bottom) {
                 Color.clear
                     .frame(height: 160)
@@ -246,7 +317,6 @@ struct RecipeCardView: View {
                     )
                     .clipped()
 
-                // Metadata + name stacked — bottom leading
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
                         HStack(spacing: 4) {
@@ -294,4 +364,3 @@ struct RecipeCardView: View {
         )
     }
 }
-
