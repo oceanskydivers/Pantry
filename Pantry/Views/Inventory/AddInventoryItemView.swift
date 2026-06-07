@@ -32,6 +32,21 @@ struct AddInventoryItemView: View {
         categories.filter { $0.parent == nil }
     }
 
+    /// Depth-first flattened list of all categories in display order.
+    private var allCategoriesFlattened: [InventoryCategory] {
+        var result: [InventoryCategory] = []
+        func visit(_ cat: InventoryCategory) {
+            result.append(cat)
+            for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
+                visit(sub)
+            }
+        }
+        for top in topCategories {
+            visit(top)
+        }
+        return result
+    }
+
     private var isEditing: Bool { existingItem != nil }
 
     var body: some View {
@@ -86,11 +101,8 @@ struct AddInventoryItemView: View {
                 Section("Category") {
                     Menu {
                         Button("None") { selectedCategory = nil }
-                        ForEach(topCategories) { cat in
-                            Button(cat.name) { selectedCategory = cat }
-                            ForEach(cat.subcategories.sorted(by: { $0.name < $1.name })) { sub in
-                                Button("  \(sub.displayPath)") { selectedCategory = sub }
-                            }
+                        ForEach(allCategoriesFlattened) { cat in
+                            Button(cat.displayPath) { selectedCategory = cat }
                         }
                         Divider()
                         Button("New Category…") {

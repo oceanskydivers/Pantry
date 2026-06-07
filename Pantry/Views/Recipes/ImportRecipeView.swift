@@ -21,6 +21,7 @@ struct ImportRecipeView: View {
                         .onAppear { isURLFieldFocused = true }
 
                     Button {
+                        isLoading = true
                         // Read clipboard only on explicit tap — iOS shows the paste alert here,
                         // which is the correct, expected behaviour at this point.
                         if let string = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -30,15 +31,24 @@ struct ImportRecipeView: View {
                             isURLFieldFocused = false
                             Task { await fetchRecipe() }
                         } else {
+                            isLoading = false
                             errorMessage = "No valid URL found on clipboard."
                         }
                     } label: {
                         HStack {
-                            Image(systemName: "doc.on.clipboard")
-                                .foregroundStyle(.black)
-                            Text("Paste & Import")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.black)
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.black)
+                                Text("Importing…")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.black)
+                            } else {
+                                Image(systemName: "doc.on.clipboard")
+                                    .foregroundStyle(.black)
+                                Text("Paste & Import")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.black)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 8)
@@ -46,6 +56,7 @@ struct ImportRecipeView: View {
                         .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 10))
                     }
                     .buttonStyle(.plain)
+                    .disabled(isLoading)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
@@ -77,7 +88,7 @@ struct ImportRecipeView: View {
                 AddRecipeView(importedRecipe: wrapper.recipe, sourceURL: wrapper.sourceURL, imageData: wrapper.imageData, onSave: { dismiss() })
             }
         }
-        .presentationDetents([.fraction(0.4)])
+        .presentationDetents([.fraction(0.6)])
     }
 
     @MainActor

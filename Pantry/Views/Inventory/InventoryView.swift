@@ -38,6 +38,21 @@ struct InventoryView: View {
         categories.filter { $0.parent == nil }
     }
 
+    /// Depth-first flattened list of all categories in display order.
+    private var allCategoriesFlattened: [InventoryCategory] {
+        var result: [InventoryCategory] = []
+        func visit(_ cat: InventoryCategory) {
+            result.append(cat)
+            for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
+                visit(sub)
+            }
+        }
+        for top in topCategories {
+            visit(top)
+        }
+        return result
+    }
+
     private var filteredItems: [InventoryItem] {
         items.filter { item in
             let matchesSearch = searchText.isEmpty ||
@@ -152,11 +167,8 @@ struct InventoryView: View {
                 if groupMode != .category {
                     Menu {
                         Button("All Categories") { filterCategory = nil }
-                        ForEach(topCategories) { cat in
-                            Button(cat.name) { filterCategory = cat }
-                            ForEach(cat.subcategories.sorted(by: { $0.name < $1.name })) { sub in
-                                Button("  \(sub.displayPath)") { filterCategory = sub }
-                            }
+                        ForEach(allCategoriesFlattened) { cat in
+                            Button(cat.displayPath) { filterCategory = cat }
                         }
                     } label: {
                         FilterChip(
@@ -494,135 +506,3 @@ struct ManageLocationsView: View {
     }
 }
 
-// MARK: - ManageCategoriesView
-
-struct ManageCategoriesView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
-
-    /// Called with the newly created category when one is added. Used by callers that want to auto-select it.
-    var onCategoryCreated: ((InventoryCategory) -> Void)? = nil
-
-    @State private var newName = ""
-    @State private var selectedParent: InventoryCategory? = nil
-    @State private var categoryToDelete: InventoryCategory?
-    @FocusState private var isNameFocused: Bool
-
-    private var topCategories: [InventoryCategory] {
-        categories.filter { $0.parent == nil }
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Add Category") {
-                    TextField("Category name", text: $newName)
-                        .focused($isNameFocused)
-
-                    Menu {
-                        Button("None (top-level)") { selectedParent = nil }
-                        ForEach(topCategories) { cat in
-                            Button(cat.name) { selectedParent = cat }
-                        }
-                    } label: {
-                        HStack {
-                            Text("Parent")
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Text(selectedParent?.name ?? "None")
-                                .foregroundStyle(.secondary)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Button("Save") { isNameFocused = false; addCategory() }
-                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-
-                Section("Categories") {
-                    if topCategories.isEmpty {
-                        Text("No categories yet")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(topCategories) { cat in
-                            VStack(alignment: .leading, spacing: 0) {
-                                HStack {
-                                    Text(cat.name)
-                                        .fontWeight(.semibold)
-                                    Spacer()
-                                    Button(role: .destructive) {
-                                        categoryToDelete = cat
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .foregroundStyle(.red)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                                .padding(.vertical, 4)
-
-                                ForEach(cat.subcategories.sorted(by: { $0.name < $1.name })) { sub in
-                                    HStack {
-                                        Text("  › \(sub.name)")
-                                            .foregroundStyle(.secondary)
-                                        Spacer()
-                                        Button(role: .destructive) {
-                                            categoryToDelete = sub
-                                        } label: {
-                                            Image(systemName: "trash")
-                                                .foregroundStyle(.red)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Categories")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-            .onAppear {
-                if onCategoryCreated != nil {
-                    isNameFocused = true
-                }
-            }
-            .confirmationDialog(
-                "Delete \"\(categoryToDelete?.name ?? "")\"?",
-                isPresented: Binding(get: { categoryToDelete != nil }, set: { if !$0 { categoryToDelete = nil } }),
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
-                    if let cat = categoryToDelete {
-                        SyncService.shared.deleteInventoryCategory(id: cat.id)
-                        modelContext.delete(cat)
-                        categoryToDelete = nil
-                    }
-                }
-                Button("Cancel", role: .cancel) { categoryToDelete = nil }
-            } message: {
-                Text("Items assigned to this category will become uncategorized.")
-            }
-        }
-    }
-
-    private func addCategory() {
-        let name = newName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        let category = InventoryCategory(name: name, parent: selectedParent)
-        modelContext.insert(category)
-        SyncService.shared.syncInventoryCategory(category)
-        onCategoryCreated?(category)
-        newName = ""
-        selectedParent = nil
-    }
-}

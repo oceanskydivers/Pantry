@@ -25,10 +25,10 @@ final class InventoryCategory {
         self.items = []
     }
 
-    /// Full display path, e.g. "Frozen > Meat"
+    /// Full display path, e.g. "Food > Frozen > Dairy > Cheese" (recursive, unlimited depth)
     var displayPath: String {
-        if let parentName = parent?.name {
-            return "\(parentName) > \(name)"
+        if let p = parent {
+            return "\(p.displayPath) > \(name)"
         }
         return name
     }
