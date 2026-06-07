@@ -213,7 +213,8 @@ struct DetailsCard: View {
             Text("Details")
                 .font(.headline)
 
-            DetailRow(label: "Location", value: item.locationName.isEmpty ? "—" : item.locationName)
+            DetailRow(label: "Location", value: item.location?.name ?? "—")
+            DetailRow(label: "Category", value: item.category?.displayPath ?? "—")
             DetailRow(label: "Date Bought", value: item.dateBought.formatted(date: .long, time: .omitted))
             DetailRow(label: "Added", value: item.createdAt.formatted(date: .long, time: .omitted))
         }

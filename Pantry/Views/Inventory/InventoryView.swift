@@ -1,23 +1,62 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Grouping Mode
+
+enum InventoryGroupMode: String, CaseIterable {
+    case alphabetical = "Alphabetical"
+    case location = "Location"
+    case category = "Category"
+
+    var icon: String {
+        switch self {
+        case .alphabetical: return "textformat.abc"
+        case .location: return "mappin.and.ellipse"
+        case .category: return "tag"
+        }
+    }
+}
+
+// MARK: - InventoryView
+
 struct InventoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \InventoryItem.name) private var items: [InventoryItem]
+    @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
+    @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
 
     @State private var searchText = ""
+    @State private var groupMode: InventoryGroupMode = .alphabetical
+    @State private var filterLocation: StorageLocation? = nil
+    @State private var filterCategory: InventoryCategory? = nil
     @State private var showingAdd = false
+    @State private var showingManageLocations = false
+    @State private var showingManageCategories = false
 
-    private var grouped: [String: [InventoryItem]] {
-        let filtered = searchText.isEmpty ? items : items.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.locationName.localizedCaseInsensitiveContains(searchText)
-        }
-        return Dictionary(grouping: filtered, by: { $0.locationName.isEmpty ? "Other" : $0.locationName })
+    // Top-level categories only
+    private var topCategories: [InventoryCategory] {
+        categories.filter { $0.parent == nil }
     }
 
-    private var sortedLocations: [String] {
-        grouped.keys.sorted()
+    private var filteredItems: [InventoryItem] {
+        items.filter { item in
+            let matchesSearch = searchText.isEmpty ||
+                item.name.localizedCaseInsensitiveContains(searchText) ||
+                (item.location?.name.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                (item.category?.name.localizedCaseInsensitiveContains(searchText) ?? false)
+
+            let matchesLocation = filterLocation == nil || item.location?.id == filterLocation?.id
+            let matchesCategory: Bool
+            if let filterCat = filterCategory {
+                // Match the category itself or any of its subcategories
+                matchesCategory = item.category?.id == filterCat.id ||
+                    item.category?.parent?.id == filterCat.id
+            } else {
+                matchesCategory = true
+            }
+
+            return matchesSearch && matchesLocation && matchesCategory
+        }
     }
 
     var body: some View {
@@ -30,25 +69,24 @@ struct InventoryView: View {
                         description: Text("Track your pantry stock by tapping +.")
                     )
                 } else {
-                    List {
-                        ForEach(sortedLocations, id: \.self) { location in
-                            Section(location) {
-                                ForEach(grouped[location] ?? []) { item in
-                                    NavigationLink(destination: InventoryItemDetailView(item: item)) {
-                                        InventoryRowView(item: item)
-                                    }
-                                }
-                                .onDelete { offsets in
-                                    deleteItems(offsets: offsets, from: location)
-                                }
-                            }
-                        }
+                    VStack(spacing: 0) {
+                        filterBar
+                        Divider()
+                        itemList
                     }
-                    .searchable(text: $searchText, prompt: "Search items or location")
                 }
             }
             .navigationTitle("Inventory")
+            .searchable(text: $searchText, prompt: "Search items, location, category")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Button("Manage Locations") { showingManageLocations = true }
+                        Button("Manage Categories") { showingManageCategories = true }
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAdd = true } label: {
                         Image(systemName: "plus")
@@ -58,18 +96,218 @@ struct InventoryView: View {
             .sheet(isPresented: $showingAdd) {
                 AddInventoryItemView()
             }
+            .sheet(isPresented: $showingManageLocations) {
+                ManageLocationsView()
+            }
+            .sheet(isPresented: $showingManageCategories) {
+                ManageCategoriesView()
+            }
         }
     }
 
-    private func deleteItems(offsets: IndexSet, from location: String) {
-        let locationItems = grouped[location] ?? []
+    // MARK: - Filter Bar
+
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Group mode picker
+                Menu {
+                    ForEach(InventoryGroupMode.allCases, id: \.self) { mode in
+                        Button {
+                            groupMode = mode
+                        } label: {
+                            Label(mode.rawValue, systemImage: mode.icon)
+                        }
+                    }
+                } label: {
+                    FilterChip(
+                        label: groupMode.rawValue,
+                        icon: groupMode.icon,
+                        isActive: true
+                    )
+                }
+
+                if groupMode != .alphabetical {
+                    Divider()
+                        .frame(height: 24)
+                }
+
+                // Location filter (shown when not already grouped by location)
+                if groupMode != .location {
+                    Menu {
+                        Button("All Locations") { filterLocation = nil }
+                        ForEach(locations) { loc in
+                            Button(loc.name) { filterLocation = loc }
+                        }
+                    } label: {
+                        FilterChip(
+                            label: filterLocation?.name ?? "All Locations",
+                            icon: "mappin.and.ellipse",
+                            isActive: filterLocation != nil
+                        )
+                    }
+                }
+
+                // Category filter (shown when not already grouped by category)
+                if groupMode != .category {
+                    Menu {
+                        Button("All Categories") { filterCategory = nil }
+                        ForEach(topCategories) { cat in
+                            Button(cat.name) { filterCategory = cat }
+                            ForEach(cat.subcategories.sorted(by: { $0.name < $1.name })) { sub in
+                                Button("  \(sub.displayPath)") { filterCategory = sub }
+                            }
+                        }
+                    } label: {
+                        FilterChip(
+                            label: filterCategory?.displayPath ?? "All Categories",
+                            icon: "tag",
+                            isActive: filterCategory != nil
+                        )
+                    }
+                }
+
+                // Clear filters button
+                if filterLocation != nil || filterCategory != nil {
+                    Button {
+                        filterLocation = nil
+                        filterCategory = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - Item List
+
+    @ViewBuilder
+    private var itemList: some View {
+        switch groupMode {
+        case .alphabetical:
+            alphabeticalList
+        case .location:
+            groupedList(
+                groups: locationGroups,
+                noGroupLabel: "No Location"
+            )
+        case .category:
+            groupedList(
+                groups: categoryGroups,
+                noGroupLabel: "Uncategorized"
+            )
+        }
+    }
+
+    private var alphabeticalList: some View {
+        List {
+            ForEach(filteredItems) { item in
+                NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                    InventoryRowView(item: item)
+                }
+            }
+            .onDelete(perform: deleteItems)
+        }
+    }
+
+    private func groupedList(groups: [(key: String, items: [InventoryItem])], noGroupLabel: String) -> some View {
+        List {
+            ForEach(groups, id: \.key) { group in
+                Section(group.key) {
+                    ForEach(group.items) { item in
+                        NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                            InventoryRowView(item: item)
+                        }
+                    }
+                    .onDelete { offsets in
+                        deleteItems(from: group.items, at: offsets)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Grouping Helpers
+
+    private var locationGroups: [(key: String, items: [InventoryItem])] {
+        let grouped = Dictionary(grouping: filteredItems) { item in
+            item.location?.name ?? ""
+        }
+        return grouped
+            .map { (key: $0.key.isEmpty ? "No Location" : $0.key, items: $0.value.sorted { $0.name < $1.name }) }
+            .sorted { lhs, rhs in
+                if lhs.key == "No Location" { return false }
+                if rhs.key == "No Location" { return true }
+                return lhs.key < rhs.key
+            }
+    }
+
+    private var categoryGroups: [(key: String, items: [InventoryItem])] {
+        let grouped = Dictionary(grouping: filteredItems) { item -> String in
+            if let cat = item.category {
+                return cat.displayPath
+            }
+            return ""
+        }
+        return grouped
+            .map { (key: $0.key.isEmpty ? "Uncategorized" : $0.key, items: $0.value.sorted { $0.name < $1.name }) }
+            .sorted { lhs, rhs in
+                if lhs.key == "Uncategorized" { return false }
+                if rhs.key == "Uncategorized" { return true }
+                return lhs.key < rhs.key
+            }
+    }
+
+    // MARK: - Delete
+
+    private func deleteItems(at offsets: IndexSet) {
         for index in offsets {
-            let item = locationItems[index]
+            let item = filteredItems[index]
+            SyncService.shared.deleteInventoryItem(id: item.id)
+            modelContext.delete(item)
+        }
+    }
+
+    private func deleteItems(from group: [InventoryItem], at offsets: IndexSet) {
+        for index in offsets {
+            let item = group[index]
             SyncService.shared.deleteInventoryItem(id: item.id)
             modelContext.delete(item)
         }
     }
 }
+
+// MARK: - FilterChip
+
+struct FilterChip: View {
+    let label: String
+    let icon: String
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+            Text(label)
+                .font(.subheadline)
+                .fontWeight(isActive ? .semibold : .regular)
+        }
+        .foregroundStyle(isActive ? Color.accentColor : .secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            isActive ? Color.accentColor.opacity(0.12) : Color(.systemGray5),
+            in: Capsule()
+        )
+    }
+}
+
+// MARK: - InventoryRowView
 
 struct InventoryRowView: View {
     @Bindable var item: InventoryItem
@@ -97,6 +335,18 @@ struct InventoryRowView: View {
                     }
                 }
                 .font(.subheadline)
+
+                // Location + category badges
+                if item.location != nil || item.category != nil {
+                    HStack(spacing: 6) {
+                        if let loc = item.location {
+                            RowBadge(text: loc.name, icon: "mappin.and.ellipse")
+                        }
+                        if let cat = item.category {
+                            RowBadge(text: cat.displayPath, icon: "tag")
+                        }
+                    }
+                }
             }
 
             Spacer()
@@ -151,5 +401,228 @@ struct InventoryRowView: View {
         if days < 7 { return "\(Int(days)) days" }
         if days < 30 { return "\(Int(days / 7)) wks" }
         return "\(Int(days / 30)) mo"
+    }
+}
+
+struct RowBadge: View {
+    let text: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Color(.systemGray5), in: Capsule())
+    }
+}
+
+// MARK: - ManageLocationsView
+
+struct ManageLocationsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
+
+    @State private var newName = ""
+    @State private var locationToDelete: StorageLocation?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    HStack {
+                        TextField("New location name", text: $newName)
+                        Button("Add") { addLocation() }
+                            .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+
+                Section("Locations") {
+                    if locations.isEmpty {
+                        Text("No locations yet")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(locations) { loc in
+                            Text(loc.name)
+                        }
+                        .onDelete { offsets in
+                            for index in offsets {
+                                locationToDelete = locations[index]
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Locations")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .confirmationDialog(
+                "Delete \"\(locationToDelete?.name ?? "")\"?",
+                isPresented: Binding(get: { locationToDelete != nil }, set: { if !$0 { locationToDelete = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let loc = locationToDelete {
+                        SyncService.shared.deleteStorageLocation(id: loc.id)
+                        modelContext.delete(loc)
+                        locationToDelete = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) { locationToDelete = nil }
+            } message: {
+                Text("Items assigned to this location will become unassigned.")
+            }
+        }
+    }
+
+    private func addLocation() {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        let location = StorageLocation(name: name)
+        modelContext.insert(location)
+        SyncService.shared.syncStorageLocation(location)
+        newName = ""
+    }
+}
+
+// MARK: - ManageCategoriesView
+
+struct ManageCategoriesView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
+
+    /// Called with the newly created category when one is added. Used by callers that want to auto-select it.
+    var onCategoryCreated: ((InventoryCategory) -> Void)? = nil
+
+    @State private var newName = ""
+    @State private var selectedParent: InventoryCategory? = nil
+    @State private var categoryToDelete: InventoryCategory?
+    @FocusState private var isNameFocused: Bool
+
+    private var topCategories: [InventoryCategory] {
+        categories.filter { $0.parent == nil }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Add Category") {
+                    TextField("Category name", text: $newName)
+                        .focused($isNameFocused)
+
+                    Menu {
+                        Button("None (top-level)") { selectedParent = nil }
+                        ForEach(topCategories) { cat in
+                            Button(cat.name) { selectedParent = cat }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Parent")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text(selectedParent?.name ?? "None")
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Button("Save") { isNameFocused = false; addCategory() }
+                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+
+                Section("Categories") {
+                    if topCategories.isEmpty {
+                        Text("No categories yet")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(topCategories) { cat in
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    Text(cat.name)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Button(role: .destructive) {
+                                        categoryToDelete = cat
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.vertical, 4)
+
+                                ForEach(cat.subcategories.sorted(by: { $0.name < $1.name })) { sub in
+                                    HStack {
+                                        Text("  › \(sub.name)")
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                        Button(role: .destructive) {
+                                            categoryToDelete = sub
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .foregroundStyle(.red)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("Categories")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                if onCategoryCreated != nil {
+                    isNameFocused = true
+                }
+            }
+            .confirmationDialog(
+                "Delete \"\(categoryToDelete?.name ?? "")\"?",
+                isPresented: Binding(get: { categoryToDelete != nil }, set: { if !$0 { categoryToDelete = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let cat = categoryToDelete {
+                        SyncService.shared.deleteInventoryCategory(id: cat.id)
+                        modelContext.delete(cat)
+                        categoryToDelete = nil
+                    }
+                }
+                Button("Cancel", role: .cancel) { categoryToDelete = nil }
+            } message: {
+                Text("Items assigned to this category will become uncategorized.")
+            }
+        }
+    }
+
+    private func addCategory() {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        let category = InventoryCategory(name: name, parent: selectedParent)
+        modelContext.insert(category)
+        SyncService.shared.syncInventoryCategory(category)
+        onCategoryCreated?(category)
+        newName = ""
+        selectedParent = nil
     }
 }

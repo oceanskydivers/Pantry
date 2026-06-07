@@ -5,32 +5,36 @@ import SwiftData
 final class InventoryItem {
     var id: UUID
     var name: String
-    var locationName: String
     var unit: String
     var initialQuantity: Double
     var currentQuantity: Double
     var dateBought: Date
     var createdAt: Date
 
+    var location: StorageLocation?
+    var category: InventoryCategory?
+
     @Relationship(deleteRule: .cascade, inverse: \InventoryLog.item)
     var logs: [InventoryLog]
 
     init(
         name: String = "",
-        locationName: String = "",
         unit: String = "",
         initialQuantity: Double = 0,
         currentQuantity: Double = 0,
-        dateBought: Date = Date()
+        dateBought: Date = Date(),
+        location: StorageLocation? = nil,
+        category: InventoryCategory? = nil
     ) {
         self.id = UUID()
         self.name = name
-        self.locationName = locationName
         self.unit = unit
         self.initialQuantity = initialQuantity
         self.currentQuantity = currentQuantity
         self.dateBought = dateBought
         self.createdAt = Date()
+        self.location = location
+        self.category = category
         self.logs = []
     }
 

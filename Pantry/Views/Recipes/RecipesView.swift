@@ -87,7 +87,7 @@ struct RecipesView: View {
                     }
                 }
             }
-            .navigationTitle("Recipes")
+            // .navigationTitle("Recipes")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {

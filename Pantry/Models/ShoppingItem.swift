@@ -9,11 +9,11 @@ final class ShoppingItem {
     var addedAt: Date
     var category: ShoppingCategory?
 
-    init(name: String, category: ShoppingCategory? = nil) {
+    init(name: String, category: ShoppingCategory? = nil, addedAt: Date = Date()) {
         self.cloudID = UUID()
         self.name = name
         self.isChecked = false
-        self.addedAt = Date()
+        self.addedAt = addedAt
         self.category = category
     }
 }

@@ -16,6 +16,8 @@ struct PantryApp: App {
                 Ingredient.self,
                 InventoryItem.self,
                 InventoryLog.self,
+                StorageLocation.self,
+                InventoryCategory.self,
                 ShoppingCategory.self,
                 ShoppingItem.self
             )

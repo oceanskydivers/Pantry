@@ -26,7 +26,6 @@ final class SyncService {
     // MARK: - Auth Observation
 
     private func observeAuth() async {
-        // Re-evaluate whenever auth state changes
         for await uid in authStateStream() {
             if let uid {
                 await startSync(userId: uid)
@@ -39,7 +38,6 @@ final class SyncService {
     private func authStateStream() -> AsyncStream<String?> {
         AsyncStream { cont in
             let firebase = FirebaseManager.shared
-            // Poll approach — auth listener is in FirebaseManager
             Task {
                 var lastUID: String? = nil
                 while true {
@@ -80,8 +78,7 @@ final class SyncService {
     // MARK: - Data Migration (anonymous → real account)
 
     func migrateData(from anonUID: String, to newUID: String) async {
-        // Copy all Firestore data from old uid to new uid, then delete old
-        let collections = ["recipes", "inventoryItems", "shoppingCategories"]
+        let collections = ["recipes", "inventoryItems", "shoppingCategories", "storageLocations", "inventoryCategories"]
         for col in collections {
             let oldRef = db.collection("users").document(anonUID).collection(col)
             let newRef = db.collection("users").document(newUID).collection(col)
@@ -102,6 +99,8 @@ final class SyncService {
             group.addTask { await self.downloadRecipes(userId: userId, context: context) }
             group.addTask { await self.downloadInventory(userId: userId, context: context) }
             group.addTask { await self.downloadShopping(userId: userId, context: context) }
+            group.addTask { await self.downloadStorageLocations(userId: userId, context: context) }
+            group.addTask { await self.downloadInventoryCategories(userId: userId, context: context) }
         }
         try? context.save()
     }
@@ -127,6 +126,28 @@ final class SyncService {
             .collection("shoppingCategories").getDocuments() else { return }
         for doc in snapshot.documents {
             upsertShoppingCategory(from: doc.data(), context: context)
+        }
+    }
+
+    private func downloadStorageLocations(userId: String, context: ModelContext) async {
+        guard let snapshot = try? await db.collection("users").document(userId)
+            .collection("storageLocations").getDocuments() else { return }
+        for doc in snapshot.documents {
+            upsertStorageLocation(from: doc.data(), context: context)
+        }
+    }
+
+    private func downloadInventoryCategories(userId: String, context: ModelContext) async {
+        guard let snapshot = try? await db.collection("users").document(userId)
+            .collection("inventoryCategories").getDocuments() else { return }
+        // Two-pass: insert all categories first, then wire up parents
+        var allDatas: [[String: Any]] = []
+        for doc in snapshot.documents {
+            upsertInventoryCategory(from: doc.data(), context: context, wireParent: false)
+            allDatas.append(doc.data())
+        }
+        for data in allDatas {
+            upsertInventoryCategoryParent(from: data, context: context)
         }
     }
 
@@ -186,7 +207,42 @@ final class SyncService {
             self.isApplyingCloudUpdate = false
         }
 
-        listeners = [recipesListener, inventoryListener, shoppingListener]
+        let locationsListener = userDoc.collection("storageLocations").addSnapshotListener { [weak self] snapshot, _ in
+            guard let self, let snapshot else { return }
+            let context = container.mainContext
+            self.isApplyingCloudUpdate = true
+            for change in snapshot.documentChanges {
+                switch change.type {
+                case .added, .modified: self.upsertStorageLocation(from: change.document.data(), context: context)
+                case .removed:
+                    if let id = UUID(uuidString: change.document.documentID) {
+                        self.deleteLocalStorageLocation(id: id, context: context)
+                    }
+                }
+            }
+            try? context.save()
+            self.isApplyingCloudUpdate = false
+        }
+
+        let categoriesListener = userDoc.collection("inventoryCategories").addSnapshotListener { [weak self] snapshot, _ in
+            guard let self, let snapshot else { return }
+            let context = container.mainContext
+            self.isApplyingCloudUpdate = true
+            for change in snapshot.documentChanges {
+                switch change.type {
+                case .added, .modified:
+                    self.upsertInventoryCategory(from: change.document.data(), context: context, wireParent: true)
+                case .removed:
+                    if let id = UUID(uuidString: change.document.documentID) {
+                        self.deleteLocalInventoryCategory(id: id, context: context)
+                    }
+                }
+            }
+            try? context.save()
+            self.isApplyingCloudUpdate = false
+        }
+
+        listeners = [recipesListener, inventoryListener, shoppingListener, locationsListener, categoriesListener]
     }
 
     // MARK: - Outgoing Sync (local → Firestore)
@@ -233,12 +289,36 @@ final class SyncService {
         Task { try? await self.db.document(path).delete() }
     }
 
+    func syncStorageLocation(_ location: StorageLocation) {
+        guard !isApplyingCloudUpdate, let uid = currentUID else { return }
+        let data = encodeStorageLocation(location)
+        let path = "users/\(uid)/storageLocations/\(location.id.uuidString)"
+        Task { try? await self.db.document(path).setData(data) }
+    }
+
+    func deleteStorageLocation(id: UUID) {
+        guard let uid = currentUID else { return }
+        let path = "users/\(uid)/storageLocations/\(id.uuidString)"
+        Task { try? await self.db.document(path).delete() }
+    }
+
+    func syncInventoryCategory(_ category: InventoryCategory) {
+        guard !isApplyingCloudUpdate, let uid = currentUID else { return }
+        let data = encodeInventoryCategory(category)
+        let path = "users/\(uid)/inventoryCategories/\(category.id.uuidString)"
+        Task { try? await self.db.document(path).setData(data) }
+    }
+
+    func deleteInventoryCategory(id: UUID) {
+        guard let uid = currentUID else { return }
+        let path = "users/\(uid)/inventoryCategories/\(id.uuidString)"
+        Task { try? await self.db.document(path).delete() }
+    }
+
     // MARK: - Firebase Storage helpers
 
-    /// Uploads imageData to Storage (if not already uploaded) and sets imageStoragePath on the recipe.
     private func uploadImageIfNeeded(for recipe: Recipe, uid: String) async {
         guard let imageData = recipe.imageData else {
-            // Image was removed — delete from Storage if we have a path
             if let path = recipe.imageStoragePath {
                 try? await Storage.storage().reference(withPath: path).delete()
                 recipe.imageStoragePath = nil
@@ -256,7 +336,6 @@ final class SyncService {
         try? modelContainer?.mainContext.save()
     }
 
-    /// Downloads image bytes from Storage and caches them into the recipe's local imageData.
     private func fetchAndCacheImage(path: String, recipeID: UUID) async {
         guard let context = modelContainer?.mainContext else { return }
         let descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == recipeID })
@@ -290,10 +369,9 @@ final class SyncService {
     }
 
     private func encodeInventoryItem(_ item: InventoryItem) -> [String: Any] {
-        [
+        var d: [String: Any] = [
             "id": item.id.uuidString,
             "name": item.name,
-            "locationName": item.locationName,
             "unit": item.unit,
             "initialQuantity": item.initialQuantity,
             "currentQuantity": item.currentQuantity,
@@ -308,6 +386,9 @@ final class SyncService {
                 ] as [String: Any]
             }
         ]
+        if let locationID = item.location?.id { d["locationID"] = locationID.uuidString }
+        if let categoryID = item.category?.id { d["categoryID"] = categoryID.uuidString }
+        return d
     }
 
     private func encodeShoppingCategory(_ category: ShoppingCategory) -> [String: Any] {
@@ -324,6 +405,24 @@ final class SyncService {
                 ] as [String: Any]
             }
         ]
+    }
+
+    private func encodeStorageLocation(_ location: StorageLocation) -> [String: Any] {
+        [
+            "id": location.id.uuidString,
+            "name": location.name,
+            "createdAt": Timestamp(date: location.createdAt)
+        ]
+    }
+
+    private func encodeInventoryCategory(_ category: InventoryCategory) -> [String: Any] {
+        var d: [String: Any] = [
+            "id": category.id.uuidString,
+            "name": category.name,
+            "createdAt": Timestamp(date: category.createdAt)
+        ]
+        if let parentID = category.parent?.id { d["parentID"] = parentID.uuidString }
+        return d
     }
 
     // MARK: - Decoding (dict → local SwiftData)
@@ -383,12 +482,27 @@ final class SyncService {
         }()
         item.id = id
         item.name = data["name"] as? String ?? ""
-        item.locationName = data["locationName"] as? String ?? ""
         item.unit = data["unit"] as? String ?? ""
         item.initialQuantity = data["initialQuantity"] as? Double ?? 0
         item.currentQuantity = data["currentQuantity"] as? Double ?? 0
         if let ts = data["dateBought"] as? Timestamp { item.dateBought = ts.dateValue() }
         if let ts = data["createdAt"] as? Timestamp { item.createdAt = ts.dateValue() }
+
+        // Wire up location
+        if let locIDStr = data["locationID"] as? String, let locID = UUID(uuidString: locIDStr) {
+            let locDesc = FetchDescriptor<StorageLocation>(predicate: #Predicate { $0.id == locID })
+            item.location = (try? context.fetch(locDesc))?.first
+        } else {
+            item.location = nil
+        }
+
+        // Wire up category
+        if let catIDStr = data["categoryID"] as? String, let catID = UUID(uuidString: catIDStr) {
+            let catDesc = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == catID })
+            item.category = (try? context.fetch(catDesc))?.first
+        } else {
+            item.category = nil
+        }
 
         if let logsData = data["logs"] as? [[String: Any]] {
             for existing in item.logs { context.delete(existing) }
@@ -447,5 +561,69 @@ final class SyncService {
         let descriptor = FetchDescriptor<ShoppingCategory>(predicate: #Predicate { $0.cloudID == id })
         guard let cat = (try? context.fetch(descriptor))?.first else { return }
         context.delete(cat)
+    }
+
+    private func upsertStorageLocation(from data: [String: Any], context: ModelContext) {
+        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
+        let descriptor = FetchDescriptor<StorageLocation>(predicate: #Predicate { $0.id == id })
+        let existing = (try? context.fetch(descriptor))?.first
+        let location = existing ?? {
+            let l = StorageLocation(name: "")
+            context.insert(l)
+            return l
+        }()
+        location.id = id
+        location.name = data["name"] as? String ?? ""
+        if let ts = data["createdAt"] as? Timestamp { location.createdAt = ts.dateValue() }
+    }
+
+    private func deleteLocalStorageLocation(id: UUID, context: ModelContext) {
+        let descriptor = FetchDescriptor<StorageLocation>(predicate: #Predicate { $0.id == id })
+        guard let location = (try? context.fetch(descriptor))?.first else { return }
+        context.delete(location)
+    }
+
+    /// First pass: insert/update the category itself without wiring the parent.
+    private func upsertInventoryCategory(from data: [String: Any], context: ModelContext, wireParent: Bool) {
+        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
+        let descriptor = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == id })
+        let existing = (try? context.fetch(descriptor))?.first
+        let category = existing ?? {
+            let c = InventoryCategory(name: "")
+            context.insert(c)
+            return c
+        }()
+        category.id = id
+        category.name = data["name"] as? String ?? ""
+        if let ts = data["createdAt"] as? Timestamp { category.createdAt = ts.dateValue() }
+
+        if wireParent {
+            if let parentIDStr = data["parentID"] as? String, let parentID = UUID(uuidString: parentIDStr) {
+                let parentDesc = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == parentID })
+                category.parent = (try? context.fetch(parentDesc))?.first
+            } else {
+                category.parent = nil
+            }
+        }
+    }
+
+    /// Second pass: wire up parent relationships after all categories are inserted.
+    private func upsertInventoryCategoryParent(from data: [String: Any], context: ModelContext) {
+        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
+        let descriptor = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == id })
+        guard let category = (try? context.fetch(descriptor))?.first else { return }
+
+        if let parentIDStr = data["parentID"] as? String, let parentID = UUID(uuidString: parentIDStr) {
+            let parentDesc = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == parentID })
+            category.parent = (try? context.fetch(parentDesc))?.first
+        } else {
+            category.parent = nil
+        }
+    }
+
+    private func deleteLocalInventoryCategory(id: UUID, context: ModelContext) {
+        let descriptor = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == id })
+        guard let category = (try? context.fetch(descriptor))?.first else { return }
+        context.delete(category)
     }
 }

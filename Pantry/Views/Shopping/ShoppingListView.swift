@@ -1,6 +1,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct ShoppingListView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,9 +11,7 @@ struct ShoppingListView: View {
     @State private var newCategoryName = ""
     @State private var showChecked = false
     @State private var editMode: EditMode = .inactive
-    
-    // Tracks which item is currently being typed into using its PersistentIdentifier
-    @FocusState private var focusedItemId: PersistentIdentifier?
+    @State private var isKeyboardVisible = false
 
     var body: some View {
         NavigationStack {
@@ -28,11 +27,7 @@ struct ShoppingListView: View {
                         ForEach(categories) { category in
                             ShoppingCategorySection(
                                 category: category,
-                                showChecked: showChecked,
-                                focusedItemId: $focusedItemId,
-                                onAddItem: {
-                                    addNewItem(to: category)
-                                }
+                                showChecked: showChecked
                             )
                         }
                         .onMove(perform: moveCategories)
@@ -50,24 +45,42 @@ struct ShoppingListView: View {
                             }
                         }
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
             .navigationTitle("Shopping List")
             .environment(\.editMode, $editMode)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        withAnimation { showChecked.toggle() }
-                    } label: {
-                        Image(systemName: showChecked ? "eye.slash" : "eye")
-                    }
-                    
-                    Button {
-                        showingAddCategory = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if isKeyboardVisible {
+                        Button {
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        } label: {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                        }
+                        .transition(.opacity.combined(with: .scale))
+                    } else {
+                        Button {
+                            withAnimation { showChecked.toggle() }
+                        } label: {
+                            Image(systemName: showChecked ? "eye.slash" : "eye")
+                        }
+
+                        Button {
+                            showingAddCategory = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
+            }
+            .animation(.easeInOut(duration: 0.2), value: isKeyboardVisible)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isKeyboardVisible = false
             }
             .alert("New Category", isPresented: $showingAddCategory) {
                 TextField("e.g., Produce, Dairy, Frozen", text: $newCategoryName)
@@ -76,14 +89,6 @@ struct ShoppingListView: View {
                 Button("Cancel", role: .cancel) { newCategoryName = "" }
             }
         }
-    }
-
-    private func addNewItem(to category: ShoppingCategory) {
-        let newItem = ShoppingItem(name: "", category: category)
-        modelContext.insert(newItem)
-        try? modelContext.save()
-        withAnimation { focusedItemId = newItem.id }
-        // Sync happens when item name is committed (validateAndCleanUp in ShoppingItemRow)
     }
 
     private func addCategory() {
@@ -113,36 +118,65 @@ struct ShoppingListView: View {
     }
 }
 
+// MARK: - Category Section
+
 struct ShoppingCategorySection: View {
     @Bindable var category: ShoppingCategory
     @Environment(\.modelContext) private var modelContext
     let showChecked: Bool
-    var focusedItemId: FocusState<PersistentIdentifier?>.Binding
-    let onAddItem: () -> Void
 
+    // Plain value-type row — only unchecked items live here.
+    // Checked items are read directly from SwiftData and displayed separately.
+    struct ItemRow: Identifiable {
+        let id: UUID   // == ShoppingItem.cloudID
+        var name: String
+        var addedAt: Date
+    }
+
+    @State private var rows: [ItemRow] = []
+    @State private var focusedRowID: UUID? = nil
     @State private var isRenaming = false
     @State private var newName = ""
+    @State private var isFlushing = false
 
     var body: some View {
         Section {
-            ForEach(category.uncheckedItems) { item in
-                ShoppingItemRow(item: item, focusedItemId: focusedItemId)
+            // Unchecked items — fully editable, focus-managed
+            ForEach($rows) { $row in
+                ShoppingItemRow(
+                    row: $row,
+                    shouldBeFocused: focusedRowID == row.id,
+                    onSubmit: { handleSubmit(rowID: row.id) },
+                    onEndEditing: { handleEndEditing(rowID: row.id) },
+                    onCheckToggle: { checkRow(id: row.id) },
+                    onTap: { focusedRowID = row.id }
+                )
             }
             .onDelete { offsets in
-                deleteItems(at: offsets, from: category.uncheckedItems)
+                rows.remove(atOffsets: offsets)
+                flushToSwiftData()
             }
 
+            // Checked items — read-only, straight from SwiftData
             if showChecked {
                 ForEach(category.checkedItems) { item in
-                    ShoppingItemRow(item: item, focusedItemId: focusedItemId)
+                    CheckedShoppingItemRow(item: item) {
+                        item.isChecked = false
+                        try? modelContext.save()
+                        SyncService.shared.syncShoppingCategory(category)
+                        loadRows()
+                    }
                 }
                 .onDelete { offsets in
-                    deleteItems(at: offsets, from: category.checkedItems)
+                    let items = category.checkedItems
+                    offsets.map { items[$0] }.forEach { modelContext.delete($0) }
+                    try? modelContext.save()
+                    SyncService.shared.syncShoppingCategory(category)
                 }
             }
 
             Button {
-                onAddItem()
+                addNewRow()
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
@@ -186,82 +220,233 @@ struct ShoppingCategorySection: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+        .onAppear { loadRows() }
+        .onChange(of: category.items.count) { _, _ in
+            if !isFlushing { loadRows() }
+        }
     }
 
-    private func deleteItems(at offsets: IndexSet, from list: [ShoppingItem]) {
-        let itemsToDelete = offsets.map { list[$0] }
-        for item in itemsToDelete { modelContext.delete(item) }
+    // MARK: - Row actions
+
+    private func handleSubmit(rowID: UUID) {
+        guard let idx = rows.firstIndex(where: { $0.id == rowID }) else { return }
+        let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
+
+        if trimmed.isEmpty {
+            // Empty + enter = delete
+            focusedRowID = nil
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                rows.remove(at: idx)
+                flushToSwiftData()
+            }
+        } else {
+            // Filled + enter = new empty row immediately below
+            rows[idx].name = trimmed
+            let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
+            rows.insert(newRow, at: idx + 1)
+            focusedRowID = newRow.id
+            flushToSwiftData()
+        }
+    }
+
+    private func handleEndEditing(rowID: UUID) {
+        guard let idx = rows.firstIndex(where: { $0.id == rowID }) else { return }
+        let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            rows.remove(at: idx)
+        } else {
+            rows[idx].name = trimmed
+        }
+        if focusedRowID == rowID { focusedRowID = nil }
+        flushToSwiftData()
+    }
+
+    private func checkRow(id: UUID) {
+        // Move from rows (unchecked state) into SwiftData as checked
+        guard let idx = rows.firstIndex(where: { $0.id == id }) else { return }
+        rows.remove(at: idx)
+        if let item = category.items.first(where: { $0.cloudID == id }) {
+            item.isChecked = true
+        }
+        flushToSwiftData()
+    }
+
+    private func addNewRow() {
+        let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
+        rows.append(newRow)
+        focusedRowID = newRow.id
+        flushToSwiftData()
+    }
+
+    // MARK: - SwiftData sync
+
+    /// Populate `rows` from unchecked SwiftData items, sorted by addedAt.
+    private func loadRows() {
+        let unchecked = category.items.filter { !$0.isChecked }.sorted { $0.addedAt < $1.addedAt }
+        rows = unchecked.map { ItemRow(id: $0.cloudID, name: $0.name, addedAt: $0.addedAt) }
+    }
+
+    /// Write `rows` (unchecked items) back to SwiftData. Checked items are untouched.
+    private func flushToSwiftData() {
+        isFlushing = true
+
+        // Re-stamp addedAt so the array order is always the sort order.
+        // Use a base time and increment by 1s per row — no ambiguity.
+        let base = Date(timeIntervalSinceReferenceDate: 0)
+        for (i, _) in rows.enumerated() {
+            rows[i].addedAt = base.addingTimeInterval(Double(i))
+        }
+
+        // Build a lookup of existing unchecked SwiftData items
+        var existingByID = Dictionary(
+            uniqueKeysWithValues: category.items.filter { !$0.isChecked }.map { ($0.cloudID, $0) }
+        )
+
+        for row in rows {
+            if let item = existingByID[row.id] {
+                item.name = row.name
+                item.addedAt = row.addedAt
+                existingByID.removeValue(forKey: row.id)
+            } else {
+                let item = ShoppingItem(name: row.name, category: category, addedAt: row.addedAt)
+                item.cloudID = row.id
+                modelContext.insert(item)
+            }
+        }
+
+        // Any unchecked item no longer in rows was deleted
+        for (_, item) in existingByID {
+            modelContext.delete(item)
+        }
+
+        try? modelContext.save()
         SyncService.shared.syncShoppingCategory(category)
+        isFlushing = false
     }
 }
 
-struct ShoppingItemRow: View {
+// MARK: - Checked item row (read-only)
+
+private struct CheckedShoppingItemRow: View {
     @Bindable var item: ShoppingItem
-    @Environment(\.modelContext) private var modelContext
-    var focusedItemId: FocusState<PersistentIdentifier?>.Binding
+    let onUncheck: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            // Checkbox Button
-            Button {
-                withAnimation(.spring(duration: 0.2)) {
-                    item.isChecked.toggle()
-                    if let cat = item.category { SyncService.shared.syncShoppingCategory(cat) }
-                }
-            } label: {
-                Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
+            Button { onUncheck() } label: {
+                Image(systemName: "checkmark.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(item.isChecked ? .green : .secondary)
+                    .foregroundStyle(.green)
             }
             .buttonStyle(.plain)
 
-            // Permanent TextField Area
-            TextField("", text: $item.name)
-                .focused(focusedItemId, equals: item.id)
-                // Dynamically style the text color and strikethrough based on state
-                .foregroundStyle(item.isChecked ? .secondary : .primary)
-                .strikethrough(item.isChecked)
-                // Completely disable interaction if the item is checked off
-                .disabled(item.isChecked)
-                .submitLabel(.done)
-                .onSubmit {
-                    validateAndCleanUp()
-                }
+            Text(item.name)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .opacity(item.isChecked ? 0.6 : 1)
-        .contentShape(Rectangle()) // Makes the whole cell block tappable
-        .onTapGesture {
-            if !item.isChecked {
-                focusedItemId.wrappedValue = item.id
-            }
-        }
-        .onAppear {
-            // Auto-focuses brand new items when they appear at the bottom
-            if item.name.isEmpty {
-                focusedItemId.wrappedValue = item.id
-            }
-        }
-        .onChange(of: focusedItemId.wrappedValue) { oldValue, newValue in
-            // Clean up empty lines when focus moves away
-            if oldValue == item.id && newValue != item.id {
-                validateAndCleanUp()
-            }
-        }
-    }
-
-    private func validateAndCleanUp() {
-        let trimmed = item.name.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            modelContext.delete(item)
-            try? modelContext.save()
-        } else {
-            item.name = trimmed
-        }
-        if let cat = item.category { SyncService.shared.syncShoppingCategory(cat) }
+        .opacity(0.6)
     }
 }
 
-#Preview {
-    @FocusState var focusedItemId: PersistentIdentifier?
-    ShoppingItemRow(item: ShoppingItem(name: "Test Item", category: nil), focusedItemId: $focusedItemId)
+// MARK: - UITextView wrapper
+
+private struct ShoppingItemTextField: UIViewRepresentable {
+    @Binding var text: String
+    let shouldBeFocused: Bool
+    let onSubmit: () -> Void
+    let onEndEditing: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.delegate = context.coordinator
+        tv.font = UIFont.preferredFont(forTextStyle: .body)
+        tv.backgroundColor = .clear
+        tv.isScrollEnabled = false
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.returnKeyType = .next
+        tv.autocorrectionType = .yes
+        tv.autocapitalizationType = .sentences
+        tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return tv
+    }
+
+    func updateUIView(_ tv: UITextView, context: Context) {
+        context.coordinator.parent = self
+        if tv.text != text { tv.text = text }
+        if shouldBeFocused && !tv.isFirstResponder {
+            tv.becomeFirstResponder()
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView tv: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIScreen.main.bounds.width
+        let size = tv.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: max(size.height, 22))
+    }
+
+    class Coordinator: NSObject, UITextViewDelegate {
+        var parent: ShoppingItemTextField
+        var submitHandled = false
+
+        init(_ parent: ShoppingItemTextField) { self.parent = parent }
+
+        func textViewDidChange(_ tv: UITextView) {
+            parent.text = tv.text
+        }
+
+        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            if text == "\n" {
+                submitHandled = true
+                parent.onSubmit()
+                return false
+            }
+            return true
+        }
+
+        func textViewDidEndEditing(_ tv: UITextView) {
+            if submitHandled {
+                submitHandled = false
+                return
+            }
+            parent.onEndEditing()
+        }
+    }
+}
+
+// MARK: - Shopping Item Row (unchecked, editable)
+
+struct ShoppingItemRow: View {
+    @Binding var row: ShoppingCategorySection.ItemRow
+    let shouldBeFocused: Bool
+    let onSubmit: () -> Void
+    let onEndEditing: () -> Void
+    let onCheckToggle: () -> Void
+    let onTap: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                withAnimation(.spring(duration: 0.2)) { onCheckToggle() }
+            } label: {
+                Image(systemName: "circle")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            ShoppingItemTextField(
+                text: $row.name,
+                shouldBeFocused: shouldBeFocused,
+                onSubmit: onSubmit,
+                onEndEditing: onEndEditing
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
+    }
 }

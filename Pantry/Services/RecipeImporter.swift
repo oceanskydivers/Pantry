@@ -53,7 +53,11 @@ actor RecipeImporter {
             guard range.location != NSNotFound else { continue }
             let jsonString = nsHtml.substring(with: range)
 
-            guard let jsonData = jsonString.data(using: .utf8),
+            // Strip unescaped control characters (e.g. literal \r\n inside string values)
+            // that some sites embed in their JSON-LD, making it technically invalid JSON.
+            let sanitized = jsonString.unicodeScalars.filter { $0.value >= 0x20 || $0 == "\t" }
+                .reduce(into: "") { $0.append(Character($1)) }
+            guard let jsonData = sanitized.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: jsonData) else { continue }
 
             if let recipe = parseRecipeJSON(json) {
@@ -137,11 +141,17 @@ actor RecipeImporter {
             return array.filter { !$0.isEmpty }
         }
         if let array = value as? [[String: Any]] {
-            return array.compactMap { step -> String? in
-                if let text = step["text"] as? String { return text }
-                if let name = step["name"] as? String { return name }
-                return nil
-            }.filter { !$0.isEmpty }
+            return array.flatMap { item -> [String] in
+                let type = (item["@type"] as? String)?.lowercased() ?? ""
+                // HowToSection: recurse into itemListElement
+                if type == "howtosection", let nested = item["itemListElement"] {
+                    return parseInstructions(nested)
+                }
+                // HowToStep or plain step dict
+                if let text = item["text"] as? String, !text.isEmpty { return [text] }
+                if let name = item["name"] as? String, !name.isEmpty { return [name] }
+                return []
+            }
         }
         return []
     }

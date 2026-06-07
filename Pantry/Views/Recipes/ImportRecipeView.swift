@@ -9,13 +9,6 @@ struct ImportRecipeView: View {
     @State private var errorMessage: String?
     @State private var pendingImport: PendingImportWrapper?
 
-    private var clipboardURL: String? {
-        guard let string = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
-              let url = URL(string: string), url.scheme == "https" || url.scheme == "http"
-        else { return nil }
-        return string
-    }
-
     var body: some View {
         NavigationStack {
             Form {
@@ -27,34 +20,33 @@ struct ImportRecipeView: View {
                         .focused($isURLFieldFocused)
                         .onAppear { isURLFieldFocused = true }
 
-                    if let clip = clipboardURL {
-                        Button {
-                            urlString = clip
+                    Button {
+                        // Read clipboard only on explicit tap — iOS shows the paste alert here,
+                        // which is the correct, expected behaviour at this point.
+                        if let string = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+                           let url = URL(string: string),
+                           url.scheme == "https" || url.scheme == "http" {
+                            urlString = string
                             isURLFieldFocused = false
                             Task { await fetchRecipe() }
-                        } label: {
-                            HStack {
-                                Image(systemName: "doc.on.clipboard")
-                                    .foregroundStyle(.black)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Paste & Import")
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.black)
-                                    Text(clip)
-                                        .font(.caption)
-                                        .foregroundStyle(.black.opacity(0.6))
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 10))
+                        } else {
+                            errorMessage = "No valid URL found on clipboard."
                         }
-                        .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.clipboard")
+                                .foregroundStyle(.black)
+                            Text("Paste & Import")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.black)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 10))
                     }
+                    .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
                 if let error = errorMessage {
@@ -85,7 +77,7 @@ struct ImportRecipeView: View {
                 AddRecipeView(importedRecipe: wrapper.recipe, sourceURL: wrapper.sourceURL, imageData: wrapper.imageData, onSave: { dismiss() })
             }
         }
-        .presentationDetents([.fraction(0.3)])
+        .presentationDetents([.fraction(0.4)])
     }
 
     @MainActor
