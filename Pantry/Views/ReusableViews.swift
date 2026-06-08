@@ -27,6 +27,58 @@ extension View {
     }
 }
 
+// MARK: - FloatingSearchBar
+
+struct FloatingSearchBar: View {
+    @Binding var text: String
+    let placeholder: String
+    let onDismiss: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(placeholder, text: $text)
+                    .focused($isFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 14)
+            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 32))
+            .shadow(color: .secondary, radius: 5)
+
+            Button {
+                onDismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+                    .glassBackground()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .onAppear { isFocused = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            if text.isEmpty { onDismiss() }
+        }
+    }
+}
+
 // MARK: - PantryItemTextField
 // Shared UITextView wrapper used by ShoppingListView and ManageCategoriesView.
 // Supports single-line entry with Return-key submission and focus management.

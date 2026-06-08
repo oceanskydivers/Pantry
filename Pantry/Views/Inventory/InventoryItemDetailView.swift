@@ -101,7 +101,7 @@ struct StockLevelCard: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing) {
-                    Text("Initial")
+                    Text("Acquired")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {

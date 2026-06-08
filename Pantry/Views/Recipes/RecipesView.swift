@@ -144,7 +144,7 @@ struct RecipesView: View {
             }
             .overlay(alignment: .bottom) {
                 if isSearching {
-                    FloatingSearchBar(text: $searchText) {
+                    FloatingSearchBar(text: $searchText, placeholder: "Search recipes") {
                         withAnimation(.spring(duration: 0.3)) {
                             isSearching = false
                             searchText = ""
@@ -161,57 +161,6 @@ struct RecipesView: View {
             let recipe = filtered[index]
             SyncService.shared.deleteRecipe(id: recipe.id)
             modelContext.delete(recipe)
-        }
-    }
-}
-
-// MARK: - Floating Search Bar
-
-private struct FloatingSearchBar: View {
-    @Binding var text: String
-    let onDismiss: () -> Void
-
-    @FocusState private var isFocused: Bool
-
-    var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search recipes", text: $text)
-                    .focused($isFocused)
-                    .submitLabel(.search)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                if !text.isEmpty {
-                    Button {
-                        text = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
-            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 32))
-            .shadow(color: .secondary, radius: 5)
-
-            Button {
-                onDismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
-                    .glassBackground()
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .onAppear { isFocused = true }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            if text.isEmpty { onDismiss() }
         }
     }
 }

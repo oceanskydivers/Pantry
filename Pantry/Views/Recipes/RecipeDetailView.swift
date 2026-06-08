@@ -322,12 +322,24 @@ struct IngredientRowView: View {
     let scaledServings: Double
     let originalServings: Double
 
+    @State private var isChecked = false
+
     var body: some View {
         HStack(spacing: 12) {
-            // Left Column indicator: height stretches dynamically with the parent HStack's fixed size
-            Capsule()
-                .fill(Color.appAccent)
-                .frame(width: 4)
+            // Left column indicator: pill or checkmark depending on checked state
+            ZStack {
+                Capsule()
+                    .fill(Color.appAccent)
+                    .frame(width: 4)
+                    .opacity(isChecked ? 0 : 1)
+                    .scaleEffect(isChecked ? 0.5 : 1)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(Color.appAccent)
+                    .opacity(isChecked ? 1 : 0)
+                    .scaleEffect(isChecked ? 1 : 0.5)
+            }
+            .animation(.spring(duration: 0.3), value: isChecked)
             
             let amount = ingredient.formattedAmount(for: scaledServings, originalServings: originalServings)
             let unitAndName = [ingredient.unit, ingredient.name].filter { !$0.isEmpty }.joined(separator: " ")
@@ -337,20 +349,27 @@ struct IngredientRowView: View {
                 if !amount.isEmpty {
                     Text(amount + " ")
                         .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isChecked ? .secondary : .primary)
                     + Text(unitAndName)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isChecked ? .secondary : .primary)
                 } else {
                     Text(unitAndName)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(isChecked ? .secondary : .primary)
                 }
             }
             .font(.body)
             .multilineTextAlignment(.leading)
+            .strikethrough(isChecked)
+            .animation(.easeInOut(duration: 0.2), value: isChecked)
             
             Spacer()
         }
         .fixedSize(horizontal: false, vertical: true)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isChecked.toggle()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 }
 
@@ -360,6 +379,7 @@ struct InstructionStepView: View {
     let text: String
 
     @State private var isMultiline: Bool = false
+    @State private var isChecked: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -377,10 +397,12 @@ struct InstructionStepView: View {
 
             // Concatenated Text flow so that long instructions wrap smoothly back to the left margin
             Text(text)
-                .foregroundStyle(.primary)
+                .foregroundStyle(isChecked ? .secondary : .primary)
                 .font(.body)
                 .lineSpacing(4)
                 .multilineTextAlignment(.leading)
+                .strikethrough(isChecked)
+                .animation(.easeInOut(duration: 0.2), value: isChecked)
                 .background(
                     // Measure rendered height; if taller than a single line, the text wraps
                     GeometryReader { geo in
@@ -394,6 +416,11 @@ struct InstructionStepView: View {
             Spacer()
         }
         .fixedSize(horizontal: false, vertical: true)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isChecked.toggle()
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 }
 

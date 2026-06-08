@@ -19,6 +19,45 @@ struct ManageCategoriesView: View {
         categories.filter { $0.parent == nil }.sorted { $0.name < $1.name }
     }
 
+    private var explanationCard: some View {
+        HStack(alignment: .top) {
+            Image(systemName: "info.circle.fill")
+                .font(.title3)
+                .foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Creating Subcategories")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                
+                (
+                    Text("Tap the ")
+                    + Text(Image(systemName: "arrow.turn.down.right"))
+                        .fontWeight(.semibold)
+                        .baselineOffset(1.5)
+                        .foregroundStyle(Color.accentColor)
+                    + Text(" button to start nesting a new subcategory underneath an item.")
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineSpacing(2)
+                
+                (
+                    Text("Tap the ")
+                    + Text(Image(systemName: "plus"))
+                        .fontWeight(.semibold)
+                        .baselineOffset(1.5)
+                        .foregroundStyle(Color.accentColor)
+                    + Text(" button to add more subcategories to an existing list.")
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineSpacing(2)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -30,6 +69,10 @@ struct ManageCategoriesView: View {
                     )
                 } else {
                     List {
+                        Section {
+                            explanationCard
+                        }
+
                         ForEach(topCategories) { cat in
                             CategorySection(
                                 rootCategory: cat,
@@ -38,6 +81,25 @@ struct ManageCategoriesView: View {
                         }
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom) {
+                        if !isKeyboardVisible {
+                            VStack(spacing: 0) {
+                                Divider()
+                                Button {
+                                    showingAddCategory = true
+                                } label: {
+                                    Label("Add Category", systemImage: "plus.circle.fill")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .padding()
+                            }
+                            .background(.ultraThinMaterial)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
                 }
             }
             .navigationTitle("Categories")
@@ -55,10 +117,6 @@ struct ManageCategoriesView: View {
                                 .fontWeight(.semibold)
                         }
                         .transition(.opacity.combined(with: .scale))
-                    } else {
-                        Button { showingAddCategory = true } label: {
-                            Image(systemName: "plus")
-                        }
                     }
                 }
             }
@@ -406,7 +464,7 @@ struct CategoryRowView: View {
     let onToggleCollapse: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             // Indentation — 20pt per depth level
             if row.depth > 0 {
                 Color.clear
@@ -418,13 +476,14 @@ struct CategoryRowView: View {
                 Button { onToggleCollapse() } label: {
                     Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
                         .font(.caption2)
-                        .fontWeight(.semibold)
+                        .fontWeight(.bold)
                         .foregroundStyle(.secondary)
-                        .frame(width: 20)
+                        .frame(width: 20, height: 20)
                 }
                 .buttonStyle(.plain)
+                .padding(.trailing, 6) // Tiny separation gap before the category name
             } else {
-                Color.clear.frame(width: 20)
+                Color.clear.frame(width: 26) // Matches width + trailing padding of chevron to align name inputs perfectly
             }
 
             PantryItemTextField(
@@ -450,3 +509,51 @@ struct CategoryRowView: View {
         .onTapGesture { onTap() }
     }
 }
+
+// MARK: - Previews
+
+#Preview {
+    let container: ModelContainer = {
+        do {
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            let schema = Schema([InventoryCategory.self, InventoryItem.self])
+            let container = try ModelContainer(for: schema, configurations: [config])
+            
+            // Insert fake data inside the preview container
+            let context = container.mainContext
+            
+            // 1. Food (Tree Node)
+            let food = InventoryCategory(name: "Food")
+            context.insert(food)
+            
+            // 2. Produce (Subcategory of Food)
+            let produce = InventoryCategory(name: "Produce", parent: food)
+            context.insert(produce)
+            
+            // 3. Fruits (Subcategory of Produce)
+            let fruits = InventoryCategory(name: "Fruits", parent: produce)
+            context.insert(fruits)
+            
+            // 4. Dairy (Subcategory of Food)
+            let dairy = InventoryCategory(name: "Dairy", parent: food)
+            context.insert(dairy)
+            
+            // 5. Cleaning Supplies (Separate Tree)
+            let cleaning = InventoryCategory(name: "Cleaning Supplies")
+            context.insert(cleaning)
+            
+            let laundry = InventoryCategory(name: "Laundry Detergent", parent: cleaning)
+            context.insert(laundry)
+            
+            try? context.save()
+            return container
+        } catch {
+            fatalError("Could not create Preview ModelContainer: \(error.localizedDescription)")
+        }
+    }()
+    
+    // Inject the container so SwiftData fetches work correctly inside Xcode's Canvas.
+    ManageCategoriesView()
+        .modelContainer(container)
+}
+

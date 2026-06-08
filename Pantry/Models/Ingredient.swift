@@ -23,6 +23,7 @@ final class Ingredient {
 
     func formattedAmount(for targetServings: Double, originalServings: Double) -> String {
         let scaled = scaledAmount(for: targetServings, originalServings: originalServings)
+        guard scaled > 0 else { return "" }
         if scaled == scaled.rounded() {
             return String(Int(scaled))
         }

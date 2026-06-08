@@ -26,31 +26,22 @@ struct InventoryView: View {
     @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
 
     @State private var searchText = ""
+    @State private var isSearching = false
     @State private var groupMode: InventoryGroupMode = .alphabetical
     @State private var filterLocation: StorageLocation? = nil
-    @State private var filterCategory: InventoryCategory? = nil
+    @State private var filterCategoryIDs: Set<UUID> = []
     @State private var showingAdd = false
     @State private var showingManageLocations = false
     @State private var showingManageCategories = false
+    @State private var showingCategoryPicker = false
 
-    // Top-level categories only
-    private var topCategories: [InventoryCategory] {
-        categories.filter { $0.parent == nil }
-    }
-
-    /// Depth-first flattened list of all categories in display order.
-    private var allCategoriesFlattened: [InventoryCategory] {
-        var result: [InventoryCategory] = []
-        func visit(_ cat: InventoryCategory) {
-            result.append(cat)
-            for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
-                visit(sub)
-            }
+    private var categoryFilterLabel: String {
+        let selected = categories.filter { filterCategoryIDs.contains($0.id) }
+        switch selected.count {
+        case 0: return "All Categories"
+        case 1: return selected[0].name
+        default: return "\(selected.count) Categories"
         }
-        for top in topCategories {
-            visit(top)
-        }
-        return result
     }
 
     private var filteredItems: [InventoryItem] {
@@ -62,12 +53,14 @@ struct InventoryView: View {
 
             let matchesLocation = filterLocation == nil || item.location?.id == filterLocation?.id
             let matchesCategory: Bool
-            if let filterCat = filterCategory {
-                // Match the category itself or any of its subcategories
-                matchesCategory = item.category?.id == filterCat.id ||
-                    item.category?.parent?.id == filterCat.id
-            } else {
+            if filterCategoryIDs.isEmpty {
                 matchesCategory = true
+            } else if let cat = item.category {
+                matchesCategory = filterCategoryIDs.contains(cat.id) ||
+                    (cat.parent.map { filterCategoryIDs.contains($0.id) } ?? false) ||
+                    (cat.parent?.parent.map { filterCategoryIDs.contains($0.id) } ?? false)
+            } else {
+                matchesCategory = false
             }
 
             return matchesSearch && matchesLocation && matchesCategory
@@ -91,8 +84,7 @@ struct InventoryView: View {
                     }
                 }
             }
-            .navigationTitle("Inventory")
-            .searchable(text: $searchText, prompt: "Search items, location, category")
+            .background(Color(.systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
@@ -102,10 +94,26 @@ struct InventoryView: View {
                         Image(systemName: "slider.horizontal.3")
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation(.spring(duration: 0.3)) { isSearching = true }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
                     Button { showingAdd = true } label: {
                         Image(systemName: "plus")
                     }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isSearching {
+                    FloatingSearchBar(text: $searchText, placeholder: "Search items, location, category") {
+                        withAnimation(.spring(duration: 0.3)) {
+                            isSearching = false
+                            searchText = ""
+                        }
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .sheet(isPresented: $showingAdd) {
@@ -117,6 +125,15 @@ struct InventoryView: View {
             .sheet(isPresented: $showingManageCategories) {
                 ManageCategoriesView()
             }
+            .sheet(isPresented: $showingCategoryPicker) {
+                CategoryPickerSheet(
+                    multiSelect: true,
+                    onSelectMultiple: { selected in
+                        filterCategoryIDs = Set(selected.map(\.id))
+                    },
+                    initialSelection: filterCategoryIDs
+                )
+            }
         }
     }
 
@@ -124,76 +141,84 @@ struct InventoryView: View {
 
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // Group mode picker
+            filterChips
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    @ViewBuilder
+    private var filterChips: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 8) {
+                filterChipRow
+            }
+        } else {
+            filterChipRow
+        }
+    }
+
+    private var filterChipRow: some View {
+        HStack(spacing: 8) {
+            Menu {
+                ForEach(InventoryGroupMode.allCases, id: \.self) { mode in
+                    Button {
+                        groupMode = mode
+                    } label: {
+                        Label(mode.rawValue, systemImage: mode.icon)
+                    }
+                }
+            } label: {
+                FilterChip(
+                    label: groupMode.rawValue,
+                    icon: groupMode.icon,
+                    isActive: true
+                )
+            }
+
+            if groupMode != .alphabetical {
+                Divider()
+                    .frame(height: 24)
+            }
+
+            if groupMode != .location {
                 Menu {
-                    ForEach(InventoryGroupMode.allCases, id: \.self) { mode in
-                        Button {
-                            groupMode = mode
-                        } label: {
-                            Label(mode.rawValue, systemImage: mode.icon)
-                        }
+                    Button("All Locations") { filterLocation = nil }
+                    ForEach(locations) { loc in
+                        Button(loc.name) { filterLocation = loc }
                     }
                 } label: {
                     FilterChip(
-                        label: groupMode.rawValue,
-                        icon: groupMode.icon,
-                        isActive: true
+                        label: filterLocation?.name ?? "All Locations",
+                        icon: "mappin.and.ellipse",
+                        isActive: filterLocation != nil
                     )
                 }
+            }
 
-                if groupMode != .alphabetical {
-                    Divider()
-                        .frame(height: 24)
-                }
-
-                // Location filter (shown when not already grouped by location)
-                if groupMode != .location {
-                    Menu {
-                        Button("All Locations") { filterLocation = nil }
-                        ForEach(locations) { loc in
-                            Button(loc.name) { filterLocation = loc }
-                        }
-                    } label: {
-                        FilterChip(
-                            label: filterLocation?.name ?? "All Locations",
-                            icon: "mappin.and.ellipse",
-                            isActive: filterLocation != nil
-                        )
-                    }
-                }
-
-                // Category filter (shown when not already grouped by category)
-                if groupMode != .category {
-                    Menu {
-                        Button("All Categories") { filterCategory = nil }
-                        ForEach(allCategoriesFlattened) { cat in
-                            Button(cat.displayPath) { filterCategory = cat }
-                        }
-                    } label: {
-                        FilterChip(
-                            label: filterCategory?.displayPath ?? "All Categories",
-                            icon: "tag",
-                            isActive: filterCategory != nil
-                        )
-                    }
-                }
-
-                // Clear filters button
-                if filterLocation != nil || filterCategory != nil {
-                    Button {
-                        filterLocation = nil
-                        filterCategory = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
+            if groupMode != .category {
+                Button {
+                    showingCategoryPicker = true
+                } label: {
+                    FilterChip(
+                        label: categoryFilterLabel,
+                        icon: "tag",
+                        isActive: !filterCategoryIDs.isEmpty
+                    )
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+
+            if filterLocation != nil || !filterCategoryIDs.isEmpty {
+                Button {
+                    filterLocation = nil
+                    filterCategoryIDs = []
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
-        .background(Color(.systemBackground))
     }
 
     // MARK: - Item List
@@ -219,22 +244,40 @@ struct InventoryView: View {
     private var alphabeticalList: some View {
         List {
             ForEach(filteredItems) { item in
-                NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                ZStack {
+                    NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+
                     InventoryRowView(item: item)
                 }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
             .onDelete(perform: deleteItems)
         }
+        .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
     }
 
     private func groupedList(groups: [(key: String, items: [InventoryItem])], noGroupLabel: String) -> some View {
         List {
             ForEach(groups, id: \.key) { group in
-                Section(group.key) {
+                Section(header: Text(group.key).font(.subheadline).fontWeight(.bold).textCase(.uppercase).foregroundStyle(.secondary)) {
                     ForEach(group.items) { item in
-                        NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                        ZStack {
+                            NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                                EmptyView()
+                            }
+                            .opacity(0)
+
                             InventoryRowView(item: item)
                         }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     }
                     .onDelete { offsets in
                         deleteItems(from: group.items, at: offsets)
@@ -242,6 +285,8 @@ struct InventoryView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
     }
 
     // MARK: - Grouping Helpers
@@ -312,10 +357,21 @@ struct FilterChip: View {
         .foregroundStyle(isActive ? Color.accentColor : .secondary)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(
-            isActive ? Color.accentColor.opacity(0.12) : Color(.systemGray5),
-            in: Capsule()
-        )
+        .chipBackground(isActive: isActive)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func chipBackground(isActive: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            self.background(
+                isActive ? Color.accentColor.opacity(0.12) : Color(.systemGray5),
+                in: Capsule()
+            )
+        }
     }
 }
 
@@ -326,82 +382,184 @@ struct InventoryRowView: View {
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.headline)
+        let accent = item.category.map { Color.accentColor(for: $0.name) } ?? Color.appAccent
 
-                HStack(spacing: 4) {
-                    Text(formatQuantity(item.currentQuantity))
-                        .fontWeight(.semibold)
-                        .foregroundStyle(quantityColor)
-                    Text(item.unit)
-                        .foregroundStyle(.secondary)
+        ZStack(alignment: .leading) {
+            // MARK: - Background gradient wash (stock level)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemGroupedBackground))
 
-                    if let days = item.estimatedDaysRemaining {
-                        Text("·")
-                            .foregroundStyle(.secondary)
-                        Text("~\(formatDays(days)) left")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .font(.subheadline)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: accent.opacity(0.10), location: 0.0),
+                            .init(color: accent.opacity(0.0), location: 0.20)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
 
-                // Location + category badges
+            // MARK: - Left accent stripe
+            HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(accent)
+                    .frame(width: 4)
+                    .padding(.vertical, 10)
+
+                Spacer()
+            }
+
+            // MARK: - Card content
+            VStack(spacing: 12) {
+                // Top Meta Badges
                 if item.location != nil || item.category != nil {
                     HStack(spacing: 6) {
-                        if let loc = item.location {
-                            RowBadge(text: loc.name, icon: "mappin.and.ellipse")
-                        }
                         if let cat = item.category {
-                            RowBadge(text: cat.displayPath, icon: "tag")
+                            RowBadge(text: cat.displayPath, icon: "tag", color: accent)
+                        }
+                        if let loc = item.location {
+                            RowBadge(text: loc.name, icon: "mappin.and.ellipse", color: Color.accentColor(for: loc.name))
+                        }
+                        Spacer()
+                    }
+                }
+
+                // Item Detail and Stepper
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.primary)
+
+                        HStack(spacing: 4) {
+                            Text(item.unit)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            if let days = item.estimatedDaysRemaining {
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("~\(formatDays(days)) left")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // Wider stepper — buttons separated by a quantity display
+                    HStack(spacing: 0) {
+                        Button {
+                            adjustQuantity(by: -1)
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.body.bold())
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(item.currentQuantity <= 0 ? Color(.systemGray3) : .primary)
+                        .disabled(item.currentQuantity <= 0)
+
+                        Text(formatQuantity(item.currentQuantity))
+                            .font(.subheadline.monospacedDigit())
+                            .fontWeight(.semibold)
+                            .foregroundStyle(quantityColor)
+                            .frame(minWidth: 32)
+
+                        Button {
+                            adjustQuantity(by: 1)
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.body.bold())
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.primary)
+                    }
+                    .background(Color(.systemGray6), in: Capsule())
+                    .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 0.5))
+                }
+
+                // Bottom Stock Gauge
+                if item.initialQuantity > 0 {
+                    let stockRatio = min(1.0, item.currentQuantity / item.initialQuantity)
+                    VStack(spacing: 4) {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color(.systemGray5))
+                                    .frame(height: 6)
+
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [quantityColor.opacity(0.7), quantityColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: max(0, min(geo.size.width, geo.size.width * CGFloat(stockRatio))), height: 6)
+                            }
+                        }
+                        .frame(height: 6)
+
+                        HStack {
+                            Text("\(formatQuantity(item.currentQuantity)) of \(formatQuantity(item.initialQuantity)) \(item.unit)")
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+
+                            Spacer()
+
+                            Text("\(Int(stockRatio * 100))% remaining")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
-
-            Spacer()
-
-            HStack(spacing: 0) {
-                Button {
-                    adjustQuantity(by: -1)
-                } label: {
-                    Image(systemName: "minus")
-                        .frame(width: 36, height: 36)
-                        .background(Color(.systemGray5), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(item.currentQuantity <= 0)
-
-                Button {
-                    adjustQuantity(by: 1)
-                } label: {
-                    Image(systemName: "plus")
-                        .frame(width: 36, height: 36)
-                        .background(Color.accentColor.opacity(0.15), in: Circle())
-                }
-                .buttonStyle(.plain)
-            }
+            .padding(.leading, 16)
+            .padding(.trailing, 16)
+            .padding(.vertical, 16)
         }
-        .padding(.vertical, 4)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: accent.opacity(0.18), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(accent.opacity(0.25), lineWidth: 1)
+        )
     }
 
     private var quantityColor: Color {
         let ratio = item.initialQuantity > 0 ? item.currentQuantity / item.initialQuantity : 1
-        if ratio <= 0.1 { return .red }
-        if ratio <= 0.3 { return .orange }
-        return .primary
+        if ratio <= 0.15 { return .red }
+        if ratio <= 0.35 { return .orange }
+        return Color.appAccent
     }
 
     private func adjustQuantity(by delta: Double) {
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
+        
+        // When incrementing (topping off), expand the total pool baseline
+        if change > 0 {
+            item.initialQuantity += change
+        }
+        
         item.currentQuantity = newQty
         let log = InventoryLog(change: change)
         log.item = item
         modelContext.insert(log)
         SyncService.shared.syncInventoryItem(item)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func formatQuantity(_ val: Double) -> String {
@@ -419,17 +577,20 @@ struct InventoryRowView: View {
 struct RowBadge: View {
     let text: String
     let icon: String
+    var color: Color = .secondary
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             Image(systemName: icon)
+                .font(.caption2)
             Text(text)
+                .font(.caption2)
+                .fontWeight(.medium)
         }
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Color(.systemGray5), in: Capsule())
+        .foregroundStyle(color)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.12), in: Capsule())
     }
 }
 
@@ -504,5 +665,80 @@ struct ManageLocationsView: View {
         SyncService.shared.syncStorageLocation(location)
         newName = ""
     }
+}
+
+// MARK: - Preview
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: InventoryItem.self, StorageLocation.self, InventoryCategory.self, InventoryLog.self, configurations: config)
+    
+    let context = container.mainContext
+    
+    // Create locations
+    let pantry = StorageLocation(name: "Pantry")
+    let fridge = StorageLocation(name: "Refrigerator")
+    let freezer = StorageLocation(name: "Freezer")
+    context.insert(pantry)
+    context.insert(fridge)
+    context.insert(freezer)
+    
+    // Create categories
+    let baking = InventoryCategory(name: "Baking")
+    let dairy = InventoryCategory(name: "Dairy")
+    let produce = InventoryCategory(name: "Produce")
+    let frozen = InventoryCategory(name: "Frozen Foods")
+    context.insert(baking)
+    context.insert(dairy)
+    context.insert(produce)
+    context.insert(frozen)
+    
+    // Create inventory items
+    let item1 = InventoryItem(
+        name: "Chocolate Chips",
+        unit: "bags",
+        initialQuantity: 4.0,
+        currentQuantity: 3.0,
+        dateBought: Date(),
+        location: pantry,
+        category: baking
+    )
+    
+    let item2 = InventoryItem(
+        name: "Whole Milk",
+        unit: "gal",
+        initialQuantity: 1.0,
+        currentQuantity: 0.15,
+        dateBought: Date(),
+        location: fridge,
+        category: dairy
+    )
+    
+    let item3 = InventoryItem(
+        name: "Organic Bananas",
+        unit: "qty",
+        initialQuantity: 7.0,
+        currentQuantity: 2.0,
+        dateBought: Date(),
+        location: pantry,
+        category: produce
+    )
+    
+    let item4 = InventoryItem(
+        name: "Frozen Strawberries",
+        unit: "oz",
+        initialQuantity: 32.0,
+        currentQuantity: 32.0,
+        dateBought: Date(),
+        location: freezer,
+        category: frozen
+    )
+    
+    context.insert(item1)
+    context.insert(item2)
+    context.insert(item3)
+    context.insert(item4)
+    
+    return InventoryView()
+        .modelContainer(container)
 }
 

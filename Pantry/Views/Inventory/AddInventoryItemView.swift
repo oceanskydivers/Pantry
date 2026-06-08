@@ -21,31 +21,13 @@ struct AddInventoryItemView: View {
     // Category picker state
     @State private var selectedCategory: InventoryCategory? = nil
     @State private var showingManageCategories = false
+    @State private var showingCategoryPicker = false
 
     enum FocusedField { case newLocation }
     @FocusState private var focusedField: FocusedField?
 
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
     @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
-
-    private var topCategories: [InventoryCategory] {
-        categories.filter { $0.parent == nil }
-    }
-
-    /// Depth-first flattened list of all categories in display order.
-    private var allCategoriesFlattened: [InventoryCategory] {
-        var result: [InventoryCategory] = []
-        func visit(_ cat: InventoryCategory) {
-            result.append(cat)
-            for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
-                visit(sub)
-            }
-        }
-        for top in topCategories {
-            visit(top)
-        }
-        return result
-    }
 
     private var isEditing: Bool { existingItem != nil }
 
@@ -99,15 +81,8 @@ struct AddInventoryItemView: View {
 
                 // MARK: Category
                 Section("Category") {
-                    Menu {
-                        Button("None") { selectedCategory = nil }
-                        ForEach(allCategoriesFlattened) { cat in
-                            Button(cat.displayPath) { selectedCategory = cat }
-                        }
-                        Divider()
-                        Button("New Category…") {
-                            showingManageCategories = true
-                        }
+                    Button {
+                        showingCategoryPicker = true
                     } label: {
                         HStack {
                             Text("Category")
@@ -115,7 +90,7 @@ struct AddInventoryItemView: View {
                             Spacer()
                             Text(selectedCategory?.displayPath ?? "None")
                                 .foregroundStyle(.secondary)
-                            Image(systemName: "chevron.up.chevron.down")
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -124,7 +99,7 @@ struct AddInventoryItemView: View {
 
                 Section("Quantity") {
                     HStack {
-                        Text("Initial Quantity")
+                        Text("Acquired Stock")
                         Spacer()
                         TextField("0", text: $initialQuantityText)
                             .keyboardType(.decimalPad)
@@ -147,6 +122,28 @@ struct AddInventoryItemView: View {
 
                     DatePicker("Date Bought", selection: $dateBought, displayedComponents: .date)
                 }
+
+                // MARK: Explanatory Info Card
+                Section {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.accentColor)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("What is Acquired Stock?")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            
+                            Text("This represents your total stock pool for the current cycle (e.g., 20 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 20. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 23 so consumption rates and remaining-day estimates remain highly accurate.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(3)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
             }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle(isEditing ? "Edit Item" : "New Item")
@@ -167,6 +164,11 @@ struct AddInventoryItemView: View {
             .sheet(isPresented: $showingManageCategories) {
                 ManageCategoriesView { newCategory in
                     selectedCategory = newCategory
+                }
+            }
+            .sheet(isPresented: $showingCategoryPicker) {
+                CategoryPickerSheet { chosen in
+                    selectedCategory = chosen
                 }
             }
         }
