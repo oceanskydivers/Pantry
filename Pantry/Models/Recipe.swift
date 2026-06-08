@@ -12,6 +12,7 @@ final class Recipe {
     var imageStoragePath: String?
     var servings: Double
     var createdAt: Date
+    var isFavorite: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \Ingredient.recipe)
     var ingredients: [Ingredient]
@@ -22,7 +23,8 @@ final class Recipe {
         notes: String = "",
         instructions: [String] = [],
         imageData: Data? = nil,
-        servings: Double = 4
+        servings: Double = 4,
+        isFavorite: Bool = false
     ) {
         self.id = UUID()
         self.name = name
@@ -32,6 +34,7 @@ final class Recipe {
         self.imageData = imageData
         self.servings = servings
         self.createdAt = Date()
+        self.isFavorite = isFavorite
         self.ingredients = []
     }
 }

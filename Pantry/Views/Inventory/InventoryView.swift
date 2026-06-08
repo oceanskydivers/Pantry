@@ -393,8 +393,8 @@ struct InventoryRowView: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: accent.opacity(0.10), location: 0.0),
-                            .init(color: accent.opacity(0.0), location: 0.20)
+                            .init(color: accent.opacity(0.1), location: 0.0),
+                            .init(color: accent.opacity(0.0), location: 0.75)
                         ],
                         startPoint: .leading,
                         endPoint: .trailing

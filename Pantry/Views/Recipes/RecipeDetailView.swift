@@ -1,6 +1,175 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Recipe Browser (recents history + drawer)
+
+/// Wraps RecipeDetailView with a "recently viewed" bottom bar.
+/// The stack is always exactly one level deep — the back button always goes to RecipesView.
+/// Switching recipes via the drawer swaps the displayed recipe in-place (no push).
+struct RecipeBrowserView: View {
+    let allRecipes: [Recipe]
+    let startIndex: Int
+
+    @EnvironmentObject private var recents: RecipeRecentsStore
+    @State private var showRecentsDrawer = false
+
+    private var startRecipe: Recipe { allRecipes[startIndex] }
+
+    /// The recipe currently displayed — follows recents.current once pushed.
+    private var displayedRecipe: Recipe {
+        recents.current ?? startRecipe
+    }
+
+    var body: some View {
+        RecipeDetailView(recipe: displayedRecipe)
+            .overlay(alignment: .bottom) { bottomBar }
+            .onAppear { recents.push(startRecipe) }
+            .onDisappear { recents.clearCurrent() }
+            .navigationTitle(displayedRecipe.name)
+            .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Bottom bar
+
+    private var drawerRecipes: [Recipe] {
+        recents.recipes.filter { $0.id != displayedRecipe.id }
+    }
+
+    @ViewBuilder
+    private var bottomBar: some View {
+        if !drawerRecipes.isEmpty {
+            VStack(spacing: 0) {
+                // Drawer
+                if showRecentsDrawer {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Recently Viewed")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 14)
+                            .padding(.bottom, 8)
+
+                        ForEach(Array(drawerRecipes.enumerated()), id: \.element.id) { idx, recipe in
+                            if idx > 0 { Divider().padding(.leading, 68) }
+                            Button {
+                                withAnimation(.spring(duration: 0.3)) {
+                                    recents.jumpTo(recipe)
+                                    showRecentsDrawer = false
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    recipeThumbnail(recipe, size: 40, cornerRadius: 8)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(recipe.name)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+                                        Text("\(recipe.ingredients.count) ingredients")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.bottom, 8)
+                    }
+                    .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 16)
+                    .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: -4)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Pill
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(duration: 0.3)) {
+                            showRecentsDrawer.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: showRecentsDrawer ? "chevron.down" : "clock.arrow.circlepath")
+                                .font(.caption.weight(.semibold))
+                            Text("Recent")
+                                .font(.subheadline.weight(.semibold))
+                            HStack(spacing: -6) {
+                                ForEach(drawerRecipes.prefix(3)) { r in
+                                    recipeThumbnail(r, size: 22, cornerRadius: 11)
+                                        .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 1.5))
+                                }
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(.thickMaterial, in: Capsule())
+                        .overlay(Capsule().stroke(Color(.separator).opacity(0.3), lineWidth: 0.5))
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recipeThumbnail(_ recipe: Recipe, size: CGFloat, cornerRadius: CGFloat) -> some View {
+        Group {
+            if let data = recipe.imageData, let img = UIImage(data: data) {
+                Image(uiImage: img).resizable().scaledToFill()
+            } else {
+                Color.appAccent.opacity(0.15)
+                    .overlay(
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: size * 0.35))
+                            .foregroundStyle(Color.appAccent.opacity(0.6))
+                    )
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Recents store
+
+final class RecipeRecentsStore: ObservableObject {
+    /// The recipe currently shown in the detail view.
+    @Published private(set) var current: Recipe?
+    /// All recently viewed recipes, most recent first.
+    @Published private(set) var recipes: [Recipe] = []
+    private let max = 5
+
+    func push(_ recipe: Recipe) {
+        current = recipe
+        recipes.removeAll { $0.id == recipe.id }
+        recipes.insert(recipe, at: 0)
+        if recipes.count > max { recipes = Array(recipes.prefix(max)) }
+    }
+
+    /// Jump to a recipe that's already in the recents list without re-pushing it to the front.
+    func jumpTo(_ recipe: Recipe) {
+        current = recipe
+    }
+
+    /// Called when the detail view disappears so the next fresh open starts clean.
+    func clearCurrent() {
+        current = nil
+    }
+}
+
+// MARK: - Recipe Detail Tab
+
 enum RecipeDetailTab: Int, CaseIterable, Identifiable {
     case ingredients = 0
     case instructions = 1
@@ -204,8 +373,6 @@ struct RecipeDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(recipe.name)
-        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: recipe.imageData) { _, newData in
             // Keep the cached image synchronized when editing the recipe changes the photo
             if let data = newData {

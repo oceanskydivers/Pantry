@@ -8,9 +8,27 @@ enum RecipeLayout: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum RecipeSortMode: String, CaseIterable {
+    case newest = "Newest"
+    case oldest = "Oldest"
+    case alphabetical = "A–Z"
+    case reverseAlphabetical = "Z–A"
+
+    var icon: String {
+        switch self {
+        case .newest: return "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .oldest: return "clock"
+        case .alphabetical: return "textformat.abc"
+        case .reverseAlphabetical: return "textformat.abc"
+        }
+    }
+}
+
 struct RecipesView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
+    @Query private var recipes: [Recipe]
+
+    @StateObject private var recipeRecents = RecipeRecentsStore()
 
     @AppStorage("recipeViewLayout") private var layout: RecipeLayout = .grid
     @State private var searchText = ""
@@ -18,6 +36,8 @@ struct RecipesView: View {
     @State private var showingAddSheet = false
     @State private var showingImportSheet = false
     @State private var recipeToDelete: Recipe?
+    @State private var sortMode: RecipeSortMode = .newest
+    @State private var showFavoritesOnly = false
 
     private let columns = [
         GridItem(.flexible()),
@@ -25,8 +45,28 @@ struct RecipesView: View {
     ]
 
     var filtered: [Recipe] {
-        if searchText.isEmpty { return recipes }
-        return recipes.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        var result = recipes
+
+        if !searchText.isEmpty {
+            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        }
+
+        if showFavoritesOnly {
+            result = result.filter { $0.isFavorite }
+        }
+
+        switch sortMode {
+        case .newest:
+            result.sort { $0.createdAt > $1.createdAt }
+        case .oldest:
+            result.sort { $0.createdAt < $1.createdAt }
+        case .alphabetical:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .reverseAlphabetical:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        }
+
+        return result
     }
 
     var body: some View {
@@ -39,54 +79,18 @@ struct RecipesView: View {
                         description: Text("Add your first recipe using the + button above.")
                     )
                 } else {
-                    if layout == .list {
-                        List {
-                            ForEach(filtered) { recipe in
-                                NavigationLink(destination: RecipeDetailView(recipe: recipe)) {
-                                    RecipeRowView(recipe: recipe)
-                                }
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        recipeToDelete = recipe
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                            }
-                            .onDelete(perform: deleteRecipes)
-                        }
-                    } else {
-                        ScrollView {
-                            LazyVGrid(columns: columns, spacing: 12) {
-                                ForEach(filtered) { recipe in
-                                    NavigationLink(value: recipe) {
-                                        RecipeCardView(recipe: recipe)
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            recipeToDelete = recipe
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    } preview: {
-                                        RecipeCardView(recipe: recipe)
-                                            .frame(width: 200)
-                                            .background(Color(.secondarySystemGroupedBackground))
-                                    }
-                                }
-                            }
-                            .padding(16)
-                        }
-                        .scrollDismissesKeyboard(.immediately)
-                        .background(Color(.systemGroupedBackground))
-                        .navigationDestination(for: Recipe.self) { recipe in
-                            RecipeDetailView(recipe: recipe)
+                    VStack(spacing: 0) {
+                        recipeFilterBar
+                        Divider()
+                        if layout == .list {
+                            recipeList
+                        } else {
+                            recipeGrid
                         }
                     }
                 }
             }
+            .background(Color(.systemGroupedBackground))
             // .navigationTitle("Recipes")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -153,7 +157,131 @@ struct RecipesView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .onDisappear {
+                // Navigation pushed — reset search so returning doesn't show a keyboardless bar
+                if isSearching {
+                    isSearching = false
+                    searchText = ""
+                }
+            }
         }
+        .environmentObject(recipeRecents)
+    }
+
+    // MARK: - Filter Bar
+
+    private var recipeFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            recipeFilterChips
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    @ViewBuilder
+    private var recipeFilterChips: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 8) {
+                recipeFilterChipRow
+            }
+        } else {
+            recipeFilterChipRow
+        }
+    }
+
+    private var recipeFilterChipRow: some View {
+        HStack(spacing: 8) {
+            // Sort mode picker
+            Menu {
+                ForEach(RecipeSortMode.allCases, id: \.self) { mode in
+                    Button {
+                        sortMode = mode
+                    } label: {
+                        Label(mode.rawValue, systemImage: mode.icon)
+                    }
+                }
+            } label: {
+                FilterChip(
+                    label: sortMode.rawValue,
+                    icon: sortMode.icon,
+                    isActive: true
+                )
+            }
+
+            Divider()
+                .frame(height: 24)
+
+            // Favorites toggle
+            Button {
+                showFavoritesOnly.toggle()
+            } label: {
+                FilterChip(
+                    label: "Favorites",
+                    icon: showFavoritesOnly ? "heart.fill" : "heart",
+                    isActive: showFavoritesOnly
+                )
+            }
+
+            // Clear button
+            if showFavoritesOnly {
+                Button {
+                    showFavoritesOnly = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    // MARK: - List / Grid helpers
+
+    private func browserDestination(for index: Int) -> RecipeBrowserView {
+        RecipeBrowserView(allRecipes: filtered, startIndex: index)
+    }
+
+    private var recipeList: some View {
+        List {
+            ForEach(Array(filtered.enumerated()), id: \.element.id) { index, recipe in
+                NavigationLink(destination: browserDestination(for: index)) {
+                    RecipeRowView(recipe: recipe)
+                }
+                .contextMenu {
+                    Button(role: .destructive) { recipeToDelete = recipe } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+            .onDelete(perform: deleteRecipes)
+        }
+    }
+
+    private var recipeGrid: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(filtered.enumerated()), id: \.element.id) { index, recipe in
+                    NavigationLink(destination: browserDestination(for: index)) {
+                        RecipeCardView(recipe: recipe)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(RoundedRectangle(cornerRadius: 16))
+                    .contextMenu {
+                        Button(role: .destructive) { recipeToDelete = recipe } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    } preview: {
+                        RecipeCardView(recipe: recipe)
+                            .frame(width: 200)
+                            .background(Color(.secondarySystemGroupedBackground))
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .scrollDismissesKeyboard(.immediately)
+        .background(Color(.systemGroupedBackground))
     }
 
     private func deleteRecipes(at offsets: IndexSet) {
@@ -168,7 +296,7 @@ struct RecipesView: View {
 // MARK: - Recipe Row View
 
 struct RecipeRowView: View {
-    let recipe: Recipe
+    @Bindable var recipe: Recipe
 
     var body: some View {
         HStack(spacing: 12) {
@@ -193,6 +321,18 @@ struct RecipeRowView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+
+            Spacer()
+
+            Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
+                .foregroundStyle(recipe.isFavorite ? .red : .secondary)
+                .font(.body)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .simultaneousGesture(TapGesture().onEnded {
+                    recipe.isFavorite.toggle()
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                })
         }
         .padding(.vertical, 2)
     }
@@ -237,7 +377,7 @@ struct RecipeRowView: View {
 }
 
 struct RecipeCardView: View {
-    let recipe: Recipe
+    @Bindable var recipe: Recipe
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -266,6 +406,7 @@ struct RecipeCardView: View {
                     )
                     .clipped()
 
+                // Bottom info overlay
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 4) {
                         HStack(spacing: 4) {
@@ -274,7 +415,7 @@ struct RecipeCardView: View {
                             Text("\(recipe.ingredients.count)")
                                 .font(.caption2)
                         }
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.regularMaterial, in: Capsule())
@@ -285,7 +426,7 @@ struct RecipeCardView: View {
                             Text("\(Int(recipe.servings))")
                                 .font(.caption2)
                         }
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(.regularMaterial, in: Capsule())
@@ -294,7 +435,7 @@ struct RecipeCardView: View {
                     Text(recipe.name)
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -302,6 +443,27 @@ struct RecipeCardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(8)
+
+                // Favorite heart — top trailing
+                VStack {
+                    HStack {
+                        Spacer()
+                        Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(recipe.isFavorite ? .red : .white)
+                            .shadow(color: .black.opacity(0.4), radius: 2, x: 0, y: 1)
+                            .padding(10)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .contentShape(Circle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                recipe.isFavorite.toggle()
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            })
+                            .padding(8)
+                    }
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
         }
         .frame(maxWidth: .infinity)
