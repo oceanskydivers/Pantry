@@ -3,6 +3,16 @@ import SwiftUI
 import SwiftData
 import UIKit
 
+extension Notification.Name {
+    static let shoppingListSaveAll = Notification.Name("shoppingListSaveAll")
+}
+
+// Lightweight reference type used as the undo target so registerUndo(withTarget:) compiles.
+private final class ShoppingUndoTarget {
+    static let shared = ShoppingUndoTarget()
+    private init() {}
+}
+
 struct ShoppingListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ShoppingCategory.sortOrder) private var categories: [ShoppingCategory]
@@ -54,6 +64,9 @@ struct ShoppingListView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if isKeyboardVisible {
                         Button {
+                            // Post save-all first so sections can flush/remove empty rows,
+                            // then dismiss the keyboard.
+                            NotificationCenter.default.post(name: .shoppingListSaveAll, object: nil)
                             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         } label: {
                             Image(systemName: "checkmark")
@@ -135,6 +148,12 @@ struct ShoppingCategorySection: View {
 
     @State private var rows: [ItemRow] = []
     @State private var focusedRowID: UUID? = nil
+
+    /// A snapshot of items used to detect any cloud-pushed change (name edits, check toggles, additions, deletions).
+    private var itemsSnapshot: [String] {
+        category.items.map { "\($0.cloudID)-\($0.name)-\($0.isChecked)" }.sorted()
+    }
+    @Environment(\.undoManager) private var undoManager
     @State private var isRenaming = false
     @State private var newName = ""
     @State private var isFlushing = false
@@ -153,8 +172,7 @@ struct ShoppingCategorySection: View {
                 )
             }
             .onDelete { offsets in
-                rows.remove(atOffsets: offsets)
-                flushToSwiftData()
+                mutateRows(actionName: "Delete Item") { $0.remove(atOffsets: offsets) }
             }
 
             // Checked items — read-only, straight from SwiftData
@@ -221,8 +239,11 @@ struct ShoppingCategorySection: View {
             Button("Cancel", role: .cancel) {}
         }
         .onAppear { loadRows() }
-        .onChange(of: category.items.count) { _, _ in
+        .onChange(of: itemsSnapshot) { _, _ in
             if !isFlushing { loadRows() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shoppingListSaveAll)) { _ in
+            saveAll()
         }
     }
 
@@ -237,45 +258,96 @@ struct ShoppingCategorySection: View {
             focusedRowID = nil
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             withAnimation(.easeInOut(duration: 0.2)) {
-                rows.remove(at: idx)
-                flushToSwiftData()
+                mutateRows(actionName: "Delete Item") { $0.remove(at: idx) }
             }
         } else {
             // Filled + enter = new empty row immediately below
-            rows[idx].name = trimmed
             let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
-            rows.insert(newRow, at: idx + 1)
+            mutateRows(actionName: "Add Item") {
+                $0[idx].name = trimmed
+                $0.insert(newRow, at: idx + 1)
+            }
             focusedRowID = newRow.id
-            flushToSwiftData()
         }
     }
 
     private func handleEndEditing(rowID: UUID) {
         guard let idx = rows.firstIndex(where: { $0.id == rowID }) else { return }
         let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            rows.remove(at: idx)
-        } else {
-            rows[idx].name = trimmed
-        }
         if focusedRowID == rowID { focusedRowID = nil }
-        flushToSwiftData()
+        if trimmed.isEmpty {
+            mutateRows(actionName: "Delete Item") { $0.remove(at: idx) }
+        } else {
+            mutateRows(actionName: "Edit Item") { $0[idx].name = trimmed }
+        }
     }
 
     private func checkRow(id: UUID) {
-        // Move from rows (unchecked state) into SwiftData as checked
         guard let idx = rows.firstIndex(where: { $0.id == id }) else { return }
+
+        // If the row name is empty, just delete it without checking
+        let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            mutateRows(actionName: "Delete Item") { $0.remove(at: idx) }
+            return
+        }
+
+        // Register undo before mutating: undo will uncheck the item and restore the row
+        let before = rows
         rows.remove(at: idx)
+        undoManager?.registerUndo(withTarget: ShoppingUndoTarget.shared) { _ in
+            // Undo check: restore row and uncheck in SwiftData
+            if let item = self.category.items.first(where: { $0.cloudID == id }) {
+                item.isChecked = false
+                try? self.modelContext.save()
+            }
+            self.rows = before
+            self.flushToSwiftData()
+        }
+        undoManager?.setActionName("Check Item")
+
+        // Mark as checked in SwiftData first, save, then sync the full category
         if let item = category.items.first(where: { $0.cloudID == id }) {
             item.isChecked = true
+            try? modelContext.save()
         }
+        // Sync immediately with the updated checked state, then rebuild unchecked rows
+        SyncService.shared.syncShoppingCategory(category)
         flushToSwiftData()
+    }
+
+    /// Called when the toolbar checkmark is tapped — remove empty rows, save, and sync.
+    private func saveAll() {
+        focusedRowID = nil
+        mutateRows(actionName: "Save") { $0 = $0.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty } }
     }
 
     private func addNewRow() {
         let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
         rows.append(newRow)
         focusedRowID = newRow.id
+        flushToSwiftData()
+    }
+
+    // MARK: - Undo support
+
+    /// Applies a mutation to `rows`, registers an undo action, then flushes to SwiftData.
+    private func mutateRows(actionName: String, _ mutation: (inout [ItemRow]) -> Void) {
+        let before = rows
+        mutation(&rows)
+        let after = rows
+        undoManager?.registerUndo(withTarget: ShoppingUndoTarget.shared) { _ in
+            // Undo: restore previous rows and re-flush
+            self.rows = before
+            self.flushToSwiftData()
+            // Register redo
+            self.undoManager?.registerUndo(withTarget: ShoppingUndoTarget.shared) { _ in
+                self.rows = after
+                self.flushToSwiftData()
+            }
+            self.undoManager?.setActionName(actionName)
+        }
+        undoManager?.setActionName(actionName)
         flushToSwiftData()
     }
 
@@ -366,7 +438,7 @@ struct ShoppingItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Button {
-                withAnimation(.spring(duration: 0.2)) { onCheckToggle() }
+                withAnimation(.easeInOut(duration: 0.2)) { onCheckToggle() }
             } label: {
                 Image(systemName: "circle")
                     .font(.title3)

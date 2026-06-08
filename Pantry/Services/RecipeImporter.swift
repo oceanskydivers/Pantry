@@ -26,8 +26,22 @@ enum ImportError: LocalizedError {
 actor RecipeImporter {
     static let shared = RecipeImporter()
 
+    // Cloud Run backend URL for social media imports
+    private let backendURL = "https://pantry-recipe-importer-187109070061.us-central1.run.app"
+
+    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be"]
+
+    private func isSocialURL(_ urlString: String) -> Bool {
+        socialDomains.contains { urlString.contains($0) }
+    }
+
     func importRecipe(from urlString: String) async throws -> ImportedRecipe {
         guard let url = URL(string: urlString) else { throw ImportError.invalidURL }
+
+        // Route social media URLs to the backend pipeline
+        if isSocialURL(urlString) {
+            return try await importFromBackend(urlString: urlString)
+        }
 
         let (data, _) = try await URLSession.shared.data(from: url)
         guard let html = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else {
@@ -39,6 +53,67 @@ actor RecipeImporter {
         }
 
         throw ImportError.parseError("No structured recipe data found on that page. Try copying the recipe manually.")
+    }
+
+    private func importFromBackend(urlString: String) async throws -> ImportedRecipe {
+        guard let endpoint = URL(string: "\(backendURL)/import") else {
+            throw ImportError.invalidURL
+        }
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Social imports can take up to 60s (audio download + Gemini processing)
+        request.timeoutInterval = 120
+
+        let body = ["url": urlString]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw ImportError.parseError("Invalid server response.")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw ImportError.parseError("Could not parse server response.")
+        }
+
+        // Server returned an error message
+        if let errorMsg = json["error"] as? String {
+            throw ImportError.parseError(errorMsg)
+        }
+
+        guard http.statusCode == 200 else {
+            throw ImportError.parseError("Server error (\(http.statusCode)).")
+        }
+
+        return try parseBackendRecipe(json)
+    }
+
+    private func parseBackendRecipe(_ json: [String: Any]) throws -> ImportedRecipe {
+        let name = json["name"] as? String ?? "Imported Recipe"
+        let servings = json["servings"] as? Double ?? (json["servings"] as? Int).map { Double($0) } ?? 4.0
+        let notes = json["notes"] as? String ?? ""
+
+        let rawIngredients = json["ingredients"] as? [[String: Any]] ?? []
+        let ingredients: [(name: String, amount: Double, unit: String)] = rawIngredients.compactMap { item in
+            guard let name = item["name"] as? String else { return nil }
+            let amount = item["amount"] as? Double ?? (item["amount"] as? Int).map { Double($0) } ?? 0.0
+            let unit = item["unit"] as? String ?? ""
+            return (name: name, amount: amount, unit: unit)
+        }
+
+        let instructions = json["instructions"] as? [String] ?? []
+
+        return ImportedRecipe(
+            name: name,
+            servings: servings,
+            ingredients: ingredients,
+            instructions: instructions,
+            imageURL: nil,
+            notes: notes
+        )
     }
 
     private func extractJSONLD(from html: String) -> ImportedRecipe? {

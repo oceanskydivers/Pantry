@@ -194,6 +194,41 @@ private struct InstructionTextView: UIViewRepresentable {
     }
 }
 
+// MARK: - Camera picker (UIImagePickerController wrapper)
+
+private struct CameraPickerView: UIViewControllerRepresentable {
+    let onCapture: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraPickerView
+        init(_ parent: CameraPickerView) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.onCapture(image)
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+    }
+}
+
 struct AddRecipeView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -230,6 +265,9 @@ struct AddRecipeView: View {
     @State private var ingredientLines: [IngredientLine] = [IngredientLine()]
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageData: Data?
+    @State private var showPhotoSourceSheet = false
+    @State private var showCamera = false
+    @State private var showPhotoPicker = false
 
     init(existingRecipe: Recipe? = nil) {
         self.existingRecipe = existingRecipe
@@ -280,7 +318,9 @@ struct AddRecipeView: View {
                 }
 
                 Section("Photo") {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Button {
+                        showPhotoSourceSheet = true
+                    } label: {
                         if let data = imageData, let img = UIImage(data: data) {
                             Image(uiImage: img)
                                 .resizable()
@@ -290,13 +330,25 @@ struct AddRecipeView: View {
                                 .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         } else {
-                            Label("Choose Photo", systemImage: "photo.badge.plus")
+                            Label("Add Photo", systemImage: "photo.badge.plus")
                         }
                     }
+                    .confirmationDialog("Add Photo", isPresented: $showPhotoSourceSheet) {
+                        Button("Take Photo") { showCamera = true }
+                        Button("Choose from Library") { showPhotoPicker = true }
+                        Button("Cancel", role: .cancel) { }
+                    }
+                    .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
                     .onChange(of: selectedPhotoItem) { _, newItem in
                         Task {
                             imageData = try? await newItem?.loadTransferable(type: Data.self)
                         }
+                    }
+                    .fullScreenCover(isPresented: $showCamera) {
+                        CameraPickerView { image in
+                            imageData = image.jpegData(compressionQuality: 0.8)
+                        }
+                        .ignoresSafeArea()
                     }
 
                     if imageData != nil {

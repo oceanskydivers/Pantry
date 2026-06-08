@@ -455,16 +455,15 @@ struct InventoryRowView: View {
 
                     // Wider stepper — buttons separated by a quantity display
                     HStack(spacing: 0) {
-                        Button {
-                            adjustQuantity(by: -1)
-                        } label: {
-                            Image(systemName: "minus")
-                                .font(.body.bold())
-                                .frame(width: 44, height: 44)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(item.currentQuantity <= 0 ? Color(.systemGray3) : .primary)
-                        .disabled(item.currentQuantity <= 0)
+                        Image(systemName: "minus")
+                            .font(.body.bold())
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(item.currentQuantity <= 0 ? Color(.systemGray3) : .primary)
+                            .contentShape(Rectangle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                guard item.currentQuantity > 0 else { return }
+                                adjustQuantity(by: -1)
+                            })
 
                         Text(formatQuantity(item.currentQuantity))
                             .font(.subheadline.monospacedDigit())
@@ -472,15 +471,14 @@ struct InventoryRowView: View {
                             .foregroundStyle(quantityColor)
                             .frame(minWidth: 32)
 
-                        Button {
-                            adjustQuantity(by: 1)
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.body.bold())
-                                .frame(width: 44, height: 44)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.primary)
+                        Image(systemName: "plus")
+                            .font(.body.bold())
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(.primary)
+                            .contentShape(Rectangle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                adjustQuantity(by: 1)
+                            })
                     }
                     .background(Color(.systemGray6), in: Capsule())
                     .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 0.5))

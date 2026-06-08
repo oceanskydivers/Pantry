@@ -5,9 +5,15 @@ struct ImportRecipeView: View {
 
     @State private var urlString = ""
     @State private var isLoading = false
+    @State private var isSocialImport = false
     @FocusState private var isURLFieldFocused: Bool
     @State private var errorMessage: String?
     @State private var pendingImport: PendingImportWrapper?
+
+    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be"]
+    private var isSocialURL: Bool {
+        socialDomains.contains { urlString.contains($0) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -39,9 +45,16 @@ struct ImportRecipeView: View {
                             if isLoading {
                                 ProgressView()
                                     .tint(.black)
-                                Text("Importing…")
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.black)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Importing…")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.black)
+                                    if isSocialImport {
+                                        Text("Analysing video, this may take up to 30s")
+                                            .font(.caption)
+                                            .foregroundStyle(.black.opacity(0.7))
+                                    }
+                                }
                             } else {
                                 Image(systemName: "doc.on.clipboard")
                                     .foregroundStyle(.black)
@@ -95,6 +108,7 @@ struct ImportRecipeView: View {
     private func fetchRecipe() async {
         errorMessage = nil
         isLoading = true
+        isSocialImport = isSocialURL
         defer { isLoading = false }
 
         do {

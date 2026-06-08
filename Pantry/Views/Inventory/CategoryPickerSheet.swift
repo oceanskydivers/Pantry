@@ -3,114 +3,106 @@ import SwiftData
 
 // MARK: - CategoryPickerSheet
 
-/// A search-driven sheet for picking an InventoryCategory.
+/// A tree-structured checklist for picking InventoryCategories.
 ///
 /// - Single-select mode (default): tapping a row immediately calls `onSelect` and dismisses.
 /// - Multi-select mode: rows toggle checkmarks; a Done button applies the selection.
-///   Pass `multiSelect: true` and provide `onSelectMultiple` instead of `onSelect`.
 struct CategoryPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \InventoryCategory.name) private var categories: [InventoryCategory]
+    @Query(sort: \InventoryCategory.name) private var allCategories: [InventoryCategory]
 
     var multiSelect: Bool = false
-    /// Used in single-select mode.
     var onSelect: (InventoryCategory?) -> Void = { _ in }
-    /// Used in multi-select mode. Receives the full set of selected categories.
     var onSelectMultiple: ([InventoryCategory]) -> Void = { _ in }
-    /// Pre-selected IDs for multi-select mode.
     var initialSelection: Set<UUID> = []
 
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var collapsedIDs: Set<UUID> = []
     @State private var searchText = ""
     @FocusState private var searchFocused: Bool
-    @State private var selectedIDs: Set<UUID> = []
 
-    /// Comma-separated UUID strings stored in UserDefaults.
-    @AppStorage("recentCategoryIDs") private var recentIDsRaw: String = ""
-
-    // MARK: Derived
-
-    private var recentIDs: [UUID] {
-        recentIDsRaw
-            .split(separator: ",")
-            .compactMap { UUID(uuidString: String($0)) }
-    }
-
-    private var recentCategories: [InventoryCategory] {
-        // Preserve insertion order and limit to 5.
-        let idSet = Set(recentIDs)
-        let byID = Dictionary(uniqueKeysWithValues: categories.compactMap { cat -> (UUID, InventoryCategory)? in
-            guard idSet.contains(cat.id) else { return nil }
-            return (cat.id, cat)
-        })
-        return recentIDs.prefix(5).compactMap { byID[$0] }
-    }
-
-    private var filteredCategories: [InventoryCategory] {
-        let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !query.isEmpty else { return allCategoriesFlattened }
-        return allCategoriesFlattened.filter {
-            $0.name.lowercased().contains(query) ||
-            $0.displayPath.lowercased().contains(query)
-        }
+    private var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var topCategories: [InventoryCategory] {
-        categories.filter { $0.parent == nil }
+        allCategories.filter { $0.parent == nil }.sorted { $0.name < $1.name }
     }
 
-    /// Depth-first flattened list so subcategories appear beneath their parent.
-    private var allCategoriesFlattened: [InventoryCategory] {
-        var result: [InventoryCategory] = []
-        func visit(_ cat: InventoryCategory) {
-            result.append(cat)
-            for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
-                visit(sub)
+    // Tree nodes — collapse-aware, used when not searching
+    private var visibleNodes: [(cat: InventoryCategory, depth: Int)] {
+        var result: [(InventoryCategory, Int)] = []
+        func visit(_ cat: InventoryCategory, depth: Int) {
+            result.append((cat, depth))
+            if !collapsedIDs.contains(cat.id) {
+                for sub in cat.subcategories.sorted(by: { $0.name < $1.name }) {
+                    visit(sub, depth: depth + 1)
+                }
             }
         }
-        for top in topCategories {
-            visit(top)
-        }
+        for top in topCategories { visit(top, depth: 0) }
         return result
     }
 
-    // MARK: Body
+    // Flat search results — used when searching
+    private var searchResults: [InventoryCategory] {
+        let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        return allCategories
+            .filter {
+                $0.name.lowercased().contains(query) ||
+                $0.displayPath.lowercased().contains(query)
+            }
+            .sorted { $0.displayPath < $1.displayPath }
+    }
 
     var body: some View {
         NavigationStack {
-            List {
-                // Search bar inside the list for a clean look.
-                Section {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        TextField("Search categories…", text: $searchText)
-                            .focused($searchFocused)
-                            .autocorrectionDisabled()
-                    }
-                }
+            Group {
+                if topCategories.isEmpty {
+                    ContentUnavailableView(
+                        "No Categories",
+                        systemImage: "tag",
+                        description: Text("Add categories in Manage Categories.")
+                    )
+                } else {
+                    List {
+                        // Search bar
+                        Section {
+                            HStack(spacing: 8) {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
+                                TextField("Search categories…", text: $searchText)
+                                    .focused($searchFocused)
+                                    .autocorrectionDisabled()
+                                if !searchText.isEmpty {
+                                    Button { searchText = "" } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
 
-                // Recently used — hidden during search or when empty.
-                if searchText.trimmingCharacters(in: .whitespaces).isEmpty && !recentCategories.isEmpty {
-                    Section("Recent") {
-                        ForEach(recentCategories) { cat in
-                            categoryRow(cat)
+                        if isSearching {
+                            // Flat search results with display path as subtitle
+                            Section(searchResults.isEmpty ? "No Results" : "Results") {
+                                ForEach(searchResults) { cat in
+                                    categoryRow(cat: cat, depth: 0, showPath: true)
+                                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                                }
+                            }
+                        } else {
+                            // Full tree
+                            ForEach(visibleNodes, id: \.cat.id) { node in
+                                categoryRow(cat: node.cat, depth: node.depth, showPath: false)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            }
                         }
                     }
-                }
-
-                // All / filtered categories.
-                Section(searchText.trimmingCharacters(in: .whitespaces).isEmpty ? "All Categories" : "Results") {
-                    if filteredCategories.isEmpty {
-                        Text("No categories found")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(filteredCategories) { cat in
-                            categoryRow(cat)
-                        }
-                    }
+                    .listStyle(.insetGrouped)
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle(multiSelect ? "Filter by Category" : "Select Category")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -120,77 +112,102 @@ struct CategoryPickerSheet: View {
                 if multiSelect {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { applyMultiSelect() }
+                            .fontWeight(.semibold)
                     }
                 }
             }
             .onAppear {
-                searchFocused = true
                 selectedIDs = initialSelection
             }
         }
     }
 
-    // MARK: Row
+    // MARK: - Row
 
     @ViewBuilder
-    private func categoryRow(_ cat: InventoryCategory) -> some View {
+    private func categoryRow(cat: InventoryCategory, depth: Int, showPath: Bool) -> some View {
+        let hasChildren = !cat.subcategories.isEmpty && !isSearching
+        let isCollapsed = collapsedIDs.contains(cat.id)
+        let isSelected = selectedIDs.contains(cat.id)
+
         Button {
             if multiSelect {
-                toggle(cat)
+                toggleSelection(cat)
             } else {
-                select(cat)
+                onSelect(cat)
+                dismiss()
             }
         } label: {
-            HStack {
+            HStack(spacing: 0) {
+                // Indentation + connector line (tree mode only)
+                if depth > 0 {
+                    Color.clear.frame(width: CGFloat(depth) * 20)
+                    Rectangle()
+                        .fill(Color(.systemGray4))
+                        .frame(width: 1.5)
+                        .padding(.trailing, 8)
+                }
+
+                // Collapse chevron or spacer (tree mode only)
+                if hasChildren {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            if isCollapsed { collapsedIDs.remove(cat.id) }
+                            else { collapsedIDs.insert(cat.id) }
+                        }
+                    } label: {
+                        Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 6)
+                } else {
+                    Color.clear.frame(width: 26)
+                }
+
+                // Name + optional path subtitle (search mode)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(cat.name)
+                        .font(depth == 0 && !showPath ? .body.weight(.semibold) : .body)
                         .foregroundStyle(.primary)
-                    if cat.parent != nil {
-                        Text(cat.displayPath)
+                    if showPath, let parent = cat.parent {
+                        Text(parent.displayPath)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                Spacer()
+
+                // Checkmark / selection indicator
                 if multiSelect {
-                    Spacer()
-                    if selectedIDs.contains(cat.id) {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.tint)
-                            .fontWeight(.semibold)
-                    }
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(isSelected ? Color.accentColor : Color(.systemGray3))
+                        .animation(.spring(duration: 0.2), value: isSelected)
                 }
             }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
-    // MARK: Selection
+    // MARK: - Selection
 
-    private func select(_ cat: InventoryCategory?) {
-        if let cat {
-            recordRecent(cat.id)
-        }
-        onSelect(cat)
-        dismiss()
-    }
-
-    private func toggle(_ cat: InventoryCategory) {
+    private func toggleSelection(_ cat: InventoryCategory) {
         if selectedIDs.contains(cat.id) {
             selectedIDs.remove(cat.id)
         } else {
             selectedIDs.insert(cat.id)
-            recordRecent(cat.id)
         }
     }
 
     private func applyMultiSelect() {
-        let selected = categories.filter { selectedIDs.contains($0.id) }
+        let selected = allCategories.filter { selectedIDs.contains($0.id) }
         onSelectMultiple(selected)
         dismiss()
-    }
-
-    private func recordRecent(_ id: UUID) {
-        var ids = recentIDs.filter { $0 != id } // remove duplicates
-        ids.insert(id, at: 0)
-        recentIDsRaw = ids.prefix(5).map(\.uuidString).joined(separator: ",")
     }
 }
