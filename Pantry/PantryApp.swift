@@ -14,6 +14,7 @@ struct PantryApp: App {
             container = try ModelContainer(for:
                 Recipe.self,
                 Ingredient.self,
+                IngredientGroup.self,
                 InventoryItem.self,
                 InventoryLog.self,
                 StorageLocation.self,

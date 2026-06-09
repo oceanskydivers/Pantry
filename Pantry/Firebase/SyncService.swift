@@ -362,6 +362,22 @@ final class SyncService {
         ]
         if let url = recipe.sourceURL { d["sourceURL"] = url }
         if let path = recipe.imageStoragePath { d["imageStoragePath"] = path }
+        // Named groups with their ingredients
+        d["ingredientGroups"] = recipe.sortedGroups.map { group in
+            [
+                "id": group.id.uuidString,
+                "name": group.name,
+                "sortOrder": group.sortOrder,
+                "ingredients": group.sortedIngredients.map { ing in
+                    ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
+                }
+            ] as [String: Any]
+        }
+        // Ungrouped ingredients
+        d["ungroupedIngredients"] = recipe.ungroupedIngredients.map { ing in
+            ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
+        }
+        // Flat list kept for backward compatibility (all ingredients regardless of grouping)
         d["ingredients"] = recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }.map { ing in
             ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
         }
@@ -449,9 +465,55 @@ final class SyncService {
         }
         if let ts = data["createdAt"] as? Timestamp { recipe.createdAt = ts.dateValue() }
 
-        if let ings = data["ingredients"] as? [[String: Any]] {
-            for existing in recipe.ingredients { context.delete(existing) }
-            recipe.ingredients = []
+        // Delete existing groups (cascade deletes their ingredients)
+        for existingGroup in recipe.ingredientGroups { context.delete(existingGroup) }
+        recipe.ingredientGroups = []
+        // Delete any remaining ungrouped ingredients
+        for existing in recipe.ingredients { context.delete(existing) }
+        recipe.ingredients = []
+
+        if let groupsData = data["ingredientGroups"] as? [[String: Any]] {
+            // New format: structured groups
+            for (gi, groupData) in groupsData.enumerated() {
+                let group = IngredientGroup(
+                    name: groupData["name"] as? String ?? "",
+                    sortOrder: groupData["sortOrder"] as? Int ?? gi
+                )
+                if let idStr = groupData["id"] as? String, let gid = UUID(uuidString: idStr) {
+                    group.id = gid
+                }
+                group.recipe = recipe
+                context.insert(group)
+
+                if let ingsData = groupData["ingredients"] as? [[String: Any]] {
+                    for ingData in ingsData {
+                        let ing = Ingredient(
+                            name: ingData["name"] as? String ?? "",
+                            amount: ingData["amount"] as? Double ?? 0,
+                            unit: ingData["unit"] as? String ?? "",
+                            sortOrder: ingData["sortOrder"] as? Int ?? 0
+                        )
+                        ing.recipe = recipe
+                        ing.group = group
+                        context.insert(ing)
+                    }
+                }
+            }
+            // Ungrouped ingredients (separate key in new format)
+            if let ungroupedData = data["ungroupedIngredients"] as? [[String: Any]] {
+                for ingData in ungroupedData {
+                    let ing = Ingredient(
+                        name: ingData["name"] as? String ?? "",
+                        amount: ingData["amount"] as? Double ?? 0,
+                        unit: ingData["unit"] as? String ?? "",
+                        sortOrder: ingData["sortOrder"] as? Int ?? 0
+                    )
+                    ing.recipe = recipe
+                    context.insert(ing)
+                }
+            }
+        } else if let ings = data["ingredients"] as? [[String: Any]] {
+            // Legacy flat format: treat everything as ungrouped
             for ingData in ings {
                 let ing = Ingredient(
                     name: ingData["name"] as? String ?? "",

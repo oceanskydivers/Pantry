@@ -208,8 +208,12 @@ struct RecipeDetailView: View {
         }
     }
 
-    private var sortedIngredients: [Ingredient] {
-        recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }
+    private var sortedGroups: [IngredientGroup] {
+        recipe.sortedGroups
+    }
+
+    private var ungroupedIngredients: [Ingredient] {
+        recipe.ungroupedIngredients
     }
 
     private var sourceHost: String {
@@ -269,22 +273,67 @@ struct RecipeDetailView: View {
                 // MARK: - Content Card Panel
                 VStack(alignment: .leading, spacing: 0) {
                     if selectedTab == .ingredients {
-                        if sortedIngredients.isEmpty {
+                        let groups = sortedGroups
+                        let ungrouped = ungroupedIngredients
+                        if groups.isEmpty && ungrouped.isEmpty {
                             Text("No ingredients listed.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 24)
                         } else {
-                            ForEach(Array(sortedIngredients.enumerated()), id: \.element.id) { index, ingredient in
+                            // Named groups rendered first
+                            ForEach(groups) { group in
+                                Text(group.name)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.secondary)
+                                    .textCase(.uppercase)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 2)
+
+                                let groupIngredients = group.sortedIngredients
+                                ForEach(Array(groupIngredients.enumerated()), id: \.element.id) { index, ingredient in
+                                    IngredientRowView(
+                                        ingredient: ingredient,
+                                        scaledServings: scaledServings,
+                                        originalServings: recipe.servings
+                                    )
+                                    .padding(.vertical, 16)
+
+                                    if index < groupIngredients.count - 1 {
+                                        Divider()
+                                    }
+                                }
+
+                                // Divider between groups, and between groups and ungrouped
+                                if group.id != groups.last?.id || !ungrouped.isEmpty {
+                                    Divider()
+                                        .padding(.top, 4)
+                                }
+                            }
+
+                            // Ungrouped ingredients — show header only when named groups are also present
+                            if !groups.isEmpty && !ungrouped.isEmpty {
+                                Text("Ingredients")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.secondary)
+                                    .textCase(.uppercase)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 2)
+                            }
+                            ForEach(Array(ungrouped.enumerated()), id: \.element.id) { index, ingredient in
                                 IngredientRowView(
                                     ingredient: ingredient,
                                     scaledServings: scaledServings,
                                     originalServings: recipe.servings
                                 )
-                                .padding(.vertical, 16) // Spacing between ingredients
-                                
-                                if index < sortedIngredients.count - 1 {
+                                .padding(.vertical, 16)
+
+                                if index < ungrouped.count - 1 {
                                     Divider()
                                 }
                             }

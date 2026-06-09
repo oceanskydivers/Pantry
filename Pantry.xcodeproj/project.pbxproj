@@ -28,6 +28,7 @@
 		89A3ACF72FD4BE1C00175632 /* InventoryCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACF62FD4BE1C00175632 /* InventoryCategory.swift */; };
 		89A3ACF92FD5E7ED00175632 /* ManageCategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACF82FD5E7ED00175632 /* ManageCategoriesView.swift */; };
 		89A3ACFB2FD5F7F500175632 /* CategoryPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACFA2FD5F7F500175632 /* CategoryPickerSheet.swift */; };
+		89A3ACFD2FD7552D00175632 /* IngredientGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACFC2FD7552D00175632 /* IngredientGroup.swift */; };
 		92D0E3440CDDD5A6B9E1142A /* Ingredient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5D9C477F3C5795D7803EFF1 /* Ingredient.swift */; };
 		9FA28AF9B8A7367CB1BC0373 /* Recipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A3E4081CD8BC082ED4952E /* Recipe.swift */; };
 		ACEC4EBF25266AE4919BCB58 /* ShoppingCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297697CE126FD8E904A1DD77 /* ShoppingCategory.swift */; };
@@ -68,6 +69,7 @@
 		89A3ACF62FD4BE1C00175632 /* InventoryCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCategory.swift; sourceTree = "<group>"; };
 		89A3ACF82FD5E7ED00175632 /* ManageCategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageCategoriesView.swift; sourceTree = "<group>"; };
 		89A3ACFA2FD5F7F500175632 /* CategoryPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryPickerSheet.swift; sourceTree = "<group>"; };
+		89A3ACFC2FD7552D00175632 /* IngredientGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientGroup.swift; sourceTree = "<group>"; };
 		95B2AD112AC45ACF63B1B589 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2D65CE693B526DD1890E3A2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
 		A5D9C477F3C5795D7803EFF1 /* Ingredient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ingredient.swift; sourceTree = "<group>"; };
@@ -120,6 +122,7 @@
 				2AC91ACAB80893820F028FE6 /* ShoppingItem.swift */,
 				89A3ACF42FD4BE1100175632 /* StorageLocation.swift */,
 				89A3ACF62FD4BE1C00175632 /* InventoryCategory.swift */,
+				89A3ACFC2FD7552D00175632 /* IngredientGroup.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 				6DB3AB59785E1EC7088811FC /* PantryApp.swift in Sources */,
 				419D29E2C32F0A589BE712E9 /* ProfileTabView.swift in Sources */,
 				9FA28AF9B8A7367CB1BC0373 /* Recipe.swift in Sources */,
+				89A3ACFD2FD7552D00175632 /* IngredientGroup.swift in Sources */,
 				B36D9CB4A115395F01E49266 /* RecipeDetailView.swift in Sources */,
 				FC6A9965E247830F48FA8957 /* RecipeImporter.swift in Sources */,
 				E85AAB4C07E9FDA91E712AD1 /* RecipesView.swift in Sources */,

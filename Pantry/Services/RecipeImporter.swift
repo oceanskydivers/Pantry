@@ -1,9 +1,15 @@
 import Foundation
 
+struct ImportedIngredientGroup {
+    var name: String
+    var ingredients: [(name: String, amount: Double, unit: String)]
+}
+
 struct ImportedRecipe {
     var name: String
     var servings: Double
     var ingredients: [(name: String, amount: Double, unit: String)]
+    var ingredientGroups: [ImportedIngredientGroup]
     var instructions: [String]
     var imageURL: String?
     var notes: String
@@ -106,10 +112,24 @@ actor RecipeImporter {
 
         let instructions = json["instructions"] as? [String] ?? []
 
+        // Parse grouped ingredients if the backend returns them
+        let rawGroups = json["ingredientGroups"] as? [[String: Any]] ?? []
+        let importedGroups: [ImportedIngredientGroup] = rawGroups.compactMap { groupData in
+            guard let groupName = groupData["name"] as? String else { return nil }
+            let ings = (groupData["ingredients"] as? [[String: Any]] ?? []).compactMap { item -> (name: String, amount: Double, unit: String)? in
+                guard let ingName = item["name"] as? String else { return nil }
+                let amount = item["amount"] as? Double ?? (item["amount"] as? Int).map { Double($0) } ?? 0.0
+                let unit = item["unit"] as? String ?? ""
+                return (name: ingName, amount: amount, unit: unit)
+            }
+            return ImportedIngredientGroup(name: groupName, ingredients: ings)
+        }
+
         return ImportedRecipe(
             name: name,
             servings: servings,
             ingredients: ingredients,
+            ingredientGroups: importedGroups,
             instructions: instructions,
             imageURL: nil,
             notes: notes
@@ -169,7 +189,8 @@ actor RecipeImporter {
         let servings = parseServings(dict["recipeYield"])
 
         let rawIngredients = dict["recipeIngredient"] as? [String] ?? []
-        let ingredients = rawIngredients.compactMap { parseIngredient($0) }
+        let (parsedGroups, ungroupedIngredients) = parseIngredientsWithGroups(rawIngredients)
+        let ingredients = parsedGroups.isEmpty ? rawIngredients.compactMap { parseIngredient($0) } : ungroupedIngredients
 
         let instructions = parseInstructions(dict["recipeInstructions"])
 
@@ -189,6 +210,7 @@ actor RecipeImporter {
             name: name,
             servings: servings,
             ingredients: ingredients,
+            ingredientGroups: parsedGroups,
             instructions: instructions,
             imageURL: imageURL,
             notes: description
@@ -229,6 +251,55 @@ actor RecipeImporter {
             }
         }
         return []
+    }
+
+    /// Splits a flat ingredient list into named groups and ungrouped items.
+    /// A line is treated as a group header if it ends with ":" and contains no digits and is short enough.
+    private func parseIngredientsWithGroups(_ rawIngredients: [String]) -> (
+        groups: [ImportedIngredientGroup],
+        ungrouped: [(name: String, amount: Double, unit: String)]
+    ) {
+        var groups: [ImportedIngredientGroup] = []
+        var ungrouped: [(name: String, amount: Double, unit: String)] = []
+        var currentGroupName: String? = nil
+        var currentGroupIngredients: [(name: String, amount: Double, unit: String)] = []
+
+        for raw in rawIngredients {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+
+            // A header must end with ":", contain no digits, and be reasonably short
+            let looksLikeHeader = trimmed.hasSuffix(":")
+                && trimmed.count < 50
+                && !trimmed.unicodeScalars.contains(where: { CharacterSet.decimalDigits.contains($0) })
+
+            if looksLikeHeader {
+                // Flush the previous group
+                if let groupName = currentGroupName, !currentGroupIngredients.isEmpty {
+                    groups.append(ImportedIngredientGroup(name: groupName, ingredients: currentGroupIngredients))
+                    currentGroupIngredients = []
+                }
+                // Strip trailing ":" and common leading prefixes
+                var headerName = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
+                let lower = headerName.lowercased()
+                if lower.hasPrefix("for the ") { headerName = String(headerName.dropFirst(8)) }
+                else if lower.hasPrefix("for ") { headerName = String(headerName.dropFirst(4)) }
+                currentGroupName = headerName
+            } else if let parsed = parseIngredient(trimmed) {
+                if currentGroupName != nil {
+                    currentGroupIngredients.append(parsed)
+                } else {
+                    ungrouped.append(parsed)
+                }
+            }
+        }
+
+        // Flush the last group
+        if let groupName = currentGroupName, !currentGroupIngredients.isEmpty {
+            groups.append(ImportedIngredientGroup(name: groupName, ingredients: currentGroupIngredients))
+        }
+
+        return (groups, ungrouped)
     }
 
     private func parseIngredient(_ raw: String) -> (name: String, amount: Double, unit: String)? {

@@ -8,6 +8,7 @@ final class Ingredient {
     var unit: String
     var sortOrder: Int
     var recipe: Recipe?
+    var group: IngredientGroup?
 
     init(name: String = "", amount: Double = 0, unit: String = "", sortOrder: Int = 0) {
         self.name = name

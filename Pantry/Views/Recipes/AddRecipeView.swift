@@ -247,6 +247,23 @@ struct AddRecipeView: View {
         }
     }
 
+    /// A named (or unnamed) group of ingredient lines used in the editor.
+    /// `isUngroupedSink` marks the permanent catch-all section shown without a header.
+    /// A named group may temporarily have an empty name while the user is typing.
+    struct IngredientGroupSection: Identifiable, Hashable {
+        let id: UUID
+        var name: String
+        var ingredients: [IngredientLine]
+        var isUngroupedSink: Bool
+
+        init(id: UUID = UUID(), name: String = "", ingredients: [IngredientLine] = [IngredientLine()], isUngroupedSink: Bool = false) {
+            self.id = id
+            self.name = name
+            self.ingredients = ingredients
+            self.isUngroupedSink = isUngroupedSink
+        }
+    }
+
     struct InstructionStep: Identifiable, Hashable {
         let id: UUID
         var text: String
@@ -262,7 +279,7 @@ struct AddRecipeView: View {
     @State private var notes = ""
     @State private var sourceURL = ""
     @State private var instructionSteps: [InstructionStep] = [InstructionStep()]
-    @State private var ingredientLines: [IngredientLine] = [IngredientLine()]
+    @State private var ingredientSections: [IngredientGroupSection] = [IngredientGroupSection(isUngroupedSink: true)] // ungrouped sink is always first
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageData: Data?
     @State private var showPhotoSourceSheet = false
@@ -284,7 +301,8 @@ struct AddRecipeView: View {
         _imageData = State(initialValue: imageData)
         let steps = importedRecipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         _instructionSteps = State(initialValue: steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) })
-        let lines = importedRecipe.ingredients.map { ing -> IngredientLine in
+        // Helper to convert a flat ingredient tuple into an IngredientLine string
+        func toLine(_ ing: (name: String, amount: Double, unit: String)) -> IngredientLine {
             let amountText: String
             if ing.amount <= 0 { amountText = "" }
             else if ing.amount == ing.amount.rounded() { amountText = "\(Int(ing.amount))" }
@@ -292,7 +310,20 @@ struct AddRecipeView: View {
             let parts = [amountText, ing.unit, ing.name].filter { !$0.isEmpty }
             return IngredientLine(text: parts.joined(separator: " "))
         }
-        _ingredientLines = State(initialValue: lines.isEmpty ? [IngredientLine()] : lines)
+
+        // Ungrouped sink always first
+        let ungroupedLines = importedRecipe.ingredients.map { toLine($0) }
+        var sections: [IngredientGroupSection] = [
+            IngredientGroupSection(name: "", ingredients: ungroupedLines.isEmpty ? [IngredientLine()] : ungroupedLines, isUngroupedSink: true)
+        ]
+
+        // Named groups after
+        for group in importedRecipe.ingredientGroups {
+            let lines = group.ingredients.map { toLine($0) }
+            sections.append(IngredientGroupSection(name: group.name, ingredients: lines.isEmpty ? [IngredientLine()] : lines))
+        }
+
+        _ingredientSections = State(initialValue: sections)
     }
 
     // Separate edit modes for each reorderable section
@@ -301,12 +332,15 @@ struct AddRecipeView: View {
 
     @State private var focusedIngredientID: UUID? = nil
     @State private var focusedInstructionID: UUID? = nil
+    @State private var showAddGroupAlert = false
+    @State private var pendingGroupName = ""
 
     private var isEditing: Bool { existingRecipe != nil }
     private var title: String { isEditing ? "Edit Recipe" : "New Recipe" }
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scrollProxy in
             Form {
                 Section("Recipe Info") {
                     TextField("Recipe Name", text: $name)
@@ -358,67 +392,111 @@ struct AddRecipeView: View {
                         }
                     }
                 }
+                
+                // MARK: Ingredients (grouped sections)
+                ForEach($ingredientSections) { $section in
+                    Section {
+                        ForEach($section.ingredients) { $line in
+                            IngredientTextField(
+                                text: $line.text,
+                                placeholder: "e.g. 2 cups milk or salt to taste",
+                                shouldBeFocused: focusedIngredientID == line.id,
+                                onSubmit: {
+                                    let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if trimmed.isEmpty {
+                                        focusedIngredientID = nil
+                                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            section.ingredients.removeAll { $0.id == line.id }
+                                            if section.ingredients.isEmpty { section.ingredients = [IngredientLine()] }
+                                        }
+                                    } else if let index = section.ingredients.firstIndex(where: { $0.id == line.id }) {
+                                        let newLine = IngredientLine()
+                                        section.ingredients.insert(newLine, at: index + 1)
+                                        focusedIngredientID = newLine.id
+                                    }
+                                },
+                                onEndEditing: {
+                                    // Intentionally left empty — blank rows are filtered at save time.
+                                    // Auto-removing here causes focus to jump unpredictably across sections.
+                                }
+                            )
+                            .id(line.id)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .onDelete { offsets in section.ingredients.remove(atOffsets: offsets) }
+                        .onMove { from, to in section.ingredients.move(fromOffsets: from, toOffset: to) }
 
-                // MARK: Ingredients
+                        if ingredientEditMode == .inactive {
+                            Button {
+                                let newLine = IngredientLine()
+                                section.ingredients.append(newLine)
+                                focusedIngredientID = newLine.id
+                            } label: {
+                                Label("Add Ingredient", systemImage: "plus")
+                            }
+
+                            // Allow deleting a named group (not the ungrouped sink)
+                            if !section.isUngroupedSink {
+                                Button(role: .destructive) {
+                                    let idToRemove = section.id
+                                    withAnimation {
+                                        ingredientSections.removeAll { $0.id == idToRemove }
+                                    }
+                                } label: {
+                                    Label("Remove Group", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } header: {
+                        HStack {
+                            Text(section.isUngroupedSink ? "Ingredients" : section.name.isEmpty ? "New Group" : section.name)
+                            Spacer()
+                            // Edit button only on the first section to avoid duplicate controls
+                            if ingredientSections.first?.id == section.id {
+                                Button(ingredientEditMode == .active ? "Done" : "Edit") {
+                                    withAnimation {
+                                        ingredientEditMode = ingredientEditMode == .active ? .inactive : .active
+                                    }
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            }
+                        }
+                    }
+                    .environment(\.editMode, $ingredientEditMode)
+                }
+
                 Section {
-                    ForEach($ingredientLines) { $line in
-                        IngredientTextField(
-                            text: $line.text,
-                            placeholder: "e.g. 2 cups milk or salt to taste",
-                            shouldBeFocused: focusedIngredientID == line.id,
-                            onSubmit: {
-                                let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if trimmed.isEmpty {
-                                    focusedIngredientID = nil
-                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        ingredientLines.removeAll { $0.id == line.id }
-                                        if ingredientLines.isEmpty { ingredientLines = [IngredientLine()] }
-                                    }
-                                } else if let index = ingredientLines.firstIndex(where: { $0.id == line.id }) {
-                                    let newLine = IngredientLine()
-                                    ingredientLines.insert(newLine, at: index + 1)
-                                    focusedIngredientID = newLine.id
-                                }
-                            },
-                            onEndEditing: {
-                                let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                                if trimmed.isEmpty {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        ingredientLines.removeAll { $0.id == line.id }
-                                        if ingredientLines.isEmpty { ingredientLines = [IngredientLine()] }
-                                    }
-                                }
-                            }
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .onDelete { offsets in ingredientLines.remove(atOffsets: offsets) }
-                    .onMove { from, to in ingredientLines.move(fromOffsets: from, toOffset: to) }
-
-                    if ingredientEditMode == .inactive {
-                        Button {
-                            let newLine = IngredientLine()
-                            ingredientLines.append(newLine)
-                            focusedIngredientID = newLine.id
-                        } label: {
-                            Label("Add Ingredient", systemImage: "plus")
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text("Ingredients")
-                        Spacer()
-                        Button(ingredientEditMode == .active ? "Done" : "Edit") {
-                            withAnimation {
-                                ingredientEditMode = ingredientEditMode == .active ? .inactive : .active
-                            }
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    Button {
+                        pendingGroupName = ""
+                        showAddGroupAlert = true
+                    } label: {
+                        Label("Add Ingredient Group", systemImage: "folder.badge.plus")
                     }
                 }
-                .environment(\.editMode, $ingredientEditMode)
+                
+                // MARK: Explanatory Info Card
+                Section {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.accentColor)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("What is an \"Ingredient Group\"")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            
+                            Text("Useful for recipes with components made separately — a sauce, a rub, a dough. Group those ingredients to stay organized while cooking.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(3)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
 
                 // MARK: Instructions
                 Section {
@@ -499,6 +577,28 @@ struct AddRecipeView: View {
                 }
             }
             .onAppear { loadExisting() }
+            .alert("New Ingredient Group", isPresented: $showAddGroupAlert) {
+                TextField("Group name (e.g. Sauce)", text: $pendingGroupName)
+                Button("Add") {
+                    let trimmed = pendingGroupName.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty else { return }
+                    let firstLine = IngredientLine()
+                    let newSection = IngredientGroupSection(name: trimmed, ingredients: [firstLine], isUngroupedSink: false)
+                    ingredientSections.append(newSection)
+                    // Defer scroll + focus until after SwiftUI renders the new section
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation {
+                            scrollProxy.scrollTo(firstLine.id, anchor: .center)
+                        }
+                        focusedIngredientID = firstLine.id
+                    }
+                }
+                .disabled(pendingGroupName.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter a name for this group of ingredients.")
+            }
+            } // ScrollViewReader
         }
     }
 
@@ -517,12 +617,27 @@ struct AddRecipeView: View {
         let steps = recipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         instructionSteps = steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) }
 
-        let sorted = recipe.ingredients.sorted { $0.sortOrder < $1.sortOrder }
-        ingredientLines = sorted.isEmpty ? [IngredientLine()] : sorted.map { ingredient in
+        // Ungrouped sink always first
+        let ungroupedLines = recipe.ungroupedIngredients.map { ingredient -> IngredientLine in
             let amountText = formatAmountForEditing(ingredient.amount)
             let parts = [amountText, ingredient.unit, ingredient.name].filter { !$0.isEmpty }
             return IngredientLine(text: parts.joined(separator: " "))
         }
+        var sections: [IngredientGroupSection] = [
+            IngredientGroupSection(name: "", ingredients: ungroupedLines.isEmpty ? [IngredientLine()] : ungroupedLines, isUngroupedSink: true)
+        ]
+
+        // Named groups after
+        for group in recipe.sortedGroups {
+            let lines = group.sortedIngredients.map { ingredient -> IngredientLine in
+                let amountText = formatAmountForEditing(ingredient.amount)
+                let parts = [amountText, ingredient.unit, ingredient.name].filter { !$0.isEmpty }
+                return IngredientLine(text: parts.joined(separator: " "))
+            }
+            sections.append(IngredientGroupSection(name: group.name, ingredients: lines.isEmpty ? [IngredientLine()] : lines))
+        }
+
+        ingredientSections = sections
     }
 
     /// Converts a storage decimal back into human-friendly fractions or decimals for editing.
@@ -630,22 +745,44 @@ struct AddRecipeView: View {
             modelContext.insert(recipe)
         }
 
+        // Delete existing groups (cascade deletes their ingredients)
+        for existingGroup in recipe.ingredientGroups { modelContext.delete(existingGroup) }
+        recipe.ingredientGroups = []
+        // Delete remaining ungrouped ingredients
         for existing in recipe.ingredients { modelContext.delete(existing) }
         recipe.ingredients = []
 
-        for (i, line) in ingredientLines.enumerated() {
-            let parsed = parseIngredientLine(line.text)
-            let trimmedName = parsed.name.trimmingCharacters(in: .whitespaces)
-            guard !trimmedName.isEmpty else { continue }
+        var groupSortOrder = 0
+        for section in ingredientSections {
+            if section.isUngroupedSink {
+                // Save as ungrouped ingredients (no group relationship)
+                for (i, line) in section.ingredients.enumerated() {
+                    let parsed = parseIngredientLine(line.text)
+                    let trimmedName = parsed.name.trimmingCharacters(in: .whitespaces)
+                    guard !trimmedName.isEmpty else { continue }
+                    let ingredient = Ingredient(name: trimmedName, amount: parsed.amount, unit: parsed.unit, sortOrder: i)
+                    ingredient.recipe = recipe
+                    modelContext.insert(ingredient)
+                }
+            } else {
+                // Save as a named group
+                let trimmedGroupName = section.name.trimmingCharacters(in: .whitespaces)
+                guard !trimmedGroupName.isEmpty else { continue }
+                let group = IngredientGroup(name: trimmedGroupName, sortOrder: groupSortOrder)
+                group.recipe = recipe
+                modelContext.insert(group)
+                groupSortOrder += 1
 
-            let ingredient = Ingredient(
-                name: trimmedName,
-                amount: parsed.amount,
-                unit: parsed.unit,
-                sortOrder: i
-            )
-            ingredient.recipe = recipe
-            modelContext.insert(ingredient)
+                for (i, line) in section.ingredients.enumerated() {
+                    let parsed = parseIngredientLine(line.text)
+                    let trimmedName = parsed.name.trimmingCharacters(in: .whitespaces)
+                    guard !trimmedName.isEmpty else { continue }
+                    let ingredient = Ingredient(name: trimmedName, amount: parsed.amount, unit: parsed.unit, sortOrder: i)
+                    ingredient.recipe = recipe
+                    ingredient.group = group
+                    modelContext.insert(ingredient)
+                }
+            }
         }
 
         SyncService.shared.syncRecipe(recipe)
