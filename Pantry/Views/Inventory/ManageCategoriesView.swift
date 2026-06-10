@@ -82,20 +82,22 @@ struct ManageCategoriesView: View {
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .safeAreaInset(edge: .bottom) {
-                        VStack(spacing: 0) {
-                            Divider()
-                            Button {
-                                showingAddCategory = true
-                            } label: {
-                                Label("Add Category", systemImage: "plus.circle.fill")
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
+                        if !isKeyboardVisible {
+                            VStack(spacing: 0) {
+                                Divider()
+                                Button {
+                                    showingAddCategory = true
+                                } label: {
+                                    Label("Add Category", systemImage: "plus.circle.fill")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .padding()
                             }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .padding()
+                            .background(.ultraThinMaterial)
                         }
-                        .background(.ultraThinMaterial)
                     }
                 }
             }

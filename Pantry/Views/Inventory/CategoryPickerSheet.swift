@@ -24,6 +24,7 @@ struct CategoryPickerSheet: View {
     @State private var searchText = ""
     @State private var showingAddCategory = false
     @State private var newTopLevelName = ""
+    @State private var isKeyboardVisible = false
     @FocusState private var searchFocused: Bool
 
     private var isSearching: Bool {
@@ -81,6 +82,12 @@ struct CategoryPickerSheet: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: searchFocused)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            isKeyboardVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            isKeyboardVisible = false
+        }
             .alert("New Category", isPresented: $showingAddCategory) {
                 TextField("e.g., Food, Cleaning, Personal", text: $newTopLevelName)
                 Button("Add") { addTopLevelCategory() }
@@ -166,9 +173,9 @@ struct CategoryPickerSheet: View {
         }
         .listStyle(.insetGrouped)
         .scrollDismissesKeyboard(.interactively)
-        // "Add Category" bottom button — edit mode only
+        // "Add Category" bottom button — edit mode only, hidden when keyboard is up
         .safeAreaInset(edge: .bottom) {
-            if !multiSelect {
+            if !multiSelect && !isKeyboardVisible {
                 VStack(spacing: 0) {
                     Divider()
                     Button {
