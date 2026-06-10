@@ -23,6 +23,7 @@
 		7567884B377F0D3625B35EFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D50567F005318E49277C33EC /* Assets.xcassets */; };
 		77713E4178C67B5B3A5A7638 /* IMG_7775.png in Resources */ = {isa = PBXBuildFile; fileRef = 6FB34249720C70432C145653 /* IMG_7775.png */; };
 		892ABB8E2FD99D1A00369B4B /* PantryShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 892ABB842FD99D1900369B4B /* PantryShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		892ABB992FDA0A1200369B4B /* ShoppingToInventoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */; };
 		899328C02FD395E40026D3C3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 899328BF2FD395E40026D3C3 /* FirebaseStorage */; };
 		899328C22FD451790026D3C3 /* ReusableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899328C12FD451790026D3C3 /* ReusableViews.swift */; };
 		89A3ACF52FD4BE1100175632 /* StorageLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACF42FD4BE1100175632 /* StorageLocation.swift */; };
@@ -92,6 +93,7 @@
 		6FB34249720C70432C145653 /* IMG_7775.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = IMG_7775.png; sourceTree = "<group>"; };
 		759922EFC579800336ECBAEC /* FirebaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseManager.swift; sourceTree = "<group>"; };
 		892ABB842FD99D1900369B4B /* PantryShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PantryShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingToInventoryService.swift; sourceTree = "<group>"; };
 		899328C12FD451790026D3C3 /* ReusableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReusableViews.swift; sourceTree = "<group>"; };
 		89A3ACF42FD4BE1100175632 /* StorageLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageLocation.swift; sourceTree = "<group>"; };
 		89A3ACF62FD4BE1C00175632 /* InventoryCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCategory.swift; sourceTree = "<group>"; };
@@ -305,6 +307,7 @@
 			children = (
 				5703ECBE97C29A79CAB85272 /* RecipeImporter.swift */,
 				89A3AD002FD8440600175632 /* IngredientMatcher.swift */,
+				892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -445,6 +448,7 @@
 				3B24942D9C91196C3489B30D /* ContentView.swift in Sources */,
 				89A3ACF52FD4BE1100175632 /* StorageLocation.swift in Sources */,
 				19740ECA25E0ED93555B8FE8 /* FirebaseManager.swift in Sources */,
+				892ABB992FDA0A1200369B4B /* ShoppingToInventoryService.swift in Sources */,
 				149C8071BE8ACA9AEBCE698C /* ImportRecipeView.swift in Sources */,
 				89A3ACF72FD4BE1C00175632 /* InventoryCategory.swift in Sources */,
 				899328C22FD451790026D3C3 /* ReusableViews.swift in Sources */,

@@ -22,9 +22,18 @@ struct InventoryItemDetailView: View {
 
         for log in item.logs.sorted(by: { $0.date > $1.date }) {
             running -= log.change
-            points.append((date: log.date, quantity: max(0, running)))
+            // Only include points after dateBought; the anchor below covers the origin
+            if log.date > item.dateBought {
+                points.append((date: log.date, quantity: max(0, running)))
+            }
         }
-        return points.reversed()
+
+        var result = points.reversed() as [(date: Date, quantity: Double)]
+
+        // Always anchor the chart at dateBought with initialQuantity
+        result.insert((date: item.dateBought, quantity: item.initialQuantity), at: 0)
+
+        return result
     }
 
     var body: some View {
@@ -160,24 +169,41 @@ struct ChartCard: View {
 struct EstimateCard: View {
     let item: InventoryItem
 
+    private var isDateBoughtEstimate: Bool {
+        let deletionCount = item.logs.filter { $0.change < 0 }.count
+        return deletionCount < 5 && item.dateBoughtConsumptionRate != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Estimates")
                 .font(.headline)
 
             if let days = item.estimatedDaysRemaining, let rate = item.consumptionRate {
+                let daysPerUnit = 1.0 / rate
+                let unitDurationLabel = daysPerUnit < 1 ? "< 1 day" : daysPerUnit < 14 ? String(format: "%.1f days", daysPerUnit) : String(format: "%.1f wks", daysPerUnit / 7)
                 HStack {
                     EstimateCell(label: "Days Left", value: String(format: "%.0f", days), icon: "calendar")
                     Divider()
-                    EstimateCell(label: "Per Day", value: String(format: "%.2f \(item.unit)", rate), icon: "chart.line.downtrend.xyaxis")
+                    EstimateCell(label: "1 \(item.unit) lasts", value: unitDurationLabel, icon: "chart.line.downtrend.xyaxis")
                     Divider()
                     EstimateCell(label: "Weeks Left", value: String(format: "%.1f", days / 7), icon: "clock")
                 }
                 .frame(maxWidth: .infinity)
+
+                if isDateBoughtEstimate {
+                    HStack(spacing: 4) {
+                        Image(systemName: "info.circle")
+                        Text("Based on average since date bought. Log usage for a more accurate estimate.")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             } else {
                 Text("Add more log entries to see consumption estimates.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding()

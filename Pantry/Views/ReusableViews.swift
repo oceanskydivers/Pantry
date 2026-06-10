@@ -27,6 +27,46 @@ extension View {
     }
 }
 
+// MARK: - Toast
+
+struct ToastModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let message: String
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .bottom) {
+            if isPresented {
+                HStack(spacing: 8) {
+                    Image(systemName: "archivebox.fill")
+                        .font(.subheadline)
+                    Text(message)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.appAccent, in: Capsule())
+                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                .padding(.bottom, 24)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        withAnimation(.spring(duration: 0.3)) { isPresented = false }
+                    }
+                }
+            }
+        }
+        .animation(.spring(duration: 0.3), value: isPresented)
+    }
+}
+
+extension View {
+    func toast(isPresented: Binding<Bool>, message: String) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message))
+    }
+}
+
 // MARK: - FloatingSearchBar
 
 struct FloatingSearchBar: View {

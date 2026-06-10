@@ -19,6 +19,16 @@ final class SyncService {
 
     var modelContainer: ModelContainer?
 
+    // MARK: - User Settings
+
+    var autoAddToInventory: Bool {
+        get { UserDefaults.standard.bool(forKey: "autoAddToInventory") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "autoAddToInventory")
+            syncSettings()
+        }
+    }
+
     private init() {
         Task { await observeAuth() }
     }
@@ -90,6 +100,13 @@ final class SyncService {
                 }
             } catch { /* best-effort migration */ }
         }
+        // Migrate settings
+        let oldSettings = db.collection("users").document(anonUID).collection("settings").document("preferences")
+        let newSettings = db.collection("users").document(newUID).collection("settings").document("preferences")
+        if let doc = try? await oldSettings.getDocument(), let data = doc.data() {
+            try? await newSettings.setData(data, merge: true)
+            try? await oldSettings.delete()
+        }
     }
 
     // MARK: - Initial Download
@@ -101,6 +118,7 @@ final class SyncService {
             group.addTask { await self.downloadShopping(userId: userId, context: context) }
             group.addTask { await self.downloadStorageLocations(userId: userId, context: context) }
             group.addTask { await self.downloadInventoryCategories(userId: userId, context: context) }
+            group.addTask { await self.downloadSettings(userId: userId) }
         }
         try? context.save()
     }
@@ -148,6 +166,15 @@ final class SyncService {
         }
         for data in allDatas {
             upsertInventoryCategoryParent(from: data, context: context)
+        }
+    }
+
+    private func downloadSettings(userId: String) async {
+        guard let doc = try? await db.collection("users").document(userId)
+            .collection("settings").document("preferences").getDocument(),
+              let data = doc.data() else { return }
+        if let autoAdd = data["autoAddToInventory"] as? Bool {
+            UserDefaults.standard.set(autoAdd, forKey: "autoAddToInventory")
         }
     }
 
@@ -242,7 +269,15 @@ final class SyncService {
             self.isApplyingCloudUpdate = false
         }
 
-        listeners = [recipesListener, inventoryListener, shoppingListener, locationsListener, categoriesListener]
+        let settingsListener = userDoc.collection("settings").document("preferences")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard self != nil, let data = snapshot?.data() else { return }
+                if let autoAdd = data["autoAddToInventory"] as? Bool {
+                    UserDefaults.standard.set(autoAdd, forKey: "autoAddToInventory")
+                }
+            }
+
+        listeners = [recipesListener, inventoryListener, shoppingListener, locationsListener, categoriesListener, settingsListener]
     }
 
     // MARK: - Outgoing Sync (local → Firestore)
@@ -287,6 +322,13 @@ final class SyncService {
         guard let uid = currentUID else { return }
         let path = "users/\(uid)/shoppingCategories/\(id.uuidString)"
         Task { try? await self.db.document(path).delete() }
+    }
+
+    func syncSettings() {
+        guard let uid = currentUID else { return }
+        let data: [String: Any] = ["autoAddToInventory": UserDefaults.standard.bool(forKey: "autoAddToInventory")]
+        let path = "users/\(uid)/settings/preferences"
+        Task { try? await self.db.document(path).setData(data, merge: true) }
     }
 
     func syncStorageLocation(_ location: StorageLocation) {
@@ -435,6 +477,7 @@ final class SyncService {
                     "id": item.cloudID.uuidString,
                     "name": item.name,
                     "isChecked": item.isChecked,
+                    "quantity": item.quantity,
                     "addedAt": Timestamp(date: item.addedAt)
                 ] as [String: Any]
             }
@@ -652,6 +695,7 @@ final class SyncService {
             for itemData in itemsData {
                 let item = ShoppingItem(name: itemData["name"] as? String ?? "", category: category)
                 item.isChecked = itemData["isChecked"] as? Bool ?? false
+                item.quantity = itemData["quantity"] as? Int ?? 1
                 if let ts = itemData["addedAt"] as? Timestamp { item.addedAt = ts.dateValue() }
                 if let idStr = itemData["id"] as? String, let itemID = UUID(uuidString: idStr) {
                     item.cloudID = itemID
