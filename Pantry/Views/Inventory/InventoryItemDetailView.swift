@@ -7,9 +7,7 @@ struct InventoryItemDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var showingEdit = false
-    @State private var adjustAmount = ""
-    @State private var adjustNote = ""
-    @State private var showingAdjustSheet = false
+    @State private var showingAdjust = false
     @State private var adjustIsAddition = true
 
     private var sortedLogs: [InventoryLog] {
@@ -60,14 +58,22 @@ struct InventoryItemDetailView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     adjustIsAddition = false
-                    showingAdjustSheet = true
+                    showingAdjust = true
                 } label: {
                     Image(systemName: "minus.circle")
+                }
+                .popover(isPresented: $showingAdjust) {
+                    QuickAdjustPopover(
+                        item: item,
+                        isAddition: $adjustIsAddition,
+                        showNoteField: true,
+                        onApply: { delta, note in applyAdjustment(delta: delta, note: note) }
+                    )
                 }
 
                 Button {
                     adjustIsAddition = true
-                    showingAdjustSheet = true
+                    showingAdjust = true
                 } label: {
                     Image(systemName: "plus.circle")
                 }
@@ -78,9 +84,14 @@ struct InventoryItemDetailView: View {
         .sheet(isPresented: $showingEdit) {
             AddInventoryItemView(existingItem: item)
         }
-        .sheet(isPresented: $showingAdjustSheet) {
-            AdjustQuantitySheet(item: item, isAddition: adjustIsAddition)
-        }
+    }
+
+    private func applyAdjustment(delta: Double, note: String) {
+        item.currentQuantity = max(0, item.currentQuantity + delta)
+        let log = InventoryLog(change: delta, note: note)
+        log.item = item
+        modelContext.insert(log)
+        SyncService.shared.syncInventoryItem(item)
     }
 }
 
@@ -313,55 +324,5 @@ struct LogSection: View {
     }
 }
 
-struct AdjustQuantitySheet: View {
-    @Bindable var item: InventoryItem
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
 
-    let isAddition: Bool
-    @State private var amount = ""
-    @State private var note = ""
 
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(isAddition ? "Add to Stock" : "Remove from Stock") {
-                    HStack {
-                        Text(isAddition ? "Amount to Add" : "Amount to Remove")
-                        Spacer()
-                        TextField("0", text: $amount)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                        Text(item.unit)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    TextField("Note (optional)", text: $note)
-                }
-            }
-            .navigationTitle(isAddition ? "Add Stock" : "Remove Stock")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { apply() }
-                        .disabled((Double(amount) ?? 0) <= 0)
-                }
-            }
-        }
-    }
-
-    private func apply() {
-        guard let value = Double(amount), value > 0 else { return }
-        let change = isAddition ? value : -value
-        let newQty = max(0, item.currentQuantity + change)
-        item.currentQuantity = newQty
-        let log = InventoryLog(change: change, note: note)
-        log.item = item
-        modelContext.insert(log)
-        SyncService.shared.syncInventoryItem(item)
-        dismiss()
-    }
-}

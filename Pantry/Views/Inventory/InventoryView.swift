@@ -381,6 +381,9 @@ struct InventoryRowView: View {
     @Bindable var item: InventoryItem
     @Environment(\.modelContext) private var modelContext
 
+    @State private var showingQuickAdjust = false
+    @State private var quickAdjustIsAddition = false
+
     var body: some View {
         let accent = item.category.map { Color.accentColor(for: $0.name) } ?? Color.appAccent
 
@@ -453,7 +456,7 @@ struct InventoryRowView: View {
 
                     Spacer()
 
-                    // Wider stepper — buttons separated by a quantity display
+                    // Wider stepper — buttons separated by a tappable quantity display
                     HStack(spacing: 0) {
                         Image(systemName: "minus")
                             .font(.body.bold())
@@ -464,12 +467,31 @@ struct InventoryRowView: View {
                                 guard item.currentQuantity > 0 else { return }
                                 adjustQuantity(by: -1)
                             })
+                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+                                guard item.currentQuantity > 0 else { return }
+                                quickAdjustIsAddition = false
+                                showingQuickAdjust = true
+                            })
 
-                        Text(formatQuantity(item.currentQuantity))
-                            .font(.subheadline.monospacedDigit())
-                            .fontWeight(.semibold)
-                            .foregroundStyle(quantityColor)
-                            .frame(minWidth: 32)
+                        // Tapping the quantity opens the quick-adjust popover
+                        Button {
+                            quickAdjustIsAddition = false
+                            showingQuickAdjust = true
+                        } label: {
+                            Text(formatQuantity(item.currentQuantity))
+                                .font(.subheadline.monospacedDigit())
+                                .fontWeight(.semibold)
+                                .foregroundStyle(quantityColor)
+                                .frame(minWidth: 32)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showingQuickAdjust) {
+                            QuickAdjustPopover(
+                                item: item,
+                                isAddition: $quickAdjustIsAddition,
+                                onApply: { delta, _ in adjustQuantity(by: delta) }
+                            )
+                        }
 
                         Image(systemName: "plus")
                             .font(.body.bold())
@@ -569,6 +591,85 @@ struct InventoryRowView: View {
         if days < 7 { return "\(Int(days)) days" }
         if days < 30 { return "\(Int(days / 7)) wks" }
         return "\(Int(days / 30)) mo"
+    }
+}
+
+// MARK: - QuickAdjustPopover
+
+struct QuickAdjustPopover: View {
+    let item: InventoryItem
+    @Binding var isAddition: Bool
+    var showNoteField: Bool = false
+    /// Called with (delta, note) where delta is already signed (+/-)
+    let onApply: (Double, String) -> Void
+
+    @State private var amountText = ""
+    @State private var note = ""
+    @FocusState private var isFocused: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    private var parsedValue: Double? {
+        Double(amountText.trimmingCharacters(in: .whitespaces))
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Add / Remove toggle
+            Picker("", selection: $isAddition) {
+                Text("Remove").tag(false)
+                Text("Add").tag(true)
+            }
+            .pickerStyle(.segmented)
+
+            // Amount field
+            HStack(spacing: 8) {
+                TextField("0", text: $amountText)
+                    .keyboardType(.decimalPad)
+                    .font(.title2.monospacedDigit())
+                    .fontWeight(.semibold)
+                    .multilineTextAlignment(.trailing)
+                    .focused($isFocused)
+                    .frame(maxWidth: 100)
+
+                if !item.unit.isEmpty {
+                    Text(item.unit)
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+
+            // Optional note field
+            if showNoteField {
+                TextField("Note (optional)", text: $note)
+                    .font(.subheadline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+            }
+
+            // Apply button
+            Button {
+                guard let value = parsedValue, value > 0 else { return }
+                onApply(isAddition ? value : -value, note)
+                dismiss()
+            } label: {
+                Text(isAddition ? "Add to Stock" : "Remove from Stock")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(parsedValue != nil && parsedValue! > 0 ? Color.appAccent : Color(.systemGray4), in: RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(.white)
+            }
+            .disabled(parsedValue == nil || parsedValue! <= 0)
+        }
+        .padding(20)
+        .frame(minWidth: 240)
+        .presentationCompactAdaptation(.popover)
+        .onAppear { isFocused = true }
     }
 }
 
