@@ -5,12 +5,18 @@ struct ImportedIngredientGroup {
     var ingredients: [(name: String, amount: Double, unit: String)]
 }
 
+struct ImportedInstructionGroup {
+    var name: String
+    var steps: [String]
+}
+
 struct ImportedRecipe {
     var name: String
     var servings: Double
     var ingredients: [(name: String, amount: Double, unit: String)]
     var ingredientGroups: [ImportedIngredientGroup]
     var instructions: [String]
+    var instructionGroups: [ImportedInstructionGroup]
     var imageURL: String?
     var notes: String
 }
@@ -131,6 +137,7 @@ actor RecipeImporter {
             ingredients: ingredients,
             ingredientGroups: importedGroups,
             instructions: instructions,
+            instructionGroups: [],
             imageURL: nil,
             notes: notes
         )
@@ -212,6 +219,7 @@ actor RecipeImporter {
             ingredients: ingredients,
             ingredientGroups: parsedGroups,
             instructions: instructions,
+            instructionGroups: [],
             imageURL: imageURL,
             notes: description
         )

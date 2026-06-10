@@ -11,6 +11,7 @@ private struct IngredientTextField: UIViewRepresentable {
     let shouldBeFocused: Bool
     let onSubmit: () -> Void
     let onEndEditing: () -> Void
+    var onDidFocus: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -36,6 +37,9 @@ private struct IngredientTextField: UIViewRepresentable {
         context.coordinator.updatePlaceholder(tv)
         if shouldBeFocused && !tv.isFirstResponder {
             tv.becomeFirstResponder()
+            // Clear the focus intent immediately so re-renders don't re-trigger becomeFirstResponder
+            let callback = onDidFocus
+            DispatchQueue.main.async { callback?() }
         }
     }
 
@@ -105,6 +109,7 @@ private struct InstructionTextView: UIViewRepresentable {
     let shouldBeFocused: Bool
     let onSubmit: () -> Void
     let onEndEditing: () -> Void
+    var onDidFocus: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -134,6 +139,9 @@ private struct InstructionTextView: UIViewRepresentable {
         context.coordinator.updatePlaceholder(tv)
         if shouldBeFocused && !tv.isFirstResponder {
             tv.becomeFirstResponder()
+            // Clear the focus intent immediately so re-renders don't re-trigger becomeFirstResponder
+            let callback = onDidFocus
+            DispatchQueue.main.async { callback?() }
         }
     }
 
@@ -274,11 +282,29 @@ struct AddRecipeView: View {
         }
     }
 
+    /// A named (or unnamed) group of instruction steps used in the editor.
+    /// `isUngroupedSink` marks the permanent catch-all section shown without a header.
+    struct InstructionGroupSection: Identifiable, Hashable {
+        let id: UUID
+        var name: String
+        var steps: [InstructionStep]
+        var isUngroupedSink: Bool
+
+        init(id: UUID = UUID(), name: String = "", steps: [InstructionStep] = [InstructionStep()], isUngroupedSink: Bool = false) {
+            self.id = id
+            self.name = name
+            self.steps = steps
+            self.isUngroupedSink = isUngroupedSink
+        }
+    }
+
     @State private var name = ""
     @State private var servings = 4.0
     @State private var notes = ""
     @State private var sourceURL = ""
-    @State private var instructionSteps: [InstructionStep] = [InstructionStep()]
+    @State private var instructionSections: [InstructionGroupSection] = [InstructionGroupSection(isUngroupedSink: true)]
+    @State private var showAddInstructionGroupAlert = false
+    @State private var pendingInstructionGroupName = ""
     @State private var ingredientSections: [IngredientGroupSection] = [IngredientGroupSection(isUngroupedSink: true)] // ungrouped sink is always first
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageData: Data?
@@ -299,8 +325,16 @@ struct AddRecipeView: View {
         _notes = State(initialValue: importedRecipe.notes)
         _sourceURL = State(initialValue: sourceURL)
         _imageData = State(initialValue: imageData)
-        let steps = importedRecipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-        _instructionSteps = State(initialValue: steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) })
+        // Build instruction sections from imported data
+        let ungroupedImportedSteps = importedRecipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        var instrSections: [InstructionGroupSection] = [
+            InstructionGroupSection(name: "", steps: ungroupedImportedSteps.isEmpty ? [InstructionStep()] : ungroupedImportedSteps.map { InstructionStep(text: $0) }, isUngroupedSink: true)
+        ]
+        for group in importedRecipe.instructionGroups {
+            let groupSteps = group.steps.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            instrSections.append(InstructionGroupSection(name: group.name, steps: groupSteps.isEmpty ? [InstructionStep()] : groupSteps.map { InstructionStep(text: $0) }))
+        }
+        _instructionSections = State(initialValue: instrSections)
         // Helper to convert a flat ingredient tuple into an IngredientLine string
         func toLine(_ ing: (name: String, amount: Double, unit: String)) -> IngredientLine {
             let amountText: String
@@ -419,7 +453,8 @@ struct AddRecipeView: View {
                                 onEndEditing: {
                                     // Intentionally left empty — blank rows are filtered at save time.
                                     // Auto-removing here causes focus to jump unpredictably across sections.
-                                }
+                                },
+                                onDidFocus: { focusedIngredientID = nil }
                             )
                             .id(line.id)
                             .frame(maxWidth: .infinity)
@@ -498,13 +533,14 @@ struct AddRecipeView: View {
                     .padding(.vertical, 4)
                 }
 
-                // MARK: Instructions
-                Section {
-                    ForEach($instructionSteps) { $step in
-                        HStack(alignment: .top, spacing: 8) {
+                // MARK: Instructions (grouped sections)
+                ForEach($instructionSections) { $section in
+                    Section {
+                        ForEach($section.steps) { $step in
+                            let stepNum = stepNumberInSection(step, section: section)
                             InstructionTextView(
                                 text: $step.text,
-                                placeholder: "Step \(stepNumber(for: step))",
+                                placeholder: "Step \(stepNum)",
                                 shouldBeFocused: focusedInstructionID == step.id,
                                 onSubmit: {
                                     let trimmed = step.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -512,53 +548,74 @@ struct AddRecipeView: View {
                                         focusedInstructionID = nil
                                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                                         withAnimation(.easeInOut(duration: 0.2)) {
-                                            instructionSteps.removeAll { $0.id == step.id }
-                                            if instructionSteps.isEmpty { instructionSteps = [InstructionStep()] }
+                                            section.steps.removeAll { $0.id == step.id }
+                                            if section.steps.isEmpty { section.steps = [InstructionStep()] }
                                         }
-                                    } else if let index = instructionSteps.firstIndex(where: { $0.id == step.id }) {
+                                    } else if let index = section.steps.firstIndex(where: { $0.id == step.id }) {
                                         let newStep = InstructionStep()
-                                        instructionSteps.insert(newStep, at: index + 1)
+                                        section.steps.insert(newStep, at: index + 1)
                                         focusedInstructionID = newStep.id
                                     }
                                 },
                                 onEndEditing: {
-                                    let trimmed = step.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    if trimmed.isEmpty {
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            instructionSteps.removeAll { $0.id == step.id }
-                                            if instructionSteps.isEmpty { instructionSteps = [InstructionStep()] }
-                                        }
-                                    }
-                                }
+                                    // Intentionally left empty — blank rows are filtered at save time.
+                                },
+                                onDidFocus: { focusedInstructionID = nil }
                             )
+                            .id(step.id)
+                            .frame(maxWidth: .infinity)
                         }
-                    }
-                    .onDelete { offsets in instructionSteps.remove(atOffsets: offsets) }
-                    .onMove { from, to in instructionSteps.move(fromOffsets: from, toOffset: to) }
+                        .onDelete { offsets in section.steps.remove(atOffsets: offsets) }
+                        .onMove { from, to in section.steps.move(fromOffsets: from, toOffset: to) }
 
-                    if instructionEditMode == .inactive {
-                        Button {
-                            let newStep = InstructionStep()
-                            instructionSteps.append(newStep)
-                            focusedInstructionID = newStep.id
-                        } label: {
-                            Label("Add Step", systemImage: "plus")
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text("Instructions")
-                        Spacer()
-                        Button(instructionEditMode == .active ? "Done" : "Edit") {
-                            withAnimation {
-                                instructionEditMode = instructionEditMode == .active ? .inactive : .active
+                        if instructionEditMode == .inactive {
+                            Button {
+                                let newStep = InstructionStep()
+                                section.steps.append(newStep)
+                                focusedInstructionID = newStep.id
+                            } label: {
+                                Label("Add Step", systemImage: "plus")
+                            }
+
+                            // Allow deleting a named group (not the ungrouped sink)
+                            if !section.isUngroupedSink {
+                                Button(role: .destructive) {
+                                    let idToRemove = section.id
+                                    withAnimation {
+                                        instructionSections.removeAll { $0.id == idToRemove }
+                                    }
+                                } label: {
+                                    Label("Remove Group", systemImage: "trash")
+                                }
                             }
                         }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    } header: {
+                        HStack {
+                            Text(section.isUngroupedSink ? "Instructions" : section.name.isEmpty ? "New Group" : section.name)
+                            Spacer()
+                            // Edit button only on the first section to avoid duplicate controls
+                            if instructionSections.first?.id == section.id {
+                                Button(instructionEditMode == .active ? "Done" : "Edit") {
+                                    withAnimation {
+                                        instructionEditMode = instructionEditMode == .active ? .inactive : .active
+                                    }
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            }
+                        }
+                    }
+                    .environment(\.editMode, $instructionEditMode)
+                }
+
+                Section {
+                    Button {
+                        pendingInstructionGroupName = ""
+                        showAddInstructionGroupAlert = true
+                    } label: {
+                        Label("Add Instruction Group", systemImage: "list.bullet.indent")
                     }
                 }
-                .environment(\.editMode, $instructionEditMode)
 
                 Section("Notes") {
                     TextField("Any extra notes...", text: $notes, axis: .vertical)
@@ -598,12 +655,32 @@ struct AddRecipeView: View {
             } message: {
                 Text("Enter a name for this group of ingredients.")
             }
+            .alert("New Instruction Group", isPresented: $showAddInstructionGroupAlert) {
+                TextField("Group name (e.g. For the sauce)", text: $pendingInstructionGroupName)
+                Button("Add") {
+                    let trimmed = pendingInstructionGroupName.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty else { return }
+                    let firstStep = InstructionStep()
+                    let newSection = InstructionGroupSection(name: trimmed, steps: [firstStep], isUngroupedSink: false)
+                    instructionSections.append(newSection)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation {
+                            scrollProxy.scrollTo(firstStep.id, anchor: .center)
+                        }
+                        focusedInstructionID = firstStep.id
+                    }
+                }
+                .disabled(pendingInstructionGroupName.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter a name for this group of steps.")
+            }
             } // ScrollViewReader
         }
     }
 
-    private func stepNumber(for step: InstructionStep) -> Int {
-        (instructionSteps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1
+    private func stepNumberInSection(_ step: InstructionStep, section: InstructionGroupSection) -> Int {
+        (section.steps.firstIndex(where: { $0.id == step.id }) ?? 0) + 1
     }
 
     private func loadExisting() {
@@ -614,8 +691,16 @@ struct AddRecipeView: View {
         sourceURL = recipe.sourceURL ?? ""
         imageData = recipe.imageData
 
-        let steps = recipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-        instructionSteps = steps.isEmpty ? [InstructionStep()] : steps.map { InstructionStep(text: $0) }
+        // Build instruction sections: ungrouped sink first, then named groups
+        let ungroupedSteps = recipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        var instrSections: [InstructionGroupSection] = [
+            InstructionGroupSection(name: "", steps: ungroupedSteps.isEmpty ? [InstructionStep()] : ungroupedSteps.map { InstructionStep(text: $0) }, isUngroupedSink: true)
+        ]
+        for group in recipe.sortedInstructionGroups {
+            let groupSteps = group.steps.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            instrSections.append(InstructionGroupSection(name: group.name, steps: groupSteps.isEmpty ? [InstructionStep()] : groupSteps.map { InstructionStep(text: $0) }))
+        }
+        instructionSections = instrSections
 
         // Ungrouped sink always first
         let ungroupedLines = recipe.ungroupedIngredients.map { ingredient -> IngredientLine in
@@ -737,15 +822,32 @@ struct AddRecipeView: View {
         recipe.notes = notes
         recipe.sourceURL = sourceURL.isEmpty ? nil : sourceURL
         recipe.imageData = imageData
-        recipe.instructions = instructionSteps
-            .map { $0.text.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
         if existingRecipe == nil {
             modelContext.insert(recipe)
         }
 
-        // Delete existing groups (cascade deletes their ingredients)
+        // Save instruction sections: ungrouped steps go flat on recipe; named groups become InstructionGroup objects
+        for existingGroup in recipe.instructionGroups { modelContext.delete(existingGroup) }
+        recipe.instructionGroups = []
+
+        var instrGroupSortOrder = 0
+        var ungroupedInstructionSteps: [String] = []
+        for section in instructionSections {
+            let filteredSteps = section.steps.map { $0.text.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            if section.isUngroupedSink {
+                ungroupedInstructionSteps = filteredSteps
+            } else {
+                let trimmedGroupName = section.name.trimmingCharacters(in: .whitespaces)
+                guard !trimmedGroupName.isEmpty else { continue }
+                let group = InstructionGroup(name: trimmedGroupName, sortOrder: instrGroupSortOrder, steps: filteredSteps)
+                group.recipe = recipe
+                modelContext.insert(group)
+                instrGroupSortOrder += 1
+            }
+        }
+        recipe.instructions = ungroupedInstructionSteps
+
+        // Delete existing ingredient groups (cascade deletes their ingredients)
         for existingGroup in recipe.ingredientGroups { modelContext.delete(existingGroup) }
         recipe.ingredientGroups = []
         // Delete remaining ungrouped ingredients

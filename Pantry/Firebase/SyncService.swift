@@ -357,11 +357,20 @@ final class SyncService {
             "name": recipe.name,
             "servings": recipe.servings,
             "notes": recipe.notes,
-            "instructions": recipe.instructions,
+            "instructions": recipe.instructions, // flat list kept for backward compat
             "createdAt": Timestamp(date: recipe.createdAt)
         ]
         if let url = recipe.sourceURL { d["sourceURL"] = url }
         if let path = recipe.imageStoragePath { d["imageStoragePath"] = path }
+        // Named instruction groups
+        d["instructionGroups"] = recipe.sortedInstructionGroups.map { group in
+            [
+                "id": group.id.uuidString,
+                "name": group.name,
+                "sortOrder": group.sortOrder,
+                "steps": group.steps
+            ] as [String: Any]
+        }
         // Named groups with their ingredients
         d["ingredientGroups"] = recipe.sortedGroups.map { group in
             [
@@ -524,6 +533,30 @@ final class SyncService {
                 ing.recipe = recipe
                 context.insert(ing)
             }
+        }
+
+        // Instruction groups
+        for existingGroup in recipe.instructionGroups { context.delete(existingGroup) }
+        recipe.instructionGroups = []
+
+        if let groupsData = data["instructionGroups"] as? [[String: Any]] {
+            for (gi, groupData) in groupsData.enumerated() {
+                let group = InstructionGroup(
+                    name: groupData["name"] as? String ?? "",
+                    sortOrder: groupData["sortOrder"] as? Int ?? gi,
+                    steps: groupData["steps"] as? [String] ?? []
+                )
+                if let idStr = groupData["id"] as? String, let gid = UUID(uuidString: idStr) {
+                    group.id = gid
+                }
+                group.recipe = recipe
+                context.insert(group)
+            }
+        }
+        // Keep recipe.instructions in sync with ungrouped steps (legacy flat field)
+        // If there are named groups and no ungrouped steps, clear the flat array
+        if !recipe.instructionGroups.isEmpty {
+            // ungrouped steps remain in recipe.instructions as-is
         }
     }
 

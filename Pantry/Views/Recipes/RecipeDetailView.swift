@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import NaturalLanguage
 
 // MARK: - Recipe Browser (recents history + drawer)
 
@@ -188,24 +189,43 @@ struct RecipeDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @Query private var inventoryItems: [InventoryItem]
+
     @State private var scaledServings: Double
     @State private var showingEdit = false
     @State private var showingDeleteAlert = false
     @State private var selectedTab: RecipeDetailTab = .ingredients
-    
+
     // Cache the decoded UIImage to prevent main-thread re-decoding during animations
     @State private var cachedImage: UIImage?
+
+    /// Maps ingredient ID → inventory status, computed once when the view appears or inventory changes.
+    @State private var inventoryStatusCache: [PersistentIdentifier: IngredientInventoryStatus] = [:]
 
     init(recipe: Recipe) {
         self.recipe = recipe
         _scaledServings = State(initialValue: recipe.servings)
-        
+
         // Pre-decode image data if present
         if let data = recipe.imageData {
             _cachedImage = State(initialValue: UIImage(data: data))
         } else {
             _cachedImage = State(initialValue: nil)
         }
+    }
+
+    /// Recomputes the inventory status for every ingredient in the recipe.
+    private func recomputeInventoryStatus() {
+        var cache: [PersistentIdentifier: IngredientInventoryStatus] = [:]
+        let allIngredients = recipe.ingredients
+        for ingredient in allIngredients {
+            if let (match, confidence) = IngredientMatcher.bestMatch(for: ingredient.name, in: inventoryItems) {
+                cache[ingredient.persistentModelID] = match.currentQuantity > 0 ? .inStock(confidence) : .outOfStock
+            } else {
+                cache[ingredient.persistentModelID] = .notFound
+            }
+        }
+        inventoryStatusCache = cache
     }
 
     private var sortedGroups: [IngredientGroup] {
@@ -216,9 +236,75 @@ struct RecipeDetailView: View {
         recipe.ungroupedIngredients
     }
 
+    private var sortedInstructionGroups: [InstructionGroup] {
+        recipe.sortedInstructionGroups
+    }
+
+    private var ungroupedSteps: [String] {
+        recipe.instructions
+    }
+
     private var sourceHost: String {
         guard let urlString = recipe.sourceURL, let url = URL(string: urlString) else { return "" }
         return url.host() ?? urlString
+    }
+
+    @ViewBuilder private var instructionsPanel: some View {
+        let instrGroups = sortedInstructionGroups
+        let ungroupedInstructions = ungroupedSteps
+        if instrGroups.isEmpty && ungroupedInstructions.isEmpty {
+            Text("No instructions listed.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 24)
+        } else {
+            // Named instruction groups first; each group restarts step numbering from 1
+            ForEach(instrGroups) { group in
+                Text(group.name)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 16)
+                    .padding(.bottom, 2)
+
+                ForEach(Array(group.steps.enumerated()), id: \.offset) { index, step in
+                    InstructionStepView(number: index + 1, text: step)
+                        .padding(.vertical, 16)
+
+                    if index < group.steps.count - 1 {
+                        Divider()
+                    }
+                }
+
+                if group.id != instrGroups.last?.id || !ungroupedInstructions.isEmpty {
+                    Divider()
+                        .padding(.top, 4)
+                }
+            }
+
+            // Ungrouped steps — show header only when named groups are also present
+            if !instrGroups.isEmpty && !ungroupedInstructions.isEmpty {
+                Text("Instructions")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 16)
+                    .padding(.bottom, 2)
+            }
+            ForEach(Array(ungroupedInstructions.enumerated()), id: \.offset) { index, step in
+                InstructionStepView(number: index + 1, text: step)
+                    .padding(.vertical, 16)
+
+                if index < ungroupedInstructions.count - 1 {
+                    Divider()
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -298,7 +384,8 @@ struct RecipeDetailView: View {
                                     IngredientRowView(
                                         ingredient: ingredient,
                                         scaledServings: scaledServings,
-                                        originalServings: recipe.servings
+                                        originalServings: recipe.servings,
+                                        inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound
                                     )
                                     .padding(.vertical, 16)
 
@@ -329,7 +416,8 @@ struct RecipeDetailView: View {
                                 IngredientRowView(
                                     ingredient: ingredient,
                                     scaledServings: scaledServings,
-                                    originalServings: recipe.servings
+                                    originalServings: recipe.servings,
+                                    inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound
                                 )
                                 .padding(.vertical, 16)
 
@@ -339,22 +427,7 @@ struct RecipeDetailView: View {
                             }
                         }
                     } else {
-                        if recipe.instructions.isEmpty {
-                            Text("No instructions listed.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 24)
-                        } else {
-                            ForEach(Array(recipe.instructions.enumerated()), id: \.offset) { index, step in
-                                InstructionStepView(number: index + 1, text: step)
-                                    .padding(.vertical, 16) // Spacing between instructions
-                                
-                                if index < recipe.instructions.count - 1 {
-                                    Divider()
-                                }
-                            }
-                        }
+                        instructionsPanel
                     }
                 }
                 .padding(.horizontal, 16)
@@ -422,6 +495,8 @@ struct RecipeDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .onAppear { recomputeInventoryStatus() }
+        .onChange(of: inventoryItems) { _, _ in recomputeInventoryStatus() }
         .onChange(of: recipe.imageData) { _, newData in
             // Keep the cached image synchronized when editing the recipe changes the photo
             if let data = newData {
@@ -537,6 +612,7 @@ struct IngredientRowView: View {
     let ingredient: Ingredient
     let scaledServings: Double
     let originalServings: Double
+    var inventoryStatus: IngredientInventoryStatus = .notFound
 
     @State private var isChecked = false
 
@@ -554,6 +630,14 @@ struct IngredientRowView: View {
                     .foregroundStyle(Color.appAccent)
                     .opacity(isChecked ? 1 : 0)
                     .scaleEffect(isChecked ? 1 : 0.5)
+
+                // Inventory status dot — bottom-right of the pill area
+                if !isChecked, let dotColor = inventoryStatus.dotColor {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 7, height: 7)
+                        .offset(x: 4, y: 6)
+                }
             }
             .animation(.spring(duration: 0.3), value: isChecked)
             

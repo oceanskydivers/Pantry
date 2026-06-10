@@ -17,6 +17,9 @@ final class Recipe {
     @Relationship(deleteRule: .cascade, inverse: \IngredientGroup.recipe)
     var ingredientGroups: [IngredientGroup]
 
+    @Relationship(deleteRule: .cascade, inverse: \InstructionGroup.recipe)
+    var instructionGroups: [InstructionGroup]
+
     @Relationship(deleteRule: .cascade, inverse: \Ingredient.recipe)
     var ingredients: [Ingredient]
 
@@ -28,6 +31,11 @@ final class Recipe {
     /// Ungrouped ingredients (no group assigned), sorted for display.
     var ungroupedIngredients: [Ingredient] {
         ingredients.filter { $0.group == nil }.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    /// Instruction groups sorted by sortOrder for display.
+    var sortedInstructionGroups: [InstructionGroup] {
+        instructionGroups.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     init(
@@ -50,5 +58,6 @@ final class Recipe {
         self.isFavorite = isFavorite
         self.ingredients = []
         self.ingredientGroups = []
+        self.instructionGroups = []
     }
 }

@@ -82,23 +82,20 @@ struct ManageCategoriesView: View {
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .safeAreaInset(edge: .bottom) {
-                        if !isKeyboardVisible {
-                            VStack(spacing: 0) {
-                                Divider()
-                                Button {
-                                    showingAddCategory = true
-                                } label: {
-                                    Label("Add Category", systemImage: "plus.circle.fill")
-                                        .font(.headline)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.large)
-                                .padding()
+                        VStack(spacing: 0) {
+                            Divider()
+                            Button {
+                                showingAddCategory = true
+                            } label: {
+                                Label("Add Category", systemImage: "plus.circle.fill")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
                             }
-                            .background(.ultraThinMaterial)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .padding()
                         }
+                        .background(.ultraThinMaterial)
                     }
                 }
             }
@@ -188,8 +185,10 @@ struct CategorySection: View {
 
     var body: some View {
         Section {
-            ForEach(visibleRows) { row in
-                rowView(for: row)
+            ForEach($rows) { $row in
+                if isVisible(row) {
+                    rowView(row: $row)
+                }
             }
             .onDelete { offsets in
                 // Map visible offsets back to full rows array
@@ -251,21 +250,30 @@ struct CategorySection: View {
         }
     }
 
-    @ViewBuilder
-    private func rowView(for row: CategoryRow) -> some View {
-        if let idx = rows.firstIndex(where: { $0.id == row.id }) {
-            CategoryRowView(
-                row: $rows[idx],
-                shouldBeFocused: focusedRowID == row.id,
-                isCollapsible: hasChildren(row),
-                isCollapsed: collapsedIDs.contains(row.id),
-                onSubmit: { handleSubmit(rowID: row.id) },
-                onEndEditing: { handleEndEditing(rowID: row.id) },
-                onTap: { focusedRowID = row.id },
-                onAddChild: { addChildRow(afterRowID: row.id) },
-                onToggleCollapse: { toggleCollapse(rowID: row.id) }
-            )
+    private func isVisible(_ row: CategoryRow) -> Bool {
+        var parentID = row.parentID
+        while parentID != rootCategory.id {
+            if collapsedIDs.contains(parentID) { return false }
+            guard let parentRow = rows.first(where: { $0.id == parentID }) else { break }
+            parentID = parentRow.parentID
         }
+        return true
+    }
+
+    @ViewBuilder
+    private func rowView(row: Binding<CategoryRow>) -> some View {
+        let r = row.wrappedValue
+        CategoryRowView(
+            row: row,
+            shouldBeFocused: focusedRowID == r.id,
+            isCollapsible: hasChildren(r),
+            isCollapsed: collapsedIDs.contains(r.id),
+            onSubmit: { handleSubmit(rowID: r.id) },
+            onEndEditing: { handleEndEditing(rowID: r.id) },
+            onTap: { focusedRowID = r.id },
+            onAddChild: { addChildRow(afterRowID: r.id) },
+            onToggleCollapse: { toggleCollapse(rowID: r.id) }
+        )
     }
 
     private func toggleCollapse(rowID: UUID) {
@@ -300,16 +308,13 @@ struct CategorySection: View {
                 flushToSwiftData()
             }
         } else {
-            // Filled + Return = new empty sibling row after all descendants, focused
             rows[idx].name = trimmed
-            var insertAt = idx + 1
-            while insertAt < rows.count && rows[insertAt].depth > rows[idx].depth {
-                insertAt += 1
-            }
+            flushRow(at: idx)
             let newRow = CategoryRow(id: UUID(), name: "", depth: rows[idx].depth, parentID: rows[idx].parentID)
+            var insertAt = idx + 1
+            while insertAt < rows.count && rows[insertAt].depth > rows[idx].depth { insertAt += 1 }
             rows.insert(newRow, at: insertAt)
             focusedRowID = newRow.id
-            flushToSwiftData()
         }
     }
 
@@ -388,6 +393,30 @@ struct CategorySection: View {
             result += flattenChildren(of: child, depth: depth + 1, parentID: child.id)
         }
         return result
+    }
+
+    /// Persist only a single already-named row without touching the rest of the array.
+    private func flushRow(at idx: Int) {
+        let row = rows[idx]
+        guard !row.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        var existingByID: [UUID: InventoryCategory] = [:]
+        collectDescendants(of: rootCategory, into: &existingByID)
+        let parentCategory: InventoryCategory
+        if row.parentID == rootCategory.id {
+            parentCategory = rootCategory
+        } else if let p = existingByID[row.parentID] {
+            parentCategory = p
+        } else { return }
+        if let existing = existingByID[row.id] {
+            existing.name = row.name
+            SyncService.shared.syncInventoryCategory(existing)
+        } else {
+            let newCat = InventoryCategory(name: row.name, parent: parentCategory)
+            newCat.id = row.id
+            modelContext.insert(newCat)
+            SyncService.shared.syncInventoryCategory(newCat)
+        }
+        try? modelContext.save()
     }
 
     /// Reconcile the flat rows array back into the SwiftData tree.

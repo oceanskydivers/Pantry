@@ -20,7 +20,6 @@ struct AddInventoryItemView: View {
 
     // Category picker state
     @State private var selectedCategory: InventoryCategory? = nil
-    @State private var showingManageCategories = false
     @State private var showingCategoryPicker = false
 
     enum FocusedField { case newLocation }
@@ -160,11 +159,6 @@ struct AddInventoryItemView: View {
             .onAppear { loadExisting() }
             .onChange(of: isAddingNewLocation) { _, newValue in
                 if newValue { focusedField = .newLocation }
-            }
-            .sheet(isPresented: $showingManageCategories) {
-                ManageCategoriesView { newCategory in
-                    selectedCategory = newCategory
-                }
             }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet { chosen in

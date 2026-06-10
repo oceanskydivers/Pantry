@@ -10,11 +10,15 @@ struct PantryApp: App {
         // Must be first — everything else depends on this
         FirebaseApp.configure()
 
+        // Propagate the app accent to all UIKit views (UITextView cursor, etc.)
+        UIView.appearance().tintColor = UIColor(red: 133.5/255, green: 171.5/255, blue: 120/255, alpha: 1)
+
         do {
             container = try ModelContainer(for:
                 Recipe.self,
                 Ingredient.self,
                 IngredientGroup.self,
+                InstructionGroup.self,
                 InventoryItem.self,
                 InventoryLog.self,
                 StorageLocation.self,
@@ -40,6 +44,7 @@ struct PantryApp: App {
                 .modelContainer(container)
                 .environment(FirebaseManager.shared)
                 .environment(SyncService.shared)
+                .tint(Color.appAccent)
         }
     }
 }
