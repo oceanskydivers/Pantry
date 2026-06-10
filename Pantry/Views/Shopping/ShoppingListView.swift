@@ -22,6 +22,8 @@ struct ShoppingListView: View {
     @State private var showChecked = false
     @State private var editMode: EditMode = .inactive
     @State private var isKeyboardVisible = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -37,7 +39,11 @@ struct ShoppingListView: View {
                         ForEach(categories) { category in
                             ShoppingCategorySection(
                                 category: category,
-                                showChecked: showChecked
+                                showChecked: showChecked,
+                                onAutoAddMessage: { message in
+                                    toastMessage = message
+                                    showToast = true
+                                }
                             )
                         }
                         .onMove(perform: moveCategories)
@@ -101,6 +107,7 @@ struct ShoppingListView: View {
                     .disabled(newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty)
                 Button("Cancel", role: .cancel) { newCategoryName = "" }
             }
+            .toast(isPresented: $showToast, message: toastMessage)
         }
     }
 
@@ -137,12 +144,14 @@ struct ShoppingCategorySection: View {
     @Bindable var category: ShoppingCategory
     @Environment(\.modelContext) private var modelContext
     let showChecked: Bool
+    var onAutoAddMessage: ((String) -> Void)?
 
     // Plain value-type row — only unchecked items live here.
     // Checked items are read directly from SwiftData and displayed separately.
     struct ItemRow: Identifiable {
         let id: UUID   // == ShoppingItem.cloudID
         var name: String
+        var quantity: Int
         var addedAt: Date
     }
 
@@ -151,7 +160,7 @@ struct ShoppingCategorySection: View {
 
     /// A snapshot of items used to detect any cloud-pushed change (name edits, check toggles, additions, deletions).
     private var itemsSnapshot: [String] {
-        category.items.map { "\($0.cloudID)-\($0.name)-\($0.isChecked)" }.sorted()
+        category.items.map { "\($0.cloudID)-\($0.name)-\($0.isChecked)-\($0.quantity)" }.sorted()
     }
     @Environment(\.undoManager) private var undoManager
     @State private var isRenaming = false
@@ -224,6 +233,8 @@ struct ShoppingCategorySection: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.caption)
+                        .padding(.vertical, 8)
+                        .padding(.leading, 16)
                 }
             }
         }
@@ -262,7 +273,7 @@ struct ShoppingCategorySection: View {
             }
         } else {
             // Filled + enter = new empty row immediately below
-            let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
+            let newRow = ItemRow(id: UUID(), name: "", quantity: 1, addedAt: Date())
             mutateRows(actionName: "Add Item") {
                 $0[idx].name = trimmed
                 $0.insert(newRow, at: idx + 1)
@@ -292,6 +303,8 @@ struct ShoppingCategorySection: View {
             return
         }
 
+        let quantity = rows[idx].quantity
+
         // Register undo before mutating: undo will uncheck the item and restore the row
         let before = rows
         rows.remove(at: idx)
@@ -311,6 +324,12 @@ struct ShoppingCategorySection: View {
             item.isChecked = true
             try? modelContext.save()
         }
+
+        // Auto-add to inventory if the setting is enabled
+        if let message = ShoppingToInventoryService.processCheckedItem(name: trimmed, quantity: quantity, context: modelContext) {
+            onAutoAddMessage?(message)
+        }
+
         // Sync immediately with the updated checked state, then rebuild unchecked rows
         SyncService.shared.syncShoppingCategory(category)
         flushToSwiftData()
@@ -323,7 +342,7 @@ struct ShoppingCategorySection: View {
     }
 
     private func addNewRow() {
-        let newRow = ItemRow(id: UUID(), name: "", addedAt: Date())
+        let newRow = ItemRow(id: UUID(), name: "", quantity: 1, addedAt: Date())
         rows.append(newRow)
         focusedRowID = newRow.id
         flushToSwiftData()
@@ -356,7 +375,7 @@ struct ShoppingCategorySection: View {
     /// Populate `rows` from unchecked SwiftData items, sorted by addedAt.
     private func loadRows() {
         let unchecked = category.items.filter { !$0.isChecked }.sorted { $0.addedAt < $1.addedAt }
-        rows = unchecked.map { ItemRow(id: $0.cloudID, name: $0.name, addedAt: $0.addedAt) }
+        rows = unchecked.map { ItemRow(id: $0.cloudID, name: $0.name, quantity: $0.quantity, addedAt: $0.addedAt) }
     }
 
     /// Write `rows` (unchecked items) back to SwiftData. Checked items are untouched.
@@ -378,10 +397,11 @@ struct ShoppingCategorySection: View {
         for row in rows {
             if let item = existingByID[row.id] {
                 item.name = row.name
+                item.quantity = row.quantity
                 item.addedAt = row.addedAt
                 existingByID.removeValue(forKey: row.id)
             } else {
-                let item = ShoppingItem(name: row.name, category: category, addedAt: row.addedAt)
+                let item = ShoppingItem(name: row.name, quantity: row.quantity, category: category, addedAt: row.addedAt)
                 item.cloudID = row.id
                 modelContext.insert(item)
             }
@@ -413,7 +433,7 @@ private struct CheckedShoppingItemRow: View {
             }
             .buttonStyle(.plain)
 
-            Text(item.name)
+            Text(item.quantity > 1 ? "\(item.name) ×\(item.quantity)" : item.name)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .opacity(0.6)
@@ -435,6 +455,8 @@ struct ShoppingItemRow: View {
     let onCheckToggle: () -> Void
     let onTap: () -> Void
 
+    @State private var showingQuantityPicker = false
+
     var body: some View {
         HStack(spacing: 12) {
             Button {
@@ -453,6 +475,34 @@ struct ShoppingItemRow: View {
                 onEndEditing: onEndEditing
             )
             .frame(maxWidth: .infinity)
+
+            // Quantity badge — subtle, tappable to adjust
+            Button {
+                showingQuantityPicker = true
+            } label: {
+                Text("×\(row.quantity)")
+                    .font(.caption)
+                    .foregroundStyle(row.quantity > 1 ? Color.appAccent : Color.secondary)
+                    .monospacedDigit()
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(row.quantity > 1 ? Color.appAccent.opacity(0.12) : Color.clear)
+                    )
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showingQuantityPicker) {
+                VStack(spacing: 12) {
+                    Text("Quantity")
+                        .font(.headline)
+                    Stepper("\(row.quantity)", value: $row.quantity, in: 1...99)
+                        .labelsHidden()
+                        .fixedSize()
+                }
+                .padding(20)
+                .presentationCompactAdaptation(.popover)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }

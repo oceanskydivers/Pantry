@@ -463,6 +463,26 @@ struct RecipeDetailView: View {
                                 }
                             }
                         }
+
+                        // Inventory legend — shown only when there are ingredients
+                        if !sortedGroups.isEmpty || !ungroupedIngredients.isEmpty {
+                            Divider()
+                                .padding(.top, 4)
+                            HStack(spacing: 16) {
+                                ForEach(InventoryLegendItem.all, id: \.label) { item in
+                                    HStack(spacing: 5) {
+                                        Image(systemName: item.systemImage)
+                                            .font(.system(size: 9, weight: .semibold))
+                                            .foregroundStyle(item.color)
+                                        Text(item.label)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     } else {
                         instructionsPanel
                     }
@@ -684,14 +704,6 @@ struct IngredientRowView: View {
                     .foregroundStyle(Color.appAccent)
                     .opacity(isChecked ? 1 : 0)
                     .scaleEffect(isChecked ? 1 : 0.5)
-
-                // Inventory status dot — bottom-right of the pill area
-                if !isChecked, let dotColor = inventoryStatus.dotColor {
-                    Circle()
-                        .fill(dotColor)
-                        .frame(width: 7, height: 7)
-                        .offset(x: 4, y: 6)
-                }
             }
             .animation(.spring(duration: 0.3), value: isChecked)
             
@@ -717,6 +729,14 @@ struct IngredientRowView: View {
             .animation(.easeInOut(duration: 0.2), value: isChecked)
             
             Spacer()
+
+            // Trailing inventory status badge
+            if !isChecked, let badge = inventoryStatus.badge {
+                Image(systemName: badge.systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(badge.color)
+                    .transition(.opacity.combined(with: .scale))
+            }
         }
         .fixedSize(horizontal: false, vertical: true)
         .contentShape(Rectangle())
@@ -725,6 +745,19 @@ struct IngredientRowView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
+}
+
+// MARK: - Inventory Legend
+
+private struct InventoryLegendItem {
+    let systemImage: String
+    let color: Color
+    let label: String
+
+    static let all: [InventoryLegendItem] = [
+        InventoryLegendItem(systemImage: "circle.fill", color: Color(red: 0.6, green: 0.9, blue: 0.6), label: "In stock"),
+        InventoryLegendItem(systemImage: "xmark.circle.fill", color: Color(.systemGray3), label: "Out of stock"),
+    ]
 }
 
 // MARK: - Share Sheet wrapper

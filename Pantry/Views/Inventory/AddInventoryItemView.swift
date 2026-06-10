@@ -225,10 +225,18 @@ struct AddInventoryItemView: View {
                 category: selectedCategory
             )
             modelContext.insert(item)
-            if current > 0 {
-                let log = InventoryLog(change: current, note: "Initial stock")
-                log.item = item
-                modelContext.insert(log)
+            if initial > 0 {
+                let acquisition = InventoryLog(change: initial, note: "Initial stock", date: dateBought)
+                acquisition.item = item
+                modelContext.insert(acquisition)
+
+                let consumed = initial - current
+                if consumed > 0 {
+                    let midpoint = Date(timeIntervalSince1970: (dateBought.timeIntervalSince1970 + Date().timeIntervalSince1970) / 2)
+                    let consumption = InventoryLog(change: -consumed, note: "Pre-tracking consumption (date estimated as midpoint between purchase and app entry)", date: midpoint)
+                    consumption.item = item
+                    modelContext.insert(consumption)
+                }
             }
             savedItem = item
         }

@@ -22,6 +22,8 @@
 		746B1550D79355557E83E3AC /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 022BE1BB02AE79F882509C8C /* GoogleSignIn */; };
 		7567884B377F0D3625B35EFB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D50567F005318E49277C33EC /* Assets.xcassets */; };
 		77713E4178C67B5B3A5A7638 /* IMG_7775.png in Resources */ = {isa = PBXBuildFile; fileRef = 6FB34249720C70432C145653 /* IMG_7775.png */; };
+		892ABB8E2FD99D1A00369B4B /* PantryShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 892ABB842FD99D1900369B4B /* PantryShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		892ABB992FDA0A1200369B4B /* ShoppingToInventoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */; };
 		899328C02FD395E40026D3C3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 899328BF2FD395E40026D3C3 /* FirebaseStorage */; };
 		899328C22FD451790026D3C3 /* ReusableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899328C12FD451790026D3C3 /* ReusableViews.swift */; };
 		89A3ACF52FD4BE1100175632 /* StorageLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89A3ACF42FD4BE1100175632 /* StorageLocation.swift */; };
@@ -49,6 +51,30 @@
 		FC6A9965E247830F48FA8957 /* RecipeImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5703ECBE97C29A79CAB85272 /* RecipeImporter.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		892ABB8C2FD99D1A00369B4B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 48EA39FB0CF9C32C2C053C88 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 892ABB832FD99D1900369B4B;
+			remoteInfo = PantryShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		892ABB8F2FD99D1A00369B4B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				892ABB8E2FD99D1A00369B4B /* PantryShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		0CF24D87B07EA77455998622 /* InventoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryView.swift; sourceTree = "<group>"; };
 		1BFEF1D6886EFCF5787D3704 /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
@@ -66,6 +92,8 @@
 		6A1D1BD9A03A8EBD0B143F5B /* RecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipesView.swift; sourceTree = "<group>"; };
 		6FB34249720C70432C145653 /* IMG_7775.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = IMG_7775.png; sourceTree = "<group>"; };
 		759922EFC579800336ECBAEC /* FirebaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseManager.swift; sourceTree = "<group>"; };
+		892ABB842FD99D1900369B4B /* PantryShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PantryShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingToInventoryService.swift; sourceTree = "<group>"; };
 		899328C12FD451790026D3C3 /* ReusableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReusableViews.swift; sourceTree = "<group>"; };
 		89A3ACF42FD4BE1100175632 /* StorageLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageLocation.swift; sourceTree = "<group>"; };
 		89A3ACF62FD4BE1C00175632 /* InventoryCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryCategory.swift; sourceTree = "<group>"; };
@@ -89,6 +117,27 @@
 		F76311C6E8B73F4D67B2EFD0 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		892ABB922FD99D1A00369B4B /* Exceptions for "PantryShareExtension" folder in "PantryShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 892ABB832FD99D1900369B4B /* PantryShareExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		892ABB852FD99D1900369B4B /* PantryShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				892ABB922FD99D1A00369B4B /* Exceptions for "PantryShareExtension" folder in "PantryShareExtension" target */,
+			);
+			path = PantryShareExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		5CFCA8843AECD40375254DB1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -100,6 +149,13 @@
 				746B1550D79355557E83E3AC /* GoogleSignIn in Frameworks */,
 				E113181AE943B4BE450926F1 /* GoogleSignInSwift in Frameworks */,
 				899328C02FD395E40026D3C3 /* FirebaseStorage in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		892ABB812FD99D1900369B4B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +279,7 @@
 			isa = PBXGroup;
 			children = (
 				52243B73C3D48F83581DD8AF /* Pantry */,
+				892ABB852FD99D1900369B4B /* PantryShareExtension */,
 				899328BE2FD395E40026D3C3 /* Frameworks */,
 				EC9A88BF9C855EDCAF0AE4CF /* Products */,
 			);
@@ -240,6 +297,7 @@
 			isa = PBXGroup;
 			children = (
 				D7137AFC04D7CA775CE75971 /* Pantry.app */,
+				892ABB842FD99D1900369B4B /* PantryShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -249,6 +307,7 @@
 			children = (
 				5703ECBE97C29A79CAB85272 /* RecipeImporter.swift */,
 				89A3AD002FD8440600175632 /* IngredientMatcher.swift */,
+				892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -256,6 +315,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		892ABB832FD99D1900369B4B /* PantryShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 892ABB932FD99D1A00369B4B /* Build configuration list for PBXNativeTarget "PantryShareExtension" */;
+			buildPhases = (
+				892ABB802FD99D1900369B4B /* Sources */,
+				892ABB812FD99D1900369B4B /* Frameworks */,
+				892ABB822FD99D1900369B4B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				892ABB852FD99D1900369B4B /* PantryShareExtension */,
+			);
+			name = PantryShareExtension;
+			packageProductDependencies = (
+			);
+			productName = PantryShareExtension;
+			productReference = 892ABB842FD99D1900369B4B /* PantryShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A96324C026C10C1D1AB37CFC /* Pantry */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4291C4922806732AA25A0B35 /* Build configuration list for PBXNativeTarget "Pantry" */;
@@ -263,10 +344,12 @@
 				8B85B2D7EE137B2A6B023CDE /* Sources */,
 				336EA2C9A1444D25E48C1F63 /* Resources */,
 				5CFCA8843AECD40375254DB1 /* Frameworks */,
+				892ABB8F2FD99D1A00369B4B /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				892ABB8D2FD99D1A00369B4B /* PBXTargetDependency */,
 			);
 			name = Pantry;
 			packageProductDependencies = (
@@ -288,8 +371,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					892ABB832FD99D1900369B4B = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					A96324C026C10C1D1AB37CFC = {
 						ProvisioningStyle = Automatic;
 					};
@@ -314,6 +401,7 @@
 			projectRoot = "";
 			targets = (
 				A96324C026C10C1D1AB37CFC /* Pantry */,
+				892ABB832FD99D1900369B4B /* PantryShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -329,9 +417,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		892ABB822FD99D1900369B4B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		892ABB802FD99D1900369B4B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B85B2D7EE137B2A6B023CDE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -346,6 +448,7 @@
 				3B24942D9C91196C3489B30D /* ContentView.swift in Sources */,
 				89A3ACF52FD4BE1100175632 /* StorageLocation.swift in Sources */,
 				19740ECA25E0ED93555B8FE8 /* FirebaseManager.swift in Sources */,
+				892ABB992FDA0A1200369B4B /* ShoppingToInventoryService.swift in Sources */,
 				149C8071BE8ACA9AEBCE698C /* ImportRecipeView.swift in Sources */,
 				89A3ACF72FD4BE1C00175632 /* InventoryCategory.swift in Sources */,
 				899328C22FD451790026D3C3 /* ReusableViews.swift in Sources */,
@@ -372,7 +475,91 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		892ABB8D2FD99D1A00369B4B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 892ABB832FD99D1900369B4B /* PantryShareExtension */;
+			targetProxy = 892ABB8C2FD99D1A00369B4B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		892ABB902FD99D1A00369B4B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PVXXPR558X;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PantryShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PantryShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spisea.pantry.PantryShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		892ABB912FD99D1A00369B4B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PVXXPR558X;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PantryShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PantryShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.spisea.pantry.PantryShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		9626C4D8440487ACD2498A0C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -551,6 +738,15 @@
 			buildConfigurations = (
 				AC211CB12B31DA5D876B86AA /* Debug */,
 				C5F506B71AF2701DE873BF68 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		892ABB932FD99D1A00369B4B /* Build configuration list for PBXNativeTarget "PantryShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				892ABB902FD99D1A00369B4B /* Debug */,
+				892ABB912FD99D1A00369B4B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

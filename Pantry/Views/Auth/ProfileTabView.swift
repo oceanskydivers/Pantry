@@ -158,6 +158,20 @@ private struct AccountView: View {
                 .padding(.vertical, 4)
             }
 
+            Section("Preferences") {
+                Toggle(isOn: Binding(
+                    get: { SyncService.shared.autoAddToInventory },
+                    set: { SyncService.shared.autoAddToInventory = $0 }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Auto-Add to Inventory")
+                        Text("Automatically update your inventory when you check off shopping items.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Section {
                 Button(role: .destructive) {
                     try? auth.signOut()

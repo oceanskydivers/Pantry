@@ -69,7 +69,7 @@ actor RecipeImporter {
     // Cloud Run backend URL for social media imports
     private let backendURL = "https://pantry-recipe-importer-187109070061.us-central1.run.app"
 
-    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be"]
+    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch"]
 
     private func isSocialURL(_ urlString: String) -> Bool {
         socialDomains.contains { urlString.contains($0) }
@@ -215,11 +215,51 @@ actor RecipeImporter {
         return nil
     }
 
+    /// Decodes common HTML entities (e.g. &amp; → &, &#169; → ©).
+    private func decodeHTMLEntities(_ string: String) -> String {
+        var result = string
+        let named: [(String, String)] = [
+            ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
+            ("&quot;", "\""), ("&#39;", "'"), ("&apos;", "'"),
+            ("&nbsp;", " "), ("&ndash;", "–"), ("&mdash;", "—"),
+            ("&lsquo;", "\u{2018}"), ("&rsquo;", "\u{2019}"),
+            ("&ldquo;", "\u{201C}"), ("&rdquo;", "\u{201D}"),
+        ]
+        for (entity, replacement) in named {
+            result = result.replacingOccurrences(of: entity, with: replacement)
+        }
+        // Decode numeric character references: &#NNN; and &#xHHH;
+        let numericPattern = #"&#(?:x([0-9a-fA-F]+)|([0-9]+));"#
+        if let regex = try? NSRegularExpression(pattern: numericPattern) {
+            var output = ""
+            var searchRange = result.startIndex..<result.endIndex
+            while let match = regex.firstMatch(in: result, range: NSRange(searchRange, in: result)) {
+                let matchRange = Range(match.range, in: result)!
+                output += result[searchRange.lowerBound..<matchRange.lowerBound]
+                var scalar: UInt32?
+                if let hexRange = Range(match.range(at: 1), in: result), !hexRange.isEmpty {
+                    scalar = UInt32(result[hexRange], radix: 16)
+                } else if let decRange = Range(match.range(at: 2), in: result), !decRange.isEmpty {
+                    scalar = UInt32(result[decRange])
+                }
+                if let codePoint = scalar, let unicode = Unicode.Scalar(codePoint) {
+                    output.append(Character(unicode))
+                } else {
+                    output += result[matchRange]
+                }
+                searchRange = matchRange.upperBound..<result.endIndex
+            }
+            output += result[searchRange]
+            result = output
+        }
+        return result
+    }
+
     private func parseRecipeDict(_ dict: [String: Any]) -> ImportedRecipe? {
         let type = (dict["@type"] as? String) ?? (dict["@type"] as? [String])?.first ?? ""
         guard type.lowercased().contains("recipe") else { return nil }
 
-        let name = dict["name"] as? String ?? "Imported Recipe"
+        let name = decodeHTMLEntities(dict["name"] as? String ?? "Imported Recipe")
 
         let servings = parseServings(dict["recipeYield"])
 
@@ -239,7 +279,7 @@ actor RecipeImporter {
             return nil
         }()
 
-        let description = dict["description"] as? String ?? ""
+        let description = decodeHTMLEntities(dict["description"] as? String ?? "")
 
         return ImportedRecipe(
             name: name,
@@ -281,8 +321,8 @@ actor RecipeImporter {
                     return parseInstructions(nested)
                 }
                 // HowToStep or plain step dict
-                if let text = item["text"] as? String, !text.isEmpty { return [text] }
-                if let name = item["name"] as? String, !name.isEmpty { return [name] }
+                if let text = item["text"] as? String, !text.isEmpty { return [decodeHTMLEntities(text)] }
+                if let name = item["name"] as? String, !name.isEmpty { return [decodeHTMLEntities(name)] }
                 return []
             }
         }
@@ -339,7 +379,7 @@ actor RecipeImporter {
     }
 
     private func parseIngredient(_ raw: String) -> ImportedIngredient? {
-        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = decodeHTMLEntities(raw.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !cleaned.isEmpty else { return nil }
 
         let units = ["cup", "cups", "tablespoon", "tablespoons", "tbsp", "teaspoon", "teaspoons",

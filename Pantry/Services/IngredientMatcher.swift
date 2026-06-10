@@ -13,12 +13,16 @@ struct IngredientMatcher {
     ///   0.6–0.8   = semantically related (e.g. "cheddar" ↔ "mozzarella")
     ///   1.0–1.2   = unrelated (e.g. "garlic" ↔ "sugar")
     ///   2.0       = sentinel: one token has no embedding representation
+    ///
+    /// The substitute tier has been intentionally removed. The embedding model is too imprecise
+    /// for food ingredients — "garlic" ↔ "mustard" scores ~0.75, producing constant false positives.
+    /// Only near-exact token matches (distance ≤ exactThreshold) are surfaced in the UI.
 
     /// Tokens below this distance are considered an exact/confident match (green dot).
     static let exactThreshold: Double = 0.15
 
-    /// Tokens below this distance are considered a possible substitute (yellow dot).
-    static let substituteThreshold: Double = 0.75
+    /// Alias kept so matchConfidence compiles; set equal to exactThreshold so no substitute matches ever fire.
+    private static let substituteThreshold: Double = exactThreshold
 
     /// Distance returned by NLEmbedding when one or both tokens have no representation.
     private static let unknownTokenSentinel: Double = 1.9
@@ -128,13 +132,12 @@ enum IngredientInventoryStatus {
     /// No matching inventory item found
     case notFound
 
-    /// The dot colour to show in the UI, or nil if no dot should be shown.
-    var dotColor: Color? {
+    /// A trailing badge (SF Symbol + color) to show at the end of the row, or nil for no badge.
+    var badge: (systemImage: String, color: Color)? {
         switch self {
-        case .inStock(.exact):      return .green
-        case .inStock(.substitute): return Color(red: 1.0, green: 0.97, blue: 0.6) // pale yellow
-        case .outOfStock:           return .secondary.opacity(0.6)
-        case .notFound:             return nil
+        case .inStock:    return ("circle.fill", Color(red: 0.6, green: 0.9, blue: 0.6))
+        case .outOfStock: return ("xmark.circle.fill", Color(.systemGray3))
+        case .notFound:   return nil
         }
     }
 }

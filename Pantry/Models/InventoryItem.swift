@@ -38,8 +38,8 @@ final class InventoryItem {
         self.logs = []
     }
 
-    var consumptionRate: Double? {
-        let additions = logs.filter { $0.change > 0 }
+    /// Consumption rate derived from log history (consumed units / days between first and last log).
+    var logBasedConsumptionRate: Double? {
         let deletions = logs.filter { $0.change < 0 }
         guard !deletions.isEmpty else { return nil }
 
@@ -49,8 +49,26 @@ final class InventoryItem {
 
         let days = Calendar.current.dateComponents([.day], from: first.date, to: last.date).day ?? 0
         guard days > 0 else { return nil }
-        _ = additions
         return totalConsumed / Double(days)
+    }
+
+    /// Consumption rate derived from dateBought: total consumed since purchase divided by days owned.
+    /// Only available when currentQuantity differs from initialQuantity.
+    var dateBoughtConsumptionRate: Double? {
+        guard currentQuantity < initialQuantity else { return nil }
+        let consumed = initialQuantity - currentQuantity
+        let days = Calendar.current.dateComponents([.day], from: dateBought, to: Date()).day ?? 0
+        guard days > 0 else { return nil }
+        return consumed / Double(days)
+    }
+
+    /// Best available consumption rate: uses log-based only when there are at least 5 log entries, otherwise uses date-bought average.
+    var consumptionRate: Double? {
+        let deletionCount = logs.filter { $0.change < 0 }.count
+        if deletionCount >= 5 {
+            return logBasedConsumptionRate ?? dateBoughtConsumptionRate
+        }
+        return dateBoughtConsumptionRate ?? logBasedConsumptionRate
     }
 
     var estimatedDaysRemaining: Double? {
