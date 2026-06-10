@@ -554,7 +554,7 @@ struct RecipeDetailView: View {
                             Task { await prepareAndShare() }
                         } label: {
                             Image(systemName: "square.and.arrow.up")
-                                .padding(.trailing, 8)
+                                .padding(.leading, 8)
                         }
                     }
                     Button("Edit") { showingEdit = true }
