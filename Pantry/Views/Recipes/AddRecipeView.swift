@@ -335,8 +335,8 @@ struct AddRecipeView: View {
             instrSections.append(InstructionGroupSection(name: group.name, steps: groupSteps.isEmpty ? [InstructionStep()] : groupSteps.map { InstructionStep(text: $0) }))
         }
         _instructionSections = State(initialValue: instrSections)
-        // Helper to convert a flat ingredient tuple into an IngredientLine string
-        func toLine(_ ing: (name: String, amount: Double, unit: String)) -> IngredientLine {
+        // Helper to convert an imported ingredient into an IngredientLine string
+        func toLine(_ ing: ImportedIngredient) -> IngredientLine {
             let amountText: String
             if ing.amount <= 0 { amountText = "" }
             else if ing.amount == ing.amount.rounded() { amountText = "\(Int(ing.amount))" }
@@ -480,6 +480,7 @@ struct AddRecipeView: View {
                                     }
                                 } label: {
                                     Label("Remove Group", systemImage: "trash")
+                                        .foregroundStyle(.red)
                                 }
                             }
                         }
@@ -586,6 +587,7 @@ struct AddRecipeView: View {
                                     }
                                 } label: {
                                     Label("Remove Group", systemImage: "trash")
+                                        .foregroundStyle(.red)
                                 }
                             }
                         }

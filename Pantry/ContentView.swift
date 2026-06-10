@@ -1,7 +1,16 @@
 import SwiftUI
+import FirebaseStorage
+
+struct PendingSharedRecipe: Identifiable {
+    let id = UUID()
+    let recipe: ImportedRecipe
+    let imageData: Data?
+}
 
 struct ContentView: View {
     @Environment(FirebaseManager.self) private var auth
+
+    @State private var pendingSharedRecipe: PendingSharedRecipe? = nil
 
     var body: some View {
         TabView {
@@ -22,5 +31,23 @@ struct ContentView: View {
                 }
         }
         .tint(.appAccent)
+        .sheet(item: $pendingSharedRecipe) { pending in
+            AddRecipeView(
+                importedRecipe: pending.recipe,
+                sourceURL: pending.recipe.sourceURL ?? "",
+                imageData: pending.imageData
+            )
+        }
+        .onOpenURL { url in
+            guard let recipe = ImportedRecipe.fromShareURL(url) else { return }
+            Task {
+                var imageData: Data? = nil
+                if let path = recipe.imageStoragePath {
+                    let ref = Storage.storage().reference(withPath: path)
+                    imageData = try? await ref.data(maxSize: 10 * 1024 * 1024)
+                }
+                pendingSharedRecipe = PendingSharedRecipe(recipe: recipe, imageData: imageData)
+            }
+        }
     }
 }

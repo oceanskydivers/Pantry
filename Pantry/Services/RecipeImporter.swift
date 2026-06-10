@@ -1,24 +1,52 @@
 import Foundation
 
-struct ImportedIngredientGroup {
+struct ImportedIngredient: Codable {
     var name: String
-    var ingredients: [(name: String, amount: Double, unit: String)]
+    var amount: Double
+    var unit: String
 }
 
-struct ImportedInstructionGroup {
+struct ImportedIngredientGroup: Codable {
+    var name: String
+    var ingredients: [ImportedIngredient]
+}
+
+struct ImportedInstructionGroup: Codable {
     var name: String
     var steps: [String]
 }
 
-struct ImportedRecipe {
+struct ImportedRecipe: Codable {
     var name: String
     var servings: Double
-    var ingredients: [(name: String, amount: Double, unit: String)]
+    var ingredients: [ImportedIngredient]
     var ingredientGroups: [ImportedIngredientGroup]
     var instructions: [String]
     var instructionGroups: [ImportedInstructionGroup]
     var imageURL: String?
+    /// Firebase Storage path for the recipe photo (used for sharing between app users).
+    var imageStoragePath: String?
+    /// The original web URL the recipe came from (carried through sharing so the recipient can see the source).
+    var sourceURL: String?
     var notes: String
+
+    // MARK: - Share URL encoding/decoding
+
+    func toShareURL() -> URL? {
+        guard let data = try? JSONEncoder().encode(self),
+              let base64 = data.base64EncodedString().addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "pantry://recipe?data=\(base64)") else { return nil }
+        return url
+    }
+
+    static func fromShareURL(_ url: URL) -> ImportedRecipe? {
+        guard url.scheme == "pantry",
+              url.host() == "recipe",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let dataParam = components.queryItems?.first(where: { $0.name == "data" })?.value,
+              let data = Data(base64Encoded: dataParam) else { return nil }
+        return try? JSONDecoder().decode(ImportedRecipe.self, from: data)
+    }
 }
 
 enum ImportError: LocalizedError {
@@ -109,11 +137,11 @@ actor RecipeImporter {
         let notes = json["notes"] as? String ?? ""
 
         let rawIngredients = json["ingredients"] as? [[String: Any]] ?? []
-        let ingredients: [(name: String, amount: Double, unit: String)] = rawIngredients.compactMap { item in
+        let ingredients: [ImportedIngredient] = rawIngredients.compactMap { item in
             guard let name = item["name"] as? String else { return nil }
             let amount = item["amount"] as? Double ?? (item["amount"] as? Int).map { Double($0) } ?? 0.0
             let unit = item["unit"] as? String ?? ""
-            return (name: name, amount: amount, unit: unit)
+            return ImportedIngredient(name: name, amount: amount, unit: unit)
         }
 
         let instructions = json["instructions"] as? [String] ?? []
@@ -122,11 +150,11 @@ actor RecipeImporter {
         let rawGroups = json["ingredientGroups"] as? [[String: Any]] ?? []
         let importedGroups: [ImportedIngredientGroup] = rawGroups.compactMap { groupData in
             guard let groupName = groupData["name"] as? String else { return nil }
-            let ings = (groupData["ingredients"] as? [[String: Any]] ?? []).compactMap { item -> (name: String, amount: Double, unit: String)? in
+            let ings = (groupData["ingredients"] as? [[String: Any]] ?? []).compactMap { item -> ImportedIngredient? in
                 guard let ingName = item["name"] as? String else { return nil }
                 let amount = item["amount"] as? Double ?? (item["amount"] as? Int).map { Double($0) } ?? 0.0
                 let unit = item["unit"] as? String ?? ""
-                return (name: ingName, amount: amount, unit: unit)
+                return ImportedIngredient(name: ingName, amount: amount, unit: unit)
             }
             return ImportedIngredientGroup(name: groupName, ingredients: ings)
         }
@@ -265,12 +293,12 @@ actor RecipeImporter {
     /// A line is treated as a group header if it ends with ":" and contains no digits and is short enough.
     private func parseIngredientsWithGroups(_ rawIngredients: [String]) -> (
         groups: [ImportedIngredientGroup],
-        ungrouped: [(name: String, amount: Double, unit: String)]
+        ungrouped: [ImportedIngredient]
     ) {
         var groups: [ImportedIngredientGroup] = []
-        var ungrouped: [(name: String, amount: Double, unit: String)] = []
+        var ungrouped: [ImportedIngredient] = []
         var currentGroupName: String? = nil
-        var currentGroupIngredients: [(name: String, amount: Double, unit: String)] = []
+        var currentGroupIngredients: [ImportedIngredient] = []
 
         for raw in rawIngredients {
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -310,7 +338,7 @@ actor RecipeImporter {
         return (groups, ungrouped)
     }
 
-    private func parseIngredient(_ raw: String) -> (name: String, amount: Double, unit: String)? {
+    private func parseIngredient(_ raw: String) -> ImportedIngredient? {
         let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return nil }
 
@@ -337,10 +365,10 @@ actor RecipeImporter {
             let unit = units.contains(potentialUnit.lowercased()) ? potentialUnit : ""
             let finalName = unit.isEmpty ? (potentialUnit + " " + name).trimmingCharacters(in: .whitespaces) : name
 
-            return (name: finalName, amount: amount, unit: unit)
+            return ImportedIngredient(name: finalName, amount: amount, unit: unit)
         }
 
-        return (name: cleaned, amount: 0, unit: "")
+        return ImportedIngredient(name: cleaned, amount: 0, unit: "")
     }
 
     private func parseFraction(_ str: String) -> Double {

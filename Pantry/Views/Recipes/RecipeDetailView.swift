@@ -195,6 +195,8 @@ struct RecipeDetailView: View {
     @State private var showingEdit = false
     @State private var showingDeleteAlert = false
     @State private var selectedTab: RecipeDetailTab = .ingredients
+    @State private var shareURL: URL? = nil
+    @State private var isPreparingShare = false
 
     // Cache the decoded UIImage to prevent main-thread re-decoding during animations
     @State private var cachedImage: UIImage?
@@ -212,6 +214,41 @@ struct RecipeDetailView: View {
         } else {
             _cachedImage = State(initialValue: nil)
         }
+    }
+
+    /// Builds a shareable recipe payload, attempting to upload the photo first.
+    private func prepareAndShare() async {
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        // Try to upload the photo so the recipient can fetch it
+        await SyncService.shared.uploadImageIfNeeded(for: recipe)
+
+        let imported = ImportedRecipe(
+            name: recipe.name,
+            servings: recipe.servings,
+            ingredients: recipe.ungroupedIngredients.map {
+                ImportedIngredient(name: $0.name, amount: $0.amount, unit: $0.unit)
+            },
+            ingredientGroups: recipe.sortedGroups.map { group in
+                ImportedIngredientGroup(
+                    name: group.name,
+                    ingredients: group.sortedIngredients.map {
+                        ImportedIngredient(name: $0.name, amount: $0.amount, unit: $0.unit)
+                    }
+                )
+            },
+            instructions: recipe.instructions,
+            instructionGroups: recipe.sortedInstructionGroups.map {
+                ImportedInstructionGroup(name: $0.name, steps: $0.steps)
+            },
+            imageURL: nil,
+            imageStoragePath: recipe.imageStoragePath,
+            sourceURL: recipe.sourceURL,
+            notes: recipe.notes
+        )
+
+        shareURL = imported.toShareURL()
     }
 
     /// Recomputes the inventory status for every ingredient in the recipe.
@@ -507,11 +544,28 @@ struct RecipeDetailView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") { showingEdit = true }
+                HStack(spacing: 4) {
+                    if isPreparingShare {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .padding(.trailing, 8)
+                    } else {
+                        Button {
+                            Task { await prepareAndShare() }
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .padding(.trailing, 8)
+                        }
+                    }
+                    Button("Edit") { showingEdit = true }
+                }
             }
         }
         .sheet(isPresented: $showingEdit) {
             AddRecipeView(existingRecipe: recipe)
+        }
+        .sheet(item: $shareURL) { url in
+            ShareSheet(url: url)
         }
         .alert("Delete Recipe", isPresented: $showingDeleteAlert) {
             Button("Delete", role: .destructive) {
@@ -671,6 +725,22 @@ struct IngredientRowView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
+}
+
+// MARK: - Share Sheet wrapper
+
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Instruction Row View

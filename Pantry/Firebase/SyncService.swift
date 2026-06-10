@@ -317,6 +317,15 @@ final class SyncService {
 
     // MARK: - Firebase Storage helpers
 
+    /// Uploads the recipe photo to Firebase Storage if not already uploaded.
+    /// Returns the storage path on success, or nil if there is no image or the upload fails.
+    @discardableResult
+    func uploadImageIfNeeded(for recipe: Recipe) async -> String? {
+        guard let uid = currentUID else { return nil }
+        await uploadImageIfNeeded(for: recipe, uid: uid)
+        return recipe.imageStoragePath
+    }
+
     private func uploadImageIfNeeded(for recipe: Recipe, uid: String) async {
         guard let imageData = recipe.imageData else {
             if let path = recipe.imageStoragePath {
