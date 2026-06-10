@@ -10,7 +10,7 @@ struct ImportRecipeView: View {
     @State private var errorMessage: String?
     @State private var pendingImport: PendingImportWrapper?
 
-    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be"]
+    private let socialDomains = ["tiktok.com", "instagram.com", "youtube.com", "youtu.be", "facebook.com", "fb.watch"]
     private var isSocialURL: Bool {
         socialDomains.contains { urlString.contains($0) }
     }
