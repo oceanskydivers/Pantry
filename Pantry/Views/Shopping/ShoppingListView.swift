@@ -24,6 +24,9 @@ struct ShoppingListView: View {
     @State private var isKeyboardVisible = false
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var toastInventoryItem: InventoryItem? = nil
+    @State private var editingInventoryItem: InventoryItem? = nil
+    @State private var toastUndo: (() -> Void)? = nil
 
     var body: some View {
         NavigationStack {
@@ -40,9 +43,11 @@ struct ShoppingListView: View {
                             ShoppingCategorySection(
                                 category: category,
                                 showChecked: showChecked,
-                                onAutoAddMessage: { message in
+                                onAutoAddMessage: { message, item, undo in
                                     toastMessage = message
-                                    showToast = true
+                                    toastInventoryItem = item
+                                    toastUndo = undo
+                                    withAnimation { showToast = true }
                                 }
                             )
                         }
@@ -107,7 +112,15 @@ struct ShoppingListView: View {
                     .disabled(newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty)
                 Button("Cancel", role: .cancel) { newCategoryName = "" }
             }
-            .toast(isPresented: $showToast, message: toastMessage)
+            .toast(
+                isPresented: $showToast,
+                message: toastMessage,
+                onTap: { editingInventoryItem = toastInventoryItem },
+                onUndo: { toastUndo?() }
+            )
+            .sheet(item: $editingInventoryItem) { item in
+                AddInventoryItemView(existingItem: item)
+            }
         }
     }
 
@@ -144,7 +157,7 @@ struct ShoppingCategorySection: View {
     @Bindable var category: ShoppingCategory
     @Environment(\.modelContext) private var modelContext
     let showChecked: Bool
-    var onAutoAddMessage: ((String) -> Void)?
+    var onAutoAddMessage: ((String, InventoryItem, @escaping () -> Void) -> Void)?
 
     // Plain value-type row — only unchecked items live here.
     // Checked items are read directly from SwiftData and displayed separately.
@@ -326,8 +339,8 @@ struct ShoppingCategorySection: View {
         }
 
         // Auto-add to inventory if the setting is enabled
-        if let message = ShoppingToInventoryService.processCheckedItem(name: trimmed, quantity: quantity, context: modelContext) {
-            onAutoAddMessage?(message)
+        if let result = ShoppingToInventoryService.processCheckedItem(name: trimmed, quantity: quantity, context: modelContext) {
+            onAutoAddMessage?(result.message, result.item, result.undo)
         }
 
         // Sync immediately with the updated checked state, then rebuild unchecked rows
@@ -482,13 +495,13 @@ struct ShoppingItemRow: View {
             } label: {
                 Text("×\(row.quantity)")
                     .font(.caption)
-                    .foregroundStyle(row.quantity > 1 ? Color.appAccent : Color.secondary)
+                    .foregroundStyle(Color.appAccent)
                     .monospacedDigit()
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(row.quantity > 1 ? Color.appAccent.opacity(0.12) : Color.clear)
+                            .fill(Color.appAccent.opacity(0.12))
                     )
                     // Extra invisible padding to enlarge the tap target
                     .padding(.leading, 8)

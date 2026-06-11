@@ -10,6 +10,9 @@ struct InventoryItemDetailView: View {
     @State private var showingAdjust = false
     @State private var adjustIsAddition = true
     @State private var showingDeleteConfirmation = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @State private var lastAdjustmentUndo: (prevCurrent: Double, prevInitial: Double, log: InventoryLog)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -108,9 +111,12 @@ struct InventoryItemDetailView: View {
         .sheet(isPresented: $showingEdit) {
             AddInventoryItemView(existingItem: item)
         }
+        .toast(isPresented: $showToast, message: toastMessage, onUndo: undoLastAdjustment)
     }
 
     private func applyAdjustment(delta: Double, note: String) {
+        let prevCurrent = item.currentQuantity
+        let prevInitial = item.initialQuantity
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
         if change > 0 {
@@ -120,7 +126,26 @@ struct InventoryItemDetailView: View {
         let log = InventoryLog(change: change, note: note)
         log.item = item
         modelContext.insert(log)
+        try? modelContext.save()
         SyncService.shared.syncInventoryItem(item)
+
+        lastAdjustmentUndo = (prevCurrent, prevInitial, log)
+        let sign = change >= 0 ? "+" : ""
+        let unitSuffix = item.unit.isEmpty ? "" : " \(item.unit)"
+        let formatted = change == change.rounded() ? "\(Int(change))" : String(format: "%.1f", change)
+        toastMessage = "\(item.name) \(sign)\(formatted)\(unitSuffix)"
+        withAnimation { showToast = true }
+    }
+
+    private func undoLastAdjustment() {
+        guard let undo = lastAdjustmentUndo else { return }
+        item.currentQuantity = undo.prevCurrent
+        item.initialQuantity = undo.prevInitial
+        item.logs.removeAll { $0.id == undo.log.id }
+        modelContext.delete(undo.log)
+        try? modelContext.save()
+        SyncService.shared.syncInventoryItem(item)
+        lastAdjustmentUndo = nil
     }
 }
 

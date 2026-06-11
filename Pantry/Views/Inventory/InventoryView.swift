@@ -34,6 +34,9 @@ struct InventoryView: View {
     @State private var showingManageLocations = false
     @State private var showingManageCategories = false
     @State private var showingCategoryPicker = false
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @State private var toastUndo: (() -> Void)? = nil
 
     private var categoryFilterLabel: String {
         let selected = categories.filter { filterCategoryIDs.contains($0.id) }
@@ -134,6 +137,7 @@ struct InventoryView: View {
                     initialSelection: filterCategoryIDs
                 )
             }
+            .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() })
         }
     }
 
@@ -250,7 +254,11 @@ struct InventoryView: View {
                     }
                     .opacity(0)
 
-                    InventoryRowView(item: item)
+                    InventoryRowView(item: item, onAdjust: { message, undo in
+                        toastMessage = message
+                        toastUndo = undo
+                        withAnimation { showToast = true }
+                    })
                 }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -273,7 +281,11 @@ struct InventoryView: View {
                             }
                             .opacity(0)
 
-                            InventoryRowView(item: item)
+                            InventoryRowView(item: item, onAdjust: { message, undo in
+                                toastMessage = message
+                                toastUndo = undo
+                                withAnimation { showToast = true }
+                            })
                         }
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
@@ -381,6 +393,8 @@ struct InventoryRowView: View {
     @Bindable var item: InventoryItem
     @Environment(\.modelContext) private var modelContext
 
+    var onAdjust: ((String, @escaping () -> Void) -> Void)? = nil
+
     @State private var showingQuickAdjust = false
     @State private var quickAdjustIsAddition = false
 
@@ -443,10 +457,6 @@ struct InventoryRowView: View {
                                 .foregroundStyle(.secondary)
 
                             if let days = item.estimatedDaysRemaining {
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text("Remaining: ")
                                 Text("~\(formatDays(days)) left")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
@@ -567,20 +577,36 @@ struct InventoryRowView: View {
     }
 
     private func adjustQuantity(by delta: Double) {
+        let prevCurrent = item.currentQuantity
+        let prevInitial = item.initialQuantity
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
-        
+
         // When incrementing (topping off), expand the total pool baseline
         if change > 0 {
             item.initialQuantity += change
         }
-        
+
         item.currentQuantity = newQty
         let log = InventoryLog(change: change)
         log.item = item
         modelContext.insert(log)
+        try? modelContext.save()
         SyncService.shared.syncInventoryItem(item)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let sign = change >= 0 ? "+" : ""
+        let formatted = change == change.rounded() ? "\(Int(change))" : String(format: "%.1f", change)
+        let message = "\(item.name) \(sign)\(formatted)"
+        let capturedItem = item
+        onAdjust?(message) {
+            capturedItem.currentQuantity = prevCurrent
+            capturedItem.initialQuantity = prevInitial
+            capturedItem.logs.removeAll { $0.id == log.id }
+            modelContext.delete(log)
+            try? modelContext.save()
+            SyncService.shared.syncInventoryItem(capturedItem)
+        }
     }
 
     private func formatQuantity(_ val: Double) -> String {
@@ -630,7 +656,7 @@ struct QuickAdjustPopover: View {
                     .fontWeight(.semibold)
                     .multilineTextAlignment(.trailing)
                     .focused($isFocused)
-                    .frame(maxWidth: 100)
+                    .frame(maxWidth: .infinity)
 
                 if !item.unit.isEmpty {
                     Text(item.unit)
