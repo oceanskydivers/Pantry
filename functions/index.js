@@ -80,7 +80,7 @@ function renderPage({ title, description, imageUrl, recipeId }) {
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #34a853;
+      color: #86AC78;
       margin-bottom: 8px;
     }
     h1 {
@@ -97,7 +97,7 @@ function renderPage({ title, description, imageUrl, recipeId }) {
     }
     .btn {
       display: block;
-      background: #34a853;
+      background: #86AC78;
       color: white;
       text-decoration: none;
       padding: 16px 24px;
