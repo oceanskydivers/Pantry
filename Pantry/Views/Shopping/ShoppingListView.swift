@@ -455,7 +455,8 @@ struct ShoppingItemRow: View {
     let onCheckToggle: () -> Void
     let onTap: () -> Void
 
-    @State private var showingQuantityPicker = false
+    @State private var showingStepper = false
+    @State private var showingKeypad = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -476,35 +477,151 @@ struct ShoppingItemRow: View {
             )
             .frame(maxWidth: .infinity)
 
-            // Quantity badge — subtle, tappable to adjust
-            Button {
-                showingQuantityPicker = true
-            } label: {
-                Text("×\(row.quantity)")
-                    .font(.caption)
-                    .foregroundStyle(row.quantity > 1 ? Color.appAccent : Color.secondary)
-                    .monospacedDigit()
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(row.quantity > 1 ? Color.appAccent.opacity(0.12) : Color.clear)
-                    )
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showingQuantityPicker) {
+            // Quantity badge — UIKit gestures to avoid List's gesture interference
+            QuantityBadge(
+                quantity: row.quantity,
+                onTap: { showingStepper = true },
+                onLongPress: {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    showingKeypad = true
+                }
+            )
+            .fixedSize()
+            .popover(isPresented: $showingStepper) {
                 VStack(spacing: 12) {
                     Text("Quantity")
                         .font(.headline)
-                    Stepper("\(row.quantity)", value: $row.quantity, in: 1...99)
+                    Stepper("\(row.quantity)", value: $row.quantity, in: 1...999)
                         .labelsHidden()
                         .fixedSize()
                 }
                 .padding(20)
                 .presentationCompactAdaptation(.popover)
             }
+            .popover(isPresented: $showingKeypad) {
+                QuantityKeypadPopover(quantity: $row.quantity)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
     }
 }
+
+// MARK: - QuantityBadge (UIViewRepresentable)
+// Uses UIKit gesture recognizers directly so they aren't swallowed by
+// the List's built-in long-press recognizer or the outer SwiftUI tap gesture.
+
+private struct QuantityBadge: UIViewRepresentable {
+    let quantity: Int
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onTap: onTap, onLongPress: onLongPress) }
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .caption1).pointSize, weight: .regular)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 6
+        label.clipsToBounds = true
+        label.isUserInteractionEnabled = true
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
+        let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
+        longPress.minimumPressDuration = 0.4
+        longPress.delaysTouchesBegan = false
+        label.addGestureRecognizer(tap)
+        label.addGestureRecognizer(longPress)
+
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        context.coordinator.onTap = onTap
+        context.coordinator.onLongPress = onLongPress
+
+        // Embed padding in the attributed string so the label's intrinsic size includes it
+        let text = "×\(quantity)"
+        let color: UIColor = quantity > 1 ? UIColor(Color.appAccent) : UIColor.secondaryLabel
+        let para = NSMutableParagraphStyle()
+        para.alignment = .center
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedDigitSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .caption1).pointSize, weight: .regular),
+            .foregroundColor: color,
+            .paragraphStyle: para,
+        ]
+        label.attributedText = NSAttributedString(string: text, attributes: attrs)
+
+        if quantity > 1 {
+            label.backgroundColor = UIColor(Color.appAccent.opacity(0.12))
+        } else {
+            label.backgroundColor = .clear
+        }
+        label.layer.cornerRadius = 6
+    }
+
+    class Coordinator: NSObject {
+        var onTap: () -> Void
+        var onLongPress: () -> Void
+
+        init(onTap: @escaping () -> Void, onLongPress: @escaping () -> Void) {
+            self.onTap = onTap
+            self.onLongPress = onLongPress
+        }
+
+        @objc func handleTap() { onTap() }
+
+        @objc func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+            guard gr.state == .began else { return }
+            onLongPress()
+        }
+    }
+}
+
+// MARK: - Quantity Keypad Popover
+
+private struct QuantityKeypadPopover: View {
+    @Binding var quantity: Int
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var inputText = ""
+    @FocusState private var focused: Bool
+
+    private var parsed: Int? {
+        guard let v = Int(inputText), v >= 1 else { return nil }
+        return v
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Set Quantity")
+                .font(.headline)
+
+            HStack {
+                TextField("\(quantity)", text: $inputText)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.center)
+                    .font(.title2.monospacedDigit())
+                    .fontWeight(.semibold)
+                    .frame(width: 90)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                    .focused($focused)
+
+                Button("Set") {
+                    if let v = parsed { quantity = v }
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(parsed == nil)
+            }
+        }
+        .padding(20)
+        .presentationCompactAdaptation(.popover)
+        .onAppear { focused = true }
+    }
+}
+
+

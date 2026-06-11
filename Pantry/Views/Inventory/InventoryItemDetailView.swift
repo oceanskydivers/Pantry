@@ -9,6 +9,9 @@ struct InventoryItemDetailView: View {
     @State private var showingEdit = false
     @State private var showingAdjust = false
     @State private var adjustIsAddition = true
+    @State private var showingDeleteConfirmation = false
+
+    @Environment(\.dismiss) private var dismiss
 
     private var sortedLogs: [InventoryLog] {
         item.logs.sorted { $0.date > $1.date }
@@ -49,8 +52,29 @@ struct InventoryItemDetailView: View {
                 DetailsCard(item: item)
 
                 LogSection(logs: sortedLogs, unit: item.unit)
+
+                Button {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Label("Delete Item", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(Color.red.opacity(0.6))
+                }
+                .buttonStyle(.bordered)
+                .tint(Color.red.opacity(0.6))
+                .padding(.top, 8)
             }
             .padding()
+        }
+        .alert("Delete \(item.name)?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                SyncService.shared.deleteInventoryItem(id: item.id)
+                modelContext.delete(item)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently remove the item and all its history.")
         }
         .navigationTitle(item.name)
         .navigationBarTitleDisplayMode(.large)
