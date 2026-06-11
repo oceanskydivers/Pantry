@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2700"
-   wasCreatedForAppExtension = "YES"
+   LastUpgradeVersion = "2630"
    version = "2.0">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -18,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "892ABB832FD99D1900369B4B"
                BuildableName = "PantryShareExtension.appex"
+               BlueprintName = "PantryShareExtension"
                ReferencedContainer = "container:Pantry.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,6 +31,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
                BuildableName = "Pantry.app"
+               BlueprintName = "Pantry"
                ReferencedContainer = "container:Pantry.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -54,14 +55,14 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
-      launchAutomaticallySubstyle = "2"
-      queueDebuggingEnabled = "No">
+      launchAutomaticallySubstyle = "2">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
             BuildableName = "Pantry.app"
+            BlueprintName = "Pantry"
             ReferencedContainer = "container:Pantry.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -80,6 +81,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
             BuildableName = "Pantry.app"
+            BlueprintName = "Pantry"
             ReferencedContainer = "container:Pantry.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

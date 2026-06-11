@@ -21,6 +21,18 @@ struct GlassBackground: ViewModifier {
     }
 }
 
+extension ToolbarContent {
+    /// Safely hides the Liquid Glass shared background effect on iOS 26+ while maintaining backward compatibility.
+    @ToolbarContentBuilder
+    func hideSharedBackgroundIfAvailable() -> some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
+        }
+    }
+}
+
 extension View {
     func glassBackground() -> some View {
         modifier(GlassBackground())
@@ -32,16 +44,37 @@ extension View {
 struct ToastModifier: ViewModifier {
     @Binding var isPresented: Bool
     let message: String
+    /// When provided, an "Undo" button appears in the toast.
+    var onUndo: (() -> Void)? = nil
+    /// When provided (and onUndo is nil), tapping the whole toast fires this.
+    var onTap: (() -> Void)? = nil
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
             if isPresented {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: "archivebox.fill")
                         .font(.subheadline)
                     Text(message)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if let onUndo {
+                        Divider()
+                            .frame(height: 16)
+                            .background(Color.white.opacity(0.4))
+                        Button("Undo") {
+                            withAnimation(.spring(duration: 0.3)) { isPresented = false }
+                            onUndo()
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                    } else if onTap != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .opacity(0.7)
+                    }
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
@@ -49,9 +82,17 @@ struct ToastModifier: ViewModifier {
                 .background(Color.appAccent, in: Capsule())
                 .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
                 .padding(.bottom, 24)
+                .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                .onTapGesture {
+                    if let onTap {
+                        withAnimation(.spring(duration: 0.3)) { isPresented = false }
+                        onTap()
+                    }
+                }
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    let delay: Double = onUndo != nil ? 5.0 : 3.5
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                         withAnimation(.spring(duration: 0.3)) { isPresented = false }
                     }
                 }
@@ -64,6 +105,18 @@ struct ToastModifier: ViewModifier {
 extension View {
     func toast(isPresented: Binding<Bool>, message: String) -> some View {
         modifier(ToastModifier(isPresented: isPresented, message: message))
+    }
+
+    func toast(isPresented: Binding<Bool>, message: String, onTap: @escaping () -> Void) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message, onTap: onTap))
+    }
+
+    func toast(isPresented: Binding<Bool>, message: String, onUndo: @escaping () -> Void) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo))
+    }
+
+    func toast(isPresented: Binding<Bool>, message: String, onTap: @escaping () -> Void, onUndo: @escaping () -> Void) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo, onTap: onTap))
     }
 }
 

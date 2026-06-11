@@ -22,7 +22,7 @@ struct AddInventoryItemView: View {
     @State private var selectedCategory: InventoryCategory? = nil
     @State private var showingCategoryPicker = false
 
-    enum FocusedField { case newLocation }
+    enum FocusedField { case name, unit, initialQty, currentQty, newLocation }
     @FocusState private var focusedField: FocusedField?
 
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
@@ -35,7 +35,41 @@ struct AddInventoryItemView: View {
             Form {
                 Section("Item Info") {
                     TextField("Name (e.g., Chicken Breast)", text: $name)
+                        .focused($focusedField, equals: .name)
                     TextField("Unit (e.g., lbs, cans, oz)", text: $unit)
+                        .focused($focusedField, equals: .unit)
+                }
+
+                Section("Quantity") {
+                    HStack {
+                        Text("Acquired Stock")
+                        Spacer()
+                        TextField("0", text: $initialQuantityText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .focused($focusedField, equals: .initialQty)
+                        Text(unit.isEmpty ? "units" : unit)
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .initialQty }
+
+                    HStack {
+                        Text("Current Quantity")
+                        Spacer()
+                        TextField("0", text: $currentQuantityText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .focused($focusedField, equals: .currentQty)
+                        Text(unit.isEmpty ? "units" : unit)
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .currentQty }
+
+                    DatePicker("Date Bought", selection: $dateBought, displayedComponents: .date)
                 }
 
                 // MARK: Location
@@ -54,16 +88,14 @@ struct AddInventoryItemView: View {
                             .foregroundStyle(.secondary)
                         }
                     } else {
-                        Menu {
+                        Menu(content: {
                             Button("None") { selectedLocation = nil }
                             ForEach(locations) { loc in
                                 Button(loc.name) { selectedLocation = loc }
                             }
                             Divider()
-                            Button("New Location…") {
-                                isAddingNewLocation = true
-                            }
-                        } label: {
+                            Button("New Location…") { isAddingNewLocation = true }
+                        }, label: {
                             HStack {
                                 Text("Location")
                                     .foregroundStyle(.primary)
@@ -74,7 +106,7 @@ struct AddInventoryItemView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                        }
+                        })
                     }
                 }
 
@@ -96,32 +128,6 @@ struct AddInventoryItemView: View {
                     }
                 }
 
-                Section("Quantity") {
-                    HStack {
-                        Text("Acquired Stock")
-                        Spacer()
-                        TextField("0", text: $initialQuantityText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text(unit.isEmpty ? "units" : unit)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack {
-                        Text("Current Quantity")
-                        Spacer()
-                        TextField("0", text: $currentQuantityText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text(unit.isEmpty ? "units" : unit)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    DatePicker("Date Bought", selection: $dateBought, displayedComponents: .date)
-                }
-
                 // MARK: Explanatory Info Card
                 Section {
                     HStack(alignment: .top, spacing: 12) {
@@ -135,7 +141,7 @@ struct AddInventoryItemView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.primary)
                             
-                            Text("This represents your total stock pool for the current cycle (e.g., 20 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 20. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 23 so consumption rates and remaining-day estimates remain highly accurate.")
+                            Text("This represents your total stock pool for the current cycle (e.g., 5 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 5. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 8 so consumption rates and remaining-day estimates remain highly accurate.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .lineSpacing(3)
@@ -155,6 +161,44 @@ struct AddInventoryItemView: View {
                     Button("Save") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Button {
+                            switch focusedField {
+                            case .unit:         focusedField = .name
+                            case .initialQty:   focusedField = .unit
+                            case .currentQty:   focusedField = .initialQty
+                            default:            focusedField = nil
+                            }
+                        } label: {
+                            Label("Previous", systemImage: "chevron.up")
+                        }
+                        .padding(5)
+                        
+                        Button {
+                            switch focusedField {
+                            case .name:         focusedField = .unit
+                            case .unit:         focusedField = .initialQty
+                            case .initialQty:   focusedField = .currentQty
+                            default:            focusedField = nil
+                            }
+                        } label: {
+                            Label("Next", systemImage: "chevron.down")
+                        }
+                        .padding(5)
+                        
+                        Spacer()
+                        Button { focusedField = nil } label: {
+                            Label("Done", systemImage: "checkmark")
+                        }
+                        .padding(5)
+                    }
+                    .background(.bar.opacity(0.5), in: .capsule)
+                    .glassBackground()
+                    .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
+                    .padding(.bottom, 20)
+                }
+                .hideSharedBackgroundIfAvailable()
             }
             .onAppear { loadExisting() }
             .onChange(of: isAddingNewLocation) { _, newValue in
