@@ -405,6 +405,7 @@ final class SyncService {
     /// Publishes the recipe to the public `sharedRecipes` collection and returns its share URL.
     /// Uploads the image to a public Storage path so the Cloud Function can embed it in OG tags.
     func publishSharedRecipe(_ recipe: Recipe) async -> URL? {
+        guard let uid = currentUID else { return nil }
         var imagePublicURL: String? = nil
 
         if let imageData = recipe.imageData {
@@ -427,7 +428,8 @@ final class SyncService {
             "notes": recipe.notes,
             "instructions": recipe.instructions,
             "ingredientCount": recipe.ingredients.count,
-            "sharedAt": Timestamp(date: Date())
+            "sharedAt": Timestamp(date: Date()),
+            "createdBy": uid
         ]
         if let url = imagePublicURL { data["imagePublicUrl"] = url }
         if let sourceURL = recipe.sourceURL { data["sourceURL"] = sourceURL }

@@ -7,10 +7,16 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Public shared recipes — anyone can read, authenticated users can write
+    // Public shared recipes
+    // Anyone can read (supports web preview / OG tags without requiring sign-in)
+    // Create: any authenticated user, but must stamp createdBy with their own UID
+    // Update / Delete: only the original creator
     match /sharedRecipes/{recipeId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.createdBy == request.auth.uid;
     }
   }
 }
