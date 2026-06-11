@@ -5,48 +5,88 @@
       "comment" : "Bundle name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Pantry"
-          }
-        }
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "bn" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "en" : { "stringUnit" : { "state" : "new", "value" : "Pantry" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "Pantry" } }
       }
     },
     "NSCameraUsageDescription" : {
       "comment" : "Privacy - Camera Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Pantry uses your camera to add photos to recipes."
-          }
-        }
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "يستخدم Pantry الكاميرا لإضافة صور إلى الوصفات." } },
+        "bn" : { "stringUnit" : { "state" : "translated", "value" : "Pantry আপনার ক্যামেরা ব্যবহার করে রেসিপিতে ছবি যোগ করতে।" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pantry verwendet die Kamera, um Fotos zu Rezepten hinzuzufügen." } },
+        "en" : { "stringUnit" : { "state" : "new", "value" : "Pantry uses your camera to add photos to recipes." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantry usa tu cámara para agregar fotos a las recetas." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry utilise votre appareil photo pour ajouter des photos aux recettes." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Pantry आपकी रेसिपी में फ़ोटो जोड़ने के लिए कैमरा का उपयोग करता है।" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Pantry menggunakan kamera Anda untuk menambahkan foto ke resep." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pantry usa la fotocamera per aggiungere foto alle ricette." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Pantryはレシピに写真を追加するためにカメラを使用します。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "Pantry는 레시피에 사진을 추가하기 위해 카메라를 사용합니다." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Pantry usa sua câmera para adicionar fotos às receitas." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Pantry использует камеру для добавления фотографий к рецептам." } },
+        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry, tariflere fotoğraf eklemek için kameranızı kullanır." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 使用相机为食谱添加照片。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 使用相機為食譜新增照片。" } }
       }
     },
     "NSPhotoLibraryUsageDescription" : {
       "comment" : "Privacy - Photo Library Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Pantry accesses your photo library to add photos to recipes."
-          }
-        }
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "يصل Pantry إلى مكتبة الصور لإضافة صور إلى الوصفات." } },
+        "bn" : { "stringUnit" : { "state" : "translated", "value" : "Pantry আপনার ফটো লাইব্রেরি অ্যাক্সেস করে রেসিপিতে ছবি যোগ করতে।" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pantry greift auf Ihre Fotomediathek zu, um Fotos zu Rezepten hinzuzufügen." } },
+        "en" : { "stringUnit" : { "state" : "new", "value" : "Pantry accesses your photo library to add photos to recipes." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantry accede a tu fototeca para agregar fotos a las recetas." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry accède à votre photothèque pour ajouter des photos aux recettes." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Pantry आपकी रेसिपी में फ़ोटो जोड़ने के लिए फ़ोटो लाइब्रेरी एक्सेस करता है।" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Pantry mengakses perpustakaan foto Anda untuk menambahkan foto ke resep." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pantry accede alla libreria foto per aggiungere foto alle ricette." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Pantryはレシピに写真を追加するためにフォトライブラリにアクセスします。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "Pantry는 레시피에 사진을 추가하기 위해 사진 보관함에 접근합니다." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Pantry acessa sua fototeca para adicionar fotos às receitas." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Pantry обращается к библиотеке фотографий для добавления фото к рецептам." } },
+        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry, tariflere fotoğraf eklemek için fotoğraf kitaplığınıza erişir." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 访问您的照片库以为食谱添加照片。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 存取您的照片圖庫以為食譜新增照片。" } }
       }
     },
     "NSSiriUsageDescription" : {
       "comment" : "Privacy - Siri Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Pantry uses Siri to let you add items to your shopping list hands-free."
-          }
-        }
+        "ar" : { "stringUnit" : { "state" : "translated", "value" : "يستخدم Pantry سيري لإضافة عناصر إلى قائمة التسوق بدون استخدام اليدين." } },
+        "bn" : { "stringUnit" : { "state" : "translated", "value" : "Pantry Siri ব্যবহার করে আপনাকে হাত না লাগিয়ে শপিং লিস্টে আইটেম যোগ করতে দেয়।" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Pantry verwendet Siri, damit Sie Artikel freihändig zu Ihrer Einkaufsliste hinzufügen können." } },
+        "en" : { "stringUnit" : { "state" : "new", "value" : "Pantry uses Siri to let you add items to your shopping list hands-free." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantry usa Siri para permitirte agregar artículos a tu lista de compras sin manos." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry utilise Siri pour vous permettre d'ajouter des articles à votre liste de courses en mode mains libres." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Pantry Siri का उपयोग करके आपको हैंड्स-फ़्री अपनी शॉपिंग लिस्ट में आइटम जोड़ने देता है।" } },
+        "id" : { "stringUnit" : { "state" : "translated", "value" : "Pantry menggunakan Siri agar Anda bisa menambahkan item ke daftar belanja secara hands-free." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pantry usa Siri per aggiungere articoli alla lista della spesa a mani libere." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Pantryはハンズフリーで買い物リストにアイテムを追加するためにSiriを使用します。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "Pantry는 Siri를 사용하여 핸즈프리로 쇼핑 목록에 항목을 추가할 수 있게 합니다." } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Pantry usa a Siri para adicionar itens à sua lista de compras sem usar as mãos." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Pantry использует Siri, чтобы вы могли добавлять товары в список покупок без рук." } },
+        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry, alışveriş listenize elleri serbest bırakarak ürün eklemek için Siri'yi kullanır." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 使用 Siri，让您免提向购物清单添加商品。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "Pantry 使用 Siri，讓您免持手將商品加入購物清單。" } }
       }
     }
   },

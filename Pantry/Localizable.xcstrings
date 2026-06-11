@@ -122,6 +122,7 @@
       }
     },
     "%@%% remaining" : {
+      "comment" : "A message displaying what percentage of an item is remaining in the inventory compared to its initial value",
       "localizations" : {
         "hi" : {
           "stringUnit" : {
@@ -712,6 +713,7 @@
       }
     },
     "No ingredients listed." : {
+      "comment" : "A message displayed when a recipe has no ingredients.",
       "localizations" : {
         "hi" : {
           "stringUnit" : {
