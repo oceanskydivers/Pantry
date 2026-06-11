@@ -174,6 +174,7 @@ struct AuthView: View {
                     dismiss()
                 } label: {
                     Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        .foregroundStyle(.red)
                 }
             }
         }
