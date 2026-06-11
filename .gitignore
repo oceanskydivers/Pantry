@@ -35,3 +35,7 @@ Carthage/Build/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Node packages
+node_modules/
+functions/node_modules/

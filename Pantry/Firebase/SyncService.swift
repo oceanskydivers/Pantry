@@ -400,6 +400,109 @@ final class SyncService {
         }
     }
 
+    // MARK: - Public Recipe Sharing
+
+    /// Publishes the recipe to the public `sharedRecipes` collection and returns its share URL.
+    /// Uploads the image to a public Storage path so the Cloud Function can embed it in OG tags.
+    func publishSharedRecipe(_ recipe: Recipe) async -> URL? {
+        var imagePublicURL: String? = nil
+
+        if let imageData = recipe.imageData {
+            let storagePath = "sharedRecipes/\(recipe.id.uuidString)/photo.jpg"
+            let ref = Storage.storage().reference(withPath: storagePath)
+            let metadata = StorageMetadata()
+            metadata.contentType = "image/jpeg"
+            do {
+                _ = try await ref.putDataAsync(imageData, metadata: metadata)
+                imagePublicURL = try await ref.downloadURL().absoluteString
+            } catch {
+                // Share link still works — just no OG image
+            }
+        }
+
+        var data: [String: Any] = [
+            "id": recipe.id.uuidString,
+            "name": recipe.name,
+            "servings": recipe.servings,
+            "notes": recipe.notes,
+            "instructions": recipe.instructions,
+            "ingredientCount": recipe.ingredients.count,
+            "sharedAt": Timestamp(date: Date())
+        ]
+        if let url = imagePublicURL { data["imagePublicUrl"] = url }
+        if let sourceURL = recipe.sourceURL { data["sourceURL"] = sourceURL }
+        data["ingredientGroups"] = recipe.sortedGroups.map { group in
+            [
+                "name": group.name,
+                "sortOrder": group.sortOrder,
+                "ingredients": group.sortedIngredients.map { ing in
+                    ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
+                }
+            ] as [String: Any]
+        }
+        data["ungroupedIngredients"] = recipe.ungroupedIngredients.map { ing in
+            ["name": ing.name, "amount": ing.amount, "unit": ing.unit, "sortOrder": ing.sortOrder]
+        }
+        data["instructionGroups"] = recipe.sortedInstructionGroups.map { group in
+            ["name": group.name, "sortOrder": group.sortOrder, "steps": group.steps] as [String: Any]
+        }
+
+        do {
+            try await db.collection("sharedRecipes").document(recipe.id.uuidString).setData(data)
+            return URL(string: "https://pantrymanager.app/recipe/\(recipe.id.uuidString)")
+        } catch {
+            return nil
+        }
+    }
+
+    /// Fetches a shared recipe from the public `sharedRecipes` collection for import.
+    func fetchSharedRecipe(id: UUID) async -> ImportedRecipe? {
+        guard let doc = try? await db.collection("sharedRecipes").document(id.uuidString).getDocument(),
+              let data = doc.data() else { return nil }
+
+        let name = data["name"] as? String ?? "Shared Recipe"
+        let servings = data["servings"] as? Double ?? Double(data["servings"] as? Int ?? 4)
+        let notes = data["notes"] as? String ?? ""
+        let sourceURL = data["sourceURL"] as? String
+        let imageURL = data["imagePublicUrl"] as? String
+        let instructions = data["instructions"] as? [String] ?? []
+
+        var ingredients: [ImportedIngredient] = []
+        if let ings = data["ungroupedIngredients"] as? [[String: Any]] {
+            ingredients = ings.map {
+                ImportedIngredient(name: $0["name"] as? String ?? "", amount: $0["amount"] as? Double ?? 0, unit: $0["unit"] as? String ?? "")
+            }
+        } else if let ings = data["ingredients"] as? [[String: Any]] {
+            ingredients = ings.map {
+                ImportedIngredient(name: $0["name"] as? String ?? "", amount: $0["amount"] as? Double ?? 0, unit: $0["unit"] as? String ?? "")
+            }
+        }
+
+        let groups: [ImportedIngredientGroup] = (data["ingredientGroups"] as? [[String: Any]] ?? []).map { g in
+            let ings = (g["ingredients"] as? [[String: Any]] ?? []).map {
+                ImportedIngredient(name: $0["name"] as? String ?? "", amount: $0["amount"] as? Double ?? 0, unit: $0["unit"] as? String ?? "")
+            }
+            return ImportedIngredientGroup(name: g["name"] as? String ?? "", ingredients: ings)
+        }
+
+        let instructionGroups: [ImportedInstructionGroup] = (data["instructionGroups"] as? [[String: Any]] ?? []).map {
+            ImportedInstructionGroup(name: $0["name"] as? String ?? "", steps: $0["steps"] as? [String] ?? [])
+        }
+
+        return ImportedRecipe(
+            name: name,
+            servings: servings,
+            ingredients: ingredients,
+            ingredientGroups: groups,
+            instructions: instructions,
+            instructionGroups: instructionGroups,
+            imageURL: imageURL,
+            imageStoragePath: nil,
+            sourceURL: sourceURL,
+            notes: notes
+        )
+    }
+
     // MARK: - Encoding (local → dict)
 
     private func encodeRecipe(_ recipe: Recipe) -> [String: Any] {

@@ -216,39 +216,11 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Builds a shareable recipe payload, attempting to upload the photo first.
+    /// Publishes the recipe to the shared collection and returns its universal link URL.
     private func prepareAndShare() async {
         isPreparingShare = true
         defer { isPreparingShare = false }
-
-        // Try to upload the photo so the recipient can fetch it
-        await SyncService.shared.uploadImageIfNeeded(for: recipe)
-
-        let imported = ImportedRecipe(
-            name: recipe.name,
-            servings: recipe.servings,
-            ingredients: recipe.ungroupedIngredients.map {
-                ImportedIngredient(name: $0.name, amount: $0.amount, unit: $0.unit)
-            },
-            ingredientGroups: recipe.sortedGroups.map { group in
-                ImportedIngredientGroup(
-                    name: group.name,
-                    ingredients: group.sortedIngredients.map {
-                        ImportedIngredient(name: $0.name, amount: $0.amount, unit: $0.unit)
-                    }
-                )
-            },
-            instructions: recipe.instructions,
-            instructionGroups: recipe.sortedInstructionGroups.map {
-                ImportedInstructionGroup(name: $0.name, steps: $0.steps)
-            },
-            imageURL: nil,
-            imageStoragePath: recipe.imageStoragePath,
-            sourceURL: recipe.sourceURL,
-            notes: recipe.notes
-        )
-
-        shareURL = imported.toShareURL()
+        shareURL = await SyncService.shared.publishSharedRecipe(recipe)
     }
 
     /// Recomputes the inventory status for every ingredient in the recipe.
@@ -568,7 +540,7 @@ struct RecipeDetailView: View {
                     if isPreparingShare {
                         ProgressView()
                             .scaleEffect(0.8)
-                            .padding(.trailing, 8)
+                            .padding(.leading, 8)
                     } else {
                         Button {
                             Task { await prepareAndShare() }

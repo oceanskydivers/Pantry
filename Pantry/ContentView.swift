@@ -80,16 +80,28 @@ struct ContentView: View {
                 return
             }
 
-            // pantry://recipe?data=... — user-to-user recipe sharing
-            guard let recipe = ImportedRecipe.fromShareURL(url) else { return }
-            Task {
-                var imageData: Data? = nil
-                if let path = recipe.imageStoragePath {
-                    let ref = Storage.storage().reference(withPath: path)
-                    imageData = try? await ref.data(maxSize: 10 * 1024 * 1024)
-                }
-                pendingSharedRecipe = PendingSharedRecipe(recipe: recipe, imageData: imageData)
+            // https://pantrymanager.app/recipe/<uuid> — Universal Link (fires when app is foregrounded)
+            if let recipeId = recipeID(from: url) {
+                handleUniversalRecipeLink(recipeId)
+                return
             }
+
+            // pantry://recipe?data=... — legacy base64 recipe sharing (keep for backwards compat)
+            if let recipe = ImportedRecipe.fromShareURL(url) {
+                Task {
+                    var imageData: Data? = nil
+                    if let path = recipe.imageStoragePath {
+                        let ref = Storage.storage().reference(withPath: path)
+                        imageData = try? await ref.data(maxSize: 10 * 1024 * 1024)
+                    }
+                    pendingSharedRecipe = PendingSharedRecipe(recipe: recipe, imageData: imageData)
+                }
+            }
+        }
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            // https://pantrymanager.app/recipe/<uuid> — Universal Link (fires on cold launch)
+            guard let url = activity.webpageURL, let recipeId = recipeID(from: url) else { return }
+            handleUniversalRecipeLink(recipeId)
         }
         .onReceive(NotificationCenter.default.publisher(for: .pendingShareImport)) { notification in
             guard let urlString = notification.userInfo?["url"] as? String else { return }
@@ -114,6 +126,36 @@ struct ContentView: View {
         defaults.removeObject(forKey: "pendingImportTimestamp")
         let age = Date().timeIntervalSince1970 - timestamp
         return age < 300 ? urlString : nil
+    }
+
+    private func recipeID(from url: URL) -> UUID? {
+        guard url.scheme == "https",
+              url.host == "pantrymanager.app" || url.host == "www.pantrymanager.app",
+              url.pathComponents.count >= 3,
+              url.pathComponents[1] == "recipe" else { return nil }
+        return UUID(uuidString: url.pathComponents[2])
+    }
+
+    private func handleUniversalRecipeLink(_ recipeId: UUID) {
+        isImportingSharedURL = true
+        sharedImportError = nil
+        Task {
+            guard let imported = await SyncService.shared.fetchSharedRecipe(id: recipeId) else {
+                await MainActor.run {
+                    sharedImportError = "Recipe not found or no longer available."
+                }
+                return
+            }
+            let imageData: Data? = if let imageURL = imported.imageURL {
+                await RecipeImporter.shared.downloadImage(from: imageURL)
+            } else {
+                nil
+            }
+            await MainActor.run {
+                isImportingSharedURL = false
+                pendingSharedRecipe = PendingSharedRecipe(recipe: imported, imageData: imageData)
+            }
+        }
     }
 
     private func handleSharedImportURL(_ urlString: String) {
