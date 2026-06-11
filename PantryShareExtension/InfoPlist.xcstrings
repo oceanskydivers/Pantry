@@ -5,36 +5,216 @@
       "comment" : "Bundle display name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "ar" : { "stringUnit" : { "state" : "translated", "value" : "استيراد إلى Pantry" } },
-        "bn" : { "stringUnit" : { "state" : "translated", "value" : "Pantry-তে আমদানি করুন" } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "In Pantry importieren" } },
-        "en" : { "stringUnit" : { "state" : "new", "value" : "Import to Pantry" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Importar a Pantry" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importer dans Pantry" } },
-        "hi" : { "stringUnit" : { "state" : "translated", "value" : "Pantry में आयात करें" } },
-        "id" : { "stringUnit" : { "state" : "translated", "value" : "Impor ke Pantry" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Importa in Pantry" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Pantryにインポート" } },
-        "ko" : { "stringUnit" : { "state" : "translated", "value" : "Pantry로 가져오기" } },
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Importar para o Pantry" } },
-        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Импортировать в Pantry" } },
-        "tr" : { "stringUnit" : { "state" : "translated", "value" : "Pantry'ye Aktar" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入到 Pantry" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "匯入至 Pantry" } }
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استيراد إلى Pantry"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantry-তে আমদানি করুন"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Pantry importieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Import to Pantry"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar a Pantry"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer dans Pantry"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantry में आयात करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impor ke Pantry"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa in Pantry"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantryにインポート"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantry로 가져오기"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importar para o Pantry"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортировать в Pantry"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantry'ye Aktar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入到 Pantry"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入至 Pantry"
+          }
+        }
       }
     },
     "CFBundleName" : {
       "comment" : "Bundle name",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "new", "value" : "PantryShareExtension" } }
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PantryShareExtension"
+          }
+        }
       }
     },
     "NSHumanReadableCopyright" : {
       "comment" : "Copyright (human-readable)",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "new", "value" : "" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
       }
     }
   },
