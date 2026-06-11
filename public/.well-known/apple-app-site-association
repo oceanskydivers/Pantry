@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "PVXXPR558X.com.spisea.pantry",
+        "paths": ["/recipe/*"]
+      }
+    ]
+  }
+}
