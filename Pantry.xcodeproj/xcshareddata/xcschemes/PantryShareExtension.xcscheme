@@ -18,6 +18,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "892ABB832FD99D1900369B4B"
                BuildableName = "PantryShareExtension.appex"
+               BlueprintName = "PantryShareExtension"
                ReferencedContainer = "container:Pantry.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -31,6 +32,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
                BuildableName = "Pantry.app"
+               BlueprintName = "Pantry"
                ReferencedContainer = "container:Pantry.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
             BuildableName = "Pantry.app"
+            BlueprintName = "Pantry"
             ReferencedContainer = "container:Pantry.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -80,6 +83,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A96324C026C10C1D1AB37CFC"
             BuildableName = "Pantry.app"
+            BlueprintName = "Pantry"
             ReferencedContainer = "container:Pantry.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

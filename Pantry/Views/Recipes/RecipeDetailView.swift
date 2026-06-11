@@ -67,7 +67,7 @@ struct RecipeBrowserView: View {
                                             .fontWeight(.medium)
                                             .foregroundStyle(.primary)
                                             .lineLimit(1)
-                                        Text("\(recipe.ingredients.count) ingredients")
+                                        Text("\(recipe.ingredients.count, specifier: "%lld") ingredients")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }

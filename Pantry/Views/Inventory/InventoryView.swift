@@ -446,6 +446,7 @@ struct InventoryRowView: View {
                                 Text("•")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                Text("Remaining: ")
                                 Text("~\(formatDays(days)) left")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
@@ -587,10 +588,10 @@ struct InventoryRowView: View {
     }
 
     private func formatDays(_ days: Double) -> String {
-        if days < 1 { return "< 1 day" }
-        if days < 7 { return "\(Int(days)) days" }
-        if days < 30 { return "\(Int(days / 7)) wks" }
-        return "\(Int(days / 30)) mo"
+        if days < 1 { return String(localized: "< 1 day") }
+        if days < 7 { return String(localized: "\(Int(days)) days") }
+        if days < 30 { return String(localized: "\(Int(days / 7)) wks") }
+        return String(localized: "\(Int(days / 30)) mo")
     }
 }
 

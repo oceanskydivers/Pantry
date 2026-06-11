@@ -317,9 +317,13 @@ struct RecipeRowView: View {
                 Text(recipe.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(recipe.ingredients.count) ingredients · \(Int(recipe.servings)) servings")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Group {
+                    Text("\(recipe.ingredients.count, specifier: "%lld") ingredients") + Text(" · ") + Text("\(Int(recipe.servings), specifier: "%lld") servings")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                
+                    
             }
 
             Spacer()
