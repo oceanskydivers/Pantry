@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "OK" : {
+
+    },
+    "Open Pantry" : {
+
+    },
+    "Open Pantry now to import this recipe." : {
+
+    },
+    "Pantry can import recipes from Instagram, TikTok, Facebook, and YouTube links." : {
+
+    },
+    "Recipe Link Saved!" : {
+
+    },
+    "Unsupported Link" : {
+
+    }
+  },
+  "version" : "1.3"
+}
