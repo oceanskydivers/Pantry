@@ -476,7 +476,7 @@ struct ShoppingItemRow: View {
             )
             .frame(maxWidth: .infinity)
 
-            // Quantity badge — subtle, tappable to adjust
+            // Quantity badge — larger tap target via padding inside the button
             Button {
                 showingQuantityPicker = true
             } label: {
@@ -490,21 +490,68 @@ struct ShoppingItemRow: View {
                         RoundedRectangle(cornerRadius: 6)
                             .fill(row.quantity > 1 ? Color.appAccent.opacity(0.12) : Color.clear)
                     )
+                    // Extra invisible padding to enlarge the tap target
+                    .padding(.leading, 8)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showingQuantityPicker) {
-                VStack(spacing: 12) {
-                    Text("Quantity")
-                        .font(.headline)
-                    Stepper("\(row.quantity)", value: $row.quantity, in: 1...99)
-                        .labelsHidden()
-                        .fixedSize()
-                }
-                .padding(20)
-                .presentationCompactAdaptation(.popover)
+                QuantityPickerPopover(quantity: $row.quantity)
             }
         }
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
     }
 }
+
+// MARK: - Quantity Picker Popover
+
+private struct QuantityPickerPopover: View {
+    @Binding var quantity: Int
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var inputText = ""
+    @FocusState private var focused: Bool
+
+    private var parsed: Int? {
+        guard let v = Int(inputText), v >= 1 else { return nil }
+        return v
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Stepper for quick +/−
+            Stepper("\(quantity)", value: $quantity, in: 1...999)
+                .labelsHidden()
+                .fixedSize()
+
+            Divider()
+
+            // Number pad for typing a specific value
+            HStack(spacing: 10) {
+                TextField("\(quantity)", text: $inputText)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.center)
+                    .font(.title3.monospacedDigit())
+                    .fontWeight(.semibold)
+                    .frame(width: 80)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+                    .focused($focused)
+
+                Button("Set") {
+                    if let v = parsed { quantity = v }
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(parsed == nil)
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 220)
+        .presentationCompactAdaptation(.popover)
+        .ignoresSafeArea(.keyboard)
+    }
+}
+
+
