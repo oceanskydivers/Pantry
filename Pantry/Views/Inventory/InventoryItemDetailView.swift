@@ -87,8 +87,13 @@ struct InventoryItemDetailView: View {
     }
 
     private func applyAdjustment(delta: Double, note: String) {
-        item.currentQuantity = max(0, item.currentQuantity + delta)
-        let log = InventoryLog(change: delta, note: note)
+        let newQty = max(0, item.currentQuantity + delta)
+        let change = newQty - item.currentQuantity
+        if change > 0 {
+            item.initialQuantity += change
+        }
+        item.currentQuantity = newQty
+        let log = InventoryLog(change: change, note: note)
         log.item = item
         modelContext.insert(log)
         SyncService.shared.syncInventoryItem(item)

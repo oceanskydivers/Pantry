@@ -128,6 +128,7 @@ private struct SignInPromptView: View {
 
 private struct AccountView: View {
     @Environment(FirebaseManager.self) private var auth
+    @State private var showSignOutConfirmation = false
 
     var body: some View {
         Form {
@@ -165,7 +166,7 @@ private struct AccountView: View {
                 )) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Auto-Add to Inventory")
-                        Text("Automatically update your inventory when you check off shopping items.")
+                        Text("Automatically update your inventory when you check off shopping list items.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -174,11 +175,20 @@ private struct AccountView: View {
 
             Section {
                 Button(role: .destructive) {
-                    try? auth.signOut()
+                    showSignOutConfirmation = true
                 } label: {
                     Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        .foregroundStyle(.red)
                 }
             }
+        }
+        .alert("Sign Out", isPresented: $showSignOutConfirmation) {
+            Button("Sign Out", role: .destructive) {
+                try? auth.signOut()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Any recipes or changes you make while signed out won't be saved to your account.\n\nIf you get a new phone or device, you'll only be able to access the recipes that were synced to your account before signing out. Sign back in at any time to resume syncing.")
         }
     }
 }

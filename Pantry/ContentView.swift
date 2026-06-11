@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import FirebaseStorage
 
 struct PendingSharedRecipe: Identifiable {
@@ -9,21 +10,28 @@ struct PendingSharedRecipe: Identifiable {
 
 struct ContentView: View {
     @Environment(FirebaseManager.self) private var auth
+    @Query private var recipes: [Recipe]
 
+    @AppStorage("hasSeenSignInPrompt") private var hasSeenSignInPrompt = false
+    @State private var showSignInPrompt = false
+    @State private var selectedTab = 0
     @State private var pendingSharedRecipe: PendingSharedRecipe? = nil
     @State private var isImportingSharedURL = false
     @State private var sharedImportError: String? = nil
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             RecipesView()
                 .tabItem { Label("Recipes", systemImage: "fork.knife") }
+                .tag(0)
 
             InventoryView()
                 .tabItem { Label("Inventory", systemImage: "archivebox") }
+                .tag(1)
 
             ShoppingListView()
                 .tabItem { Label("Shopping", systemImage: "cart") }
+                .tag(2)
 
             ProfileTabView()
                 .tabItem {
@@ -31,6 +39,23 @@ struct ContentView: View {
                           ? "person.crop.circle.badge.plus"
                           : "person.crop.circle.fill")
                 }
+                .tag(3)
+        }
+        .onChange(of: recipes.count) { _, count in
+            if count >= 5 && auth.isAnonymous && !hasSeenSignInPrompt {
+                showSignInPrompt = true
+            }
+        }
+        .alert("Protect Your Recipes", isPresented: $showSignInPrompt) {
+            Button("Sign In") {
+                hasSeenSignInPrompt = true
+                selectedTab = 3
+            }
+            Button("Not Now", role: .cancel) {
+                hasSeenSignInPrompt = true
+            }
+        } message: {
+            Text("If you get a new phone or device, you won't be able to access your recipes, inventory or shopping list unless you are signed in. Sign in to back them up and access them from any device.")
         }
         .tint(.appAccent)
         .sheet(item: $pendingSharedRecipe) { pending in
