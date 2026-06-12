@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Pantry</title>
+  <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="4cad9905-9694-44b3-9e05-11e678037b06";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #86AC78;
+      --accent-dark: #6a9460;
+      --accent-light: #eef4ec;
+      --text: #1a1a1a;
+      --text2: #5c5c5c;
+      --border: #e5e5e5;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Nav */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 64px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 18px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-brand img { width: 32px; height: 32px; border-radius: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a {
+      text-decoration: none; color: var(--text2); font-size: 15px;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-dl {
+      background: var(--text); color: #fff !important;
+      padding: 9px 20px; border-radius: 24px;
+      font-size: 14px; font-weight: 600; white-space: nowrap;
+    }
+
+    /* Content */
+    .content {
+      max-width: 720px; margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+
+    .content h1 {
+      font-size: 36px; font-weight: 800;
+      letter-spacing: -0.03em; margin-bottom: 8px;
+    }
+    .content .updated {
+      font-size: 14px; color: var(--text2); margin-bottom: 48px;
+    }
+    .content h2 {
+      font-size: 20px; font-weight: 700;
+      margin-top: 40px; margin-bottom: 12px;
+    }
+    .content p { margin-bottom: 16px; color: var(--text2); }
+    .content p:last-child { margin-bottom: 0; }
+    .content ul {
+      margin: 0 0 16px 20px; color: var(--text2);
+    }
+    .content ul li { margin-bottom: 6px; }
+    .content a { color: var(--accent-dark); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+    }
+    .footer-inner {
+      max-width: 1040px; margin: 0 auto;
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 14px;
+    }
+    .footer-links { display: flex; gap: 22px; }
+    .footer-links a, .footer-copy {
+      font-size: 13px; color: var(--text2); text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .nav-hide { display: none; }
+      footer { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/">
+    <img src="/icon.png" alt="Pantry" />
+    Pantry
+  </a>
+  <div class="nav-links">
+    <a href="/#features" class="nav-hide">Features</a>
+    <a href="#" onclick="if(window.$crisp){$crisp.push(['do','chat:open'])};return false;">Support</a>
+    <!-- TODO: Replace href with actual App Store URL -->
+    <a href="https://apps.apple.com/app/id" class="btn-dl">Download</a>
+  </div>
+</nav>
+
+<main class="content">
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: June 2026</p>
+
+  <p>Pantry ("we", "our", or "us") is committed to protecting your privacy. This policy explains what information the Pantry app collects, how it is used, and your rights regarding your data.</p>
+
+  <h2>1. Information We Collect</h2>
+
+  <p><strong>Account information.</strong> Pantry works without an account — you can use the app anonymously and all data stays on your device. If you choose to sign in to sync across your household, we collect:</p>
+  <ul>
+    <li>Email address (when you sign in with Email or Google)</li>
+    <li>Display name (optional, provided by you or your sign-in provider)</li>
+    <li>A unique user identifier assigned by Firebase Authentication</li>
+  </ul>
+
+  <p><strong>App data.</strong> When you sync your data, the following is stored in the cloud under your account:</p>
+  <ul>
+    <li>Pantry and inventory items (names, quantities, units, expiry dates, locations, categories)</li>
+    <li>Shopping list items and categories</li>
+    <li>Recipes (name, ingredients, instructions, notes, photos)</li>
+    <li>Storage locations and inventory categories you create</li>
+    <li>In-app preferences (e.g. automatic inventory updates)</li>
+  </ul>
+
+  <p><strong>Shared recipes.</strong> When you share a recipe using the share feature, a copy of that recipe (name, ingredients, instructions, optional photo, and source URL) is stored in a publicly readable location to generate the share link. This data is accessible to anyone with the link.</p>
+
+  <p><strong>Technical data.</strong> Firebase and Google may collect standard technical data as part of service operation, such as device identifiers and crash reports. See <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a> for details.</p>
+
+  <h2>2. How We Use Your Information</h2>
+
+  <p>We use the information collected to:</p>
+  <ul>
+    <li>Sync your pantry, shopping, and recipe data across devices and household members who share your account</li>
+    <li>Enable recipe sharing via shareable links</li>
+    <li>Authenticate you and maintain your session</li>
+    <li>Provide customer support</li>
+  </ul>
+
+  <p>We do not use your data for advertising, and we do not sell your personal information to third parties.</p>
+
+  <h2>3. Data Storage and Security</h2>
+
+  <p>Your data is stored using Google Firebase (Firestore and Firebase Storage), hosted on Google Cloud infrastructure. Data is transmitted over encrypted connections (HTTPS/TLS). Recipe photos are stored in Firebase Storage.</p>
+
+  <p>If you use the app without signing in, all data remains on your device only and is never transmitted to our servers.</p>
+
+  <h2>4. Third-Party Services</h2>
+
+  <p>Pantry uses the following third-party services:</p>
+  <ul>
+    <li><strong>Firebase (Google)</strong> — authentication, cloud database, and file storage. <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+    <li><strong>Sign in with Apple</strong> — optional sign-in method. <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Privacy policy</a></li>
+    <li><strong>Google Sign-In</strong> — optional sign-in method. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+    <li><strong>Crisp</strong> — in-app and website chat support. <a href="https://crisp.chat/en/privacy/" target="_blank" rel="noopener">Privacy policy</a></li>
+  </ul>
+
+  <h2>5. Data Retention and Deletion</h2>
+
+  <p>Your cloud data is retained as long as your account exists. If you sign out and use the app anonymously, your previously synced data remains in the cloud but is no longer accessible from your device.</p>
+
+  <p>To request deletion of your account and all associated data, please contact us at <a href="mailto:support@pantrymanager.app">support@pantrymanager.app</a>. We will delete your data within 30 days.</p>
+
+  <h2>6. Children's Privacy</h2>
+
+  <p>Pantry is not directed to children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal information, please contact us and we will promptly delete it.</p>
+
+  <h2>7. Changes to This Policy</h2>
+
+  <p>We may update this privacy policy from time to time. The "Last updated" date at the top of this page reflects the most recent revision. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+  <h2>8. Contact</h2>
+
+  <p>If you have questions or concerns about this privacy policy, please contact us:</p>
+  <p><a href="mailto:support@pantrymanager.app">support@pantrymanager.app</a></p>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="#" onclick="if(window.$crisp){$crisp.push(['do','chat:open'])};return false;">Support</a>
+    </div>
+    <span class="footer-copy">&copy; 2026 Pantry</span>
+  </div>
+</footer>
+
+</body>
+</html>
