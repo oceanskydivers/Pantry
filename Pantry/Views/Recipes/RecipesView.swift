@@ -33,6 +33,7 @@ struct RecipesView: View {
     @AppStorage("recipeViewLayout") private var layout: RecipeLayout = .grid
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var searchFocusID = 0
     @State private var showingAddSheet = false
     @State private var showingImportSheet = false
     @State private var recipeToDelete: Recipe?
@@ -106,6 +107,7 @@ struct RecipesView: View {
                     }
 
                     Button {
+                        searchFocusID += 1
                         withAnimation(.spring(duration: 0.3)) { isSearching = true }
                     } label: {
                         Image(systemName: "magnifyingglass")
@@ -154,6 +156,7 @@ struct RecipesView: View {
                             searchText = ""
                         }
                     }
+                    .id(searchFocusID)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }

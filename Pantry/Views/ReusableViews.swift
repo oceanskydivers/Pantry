@@ -48,6 +48,8 @@ struct ToastModifier: ViewModifier {
     var onUndo: (() -> Void)? = nil
     /// When provided (and onUndo is nil), tapping the whole toast fires this.
     var onTap: (() -> Void)? = nil
+    /// Extra bottom padding, e.g. to clear a floating search bar.
+    var bottomPadding: CGFloat = 24
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
@@ -81,7 +83,7 @@ struct ToastModifier: ViewModifier {
                 .padding(.vertical, 10)
                 .background(Color.appAccent, in: Capsule())
                 .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-                .padding(.bottom, 24)
+                .padding(.bottom, bottomPadding)
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onTapGesture {
@@ -111,8 +113,8 @@ extension View {
         modifier(ToastModifier(isPresented: isPresented, message: message, onTap: onTap))
     }
 
-    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onUndo: @escaping () -> Void) -> some View {
-        modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo))
+    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onUndo: @escaping () -> Void, bottomPadding: CGFloat = 24) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo, bottomPadding: bottomPadding))
     }
 
     func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onTap: @escaping () -> Void, onUndo: @escaping () -> Void) -> some View {

@@ -8127,7 +8127,6 @@
       }
     },
     "Date First Bought" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
