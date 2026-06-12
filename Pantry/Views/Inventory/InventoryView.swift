@@ -68,6 +68,7 @@ struct InventoryView: View {
 
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var searchFocusID = 0
     @State private var groupMode: InventoryGroupMode = .alphabetical
     @State private var filterLocation: StorageLocation? = nil
     @State private var filterCategoryIDs: Set<UUID> = []
@@ -176,6 +177,7 @@ struct InventoryView: View {
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
+                        searchFocusID += 1
                         withAnimation(.spring(duration: 0.3)) { isSearching = true }
                     } label: {
                         Image(systemName: "magnifyingglass")
@@ -193,6 +195,7 @@ struct InventoryView: View {
                             searchText = ""
                         }
                     }
+                    .id(searchFocusID)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -229,7 +232,7 @@ struct InventoryView: View {
                     isActive: $isExpirationFilterActive
                 )
             }
-            .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() })
+            .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() }, bottomPadding: isSearching ? 85 : 24)
         }
     }
 

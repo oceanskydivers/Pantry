@@ -26,6 +26,10 @@ struct AddInventoryItemView: View {
     @State private var selectedCategory: InventoryCategory? = nil
     @State private var showingCategoryPicker = false
 
+    // Date bought picker state
+    @State private var showingDateBoughtPicker = false
+    @State private var pendingDateBought: Date = Date()
+
     // Expiration batch state
     @State private var expirationBatches: [(id: UUID, quantityText: String, expiresOn: Date)] = []
     @State private var showingExpirationSection = false
@@ -81,7 +85,20 @@ struct AddInventoryItemView: View {
                     .onTapGesture { focusedField = .desiredQty }
 
                     if isEditing {
-                        DatePicker("Date First Bought", selection: $dateBought, displayedComponents: .date)
+                        Button {
+                            pendingDateBought = dateBought
+                            showingDateBoughtPicker = true
+                        } label: {
+                            HStack {
+                                Text("Date First Bought")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text(dateBought.formatted(date: .abbreviated, time: .omitted))
+                                    .foregroundStyle(Color.appAccent)
+                                    .underline()
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -259,7 +276,20 @@ struct AddInventoryItemView: View {
                             .contentShape(Rectangle())
                             .onTapGesture { focusedField = .acquiredQty }
 
-                            DatePicker("Date First Bought", selection: $dateBought, displayedComponents: .date)
+                            Button {
+                                pendingDateBought = dateBought
+                                showingDateBoughtPicker = true
+                            } label: {
+                                HStack {
+                                    Text("Date First Bought")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Text(dateBought.formatted(date: .abbreviated, time: .omitted))
+                                        .foregroundStyle(Color.appAccent)
+                                        .underline()
+                                }
+                            }
+                            .buttonStyle(.plain)
 
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: "info.circle")
@@ -337,44 +367,39 @@ struct AddInventoryItemView: View {
                     selectedCategory = chosen
                 }
             }
+            .sheet(isPresented: $showingDateBoughtPicker) {
+                DatePickerSheet(
+                    title: String(localized: "Date First Bought"),
+                    selection: $pendingDateBought
+                ) {
+                    dateBought = pendingDateBought
+                    showingDateBoughtPicker = false
+                }
+            }
             .sheet(isPresented: Binding(
                 get: { editingBatchDateID != nil },
                 set: { if !$0 { editingBatchDateID = nil } }
             )) {
-                VStack(spacing: 0) {
-                    DatePicker("Expiration Date", selection: $pendingBatchDate, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                    Spacer()
-                    Button {
-                        if let id = editingBatchDateID, let idx = expirationBatches.firstIndex(where: { $0.id == id }) {
-                            expirationBatches[idx].expiresOn = pendingBatchDate
-                        }
-                        let refocusID = editingBatchDateID
-                        editingBatchDateID = nil
-                        Task {
-                            try? await Task.sleep(for: .milliseconds(50))
-                            if let id = refocusID {
-                                focusedField = .batchQty(id)
-                                try? await Task.sleep(for: .milliseconds(200))
-                                withAnimation {
-                                    scrollProxy.scrollTo(id, anchor: .center)
-                                }
+                DatePickerSheet(
+                    title: String(localized: "Expiration Date"),
+                    selection: $pendingBatchDate
+                ) {
+                    if let id = editingBatchDateID, let idx = expirationBatches.firstIndex(where: { $0.id == id }) {
+                        expirationBatches[idx].expiresOn = pendingBatchDate
+                    }
+                    let refocusID = editingBatchDateID
+                    editingBatchDateID = nil
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(50))
+                        if let id = refocusID {
+                            focusedField = .batchQty(id)
+                            try? await Task.sleep(for: .milliseconds(200))
+                            withAnimation {
+                                scrollProxy.scrollTo(id, anchor: .center)
                             }
                         }
-                    } label: {
-                        Text("Done")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
-                            .foregroundStyle(.white)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom)
                 }
-                .presentationDetents([.medium])
             }
             } // ScrollViewReader
         }
@@ -490,3 +515,32 @@ struct AddInventoryItemView: View {
         v == 0 ? "" : v.formatted(.number.precision(.fractionLength(0...1)))
     }
 }
+// MARK: - Reusable Date Picker Sheet
+
+private struct DatePickerSheet: View {
+    let title: String
+    @Binding var selection: Date
+    let onDone: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            DatePicker(title, selection: $selection, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .padding(.horizontal)
+                .padding(.top, 8)
+            Spacer()
+            Button(action: onDone) {
+                Text("Done")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal)
+            .padding(.bottom)
+        }
+        .presentationDetents([.medium])
+    }
+}
+
