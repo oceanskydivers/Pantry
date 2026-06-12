@@ -1038,6 +1038,7 @@ struct QuickAdjustPopover: View {
     @State private var note = ""
     @State private var selectedBatch: ExpirationBatch? = nil
     @State private var showExpirationPicker = false
+    @State private var showExpirationDateSheet = false
     @State private var newExpirationDate = Date()
     @FocusState private var isFocused: Bool
     @Environment(\.dismiss) private var dismiss
@@ -1109,8 +1110,15 @@ struct QuickAdjustPopover: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Spacer()
-                        DatePicker("", selection: $newExpirationDate, displayedComponents: .date)
-                            .labelsHidden()
+                        Button {
+                            showExpirationDateSheet = true
+                        } label: {
+                            Text(newExpirationDate.formatted(date: .abbreviated, time: .omitted))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appAccent)
+                                .underline()
+                        }
+                        .buttonStyle(.plain)
                         Button {
                             showExpirationPicker = false
                         } label: {
@@ -1126,12 +1134,21 @@ struct QuickAdjustPopover: View {
                     Button {
                         showExpirationPicker = true
                         newExpirationDate = Date()
+                        isFocused = false
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(50))
+                            showExpirationDateSheet = true
+                        }
                     } label: {
                         Label("Add expiration date", systemImage: "calendar.badge.plus")
                             .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.appAccent.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                             .foregroundStyle(Color.appAccent)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -1165,6 +1182,32 @@ struct QuickAdjustPopover: View {
         .padding(20)
         .frame(minWidth: 260)
         .presentationCompactAdaptation(.popover)
+        .sheet(isPresented: $showExpirationDateSheet) {
+            VStack(spacing: 0) {
+                DatePicker("Expiration Date", selection: $newExpirationDate, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                Spacer()
+                Button {
+                    showExpirationDateSheet = false
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(50))
+                        isFocused = true
+                    }
+                } label: {
+                    Text("Done")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .presentationDetents([.medium])
+        }
         .onAppear {
             isFocused = true
             // Default to soonest batch when removing

@@ -29,8 +29,10 @@ struct AddInventoryItemView: View {
     // Expiration batch state
     @State private var expirationBatches: [(id: UUID, quantityText: String, expiresOn: Date)] = []
     @State private var showingExpirationSection = false
+    @State private var editingBatchDateID: UUID? = nil
+    @State private var pendingBatchDate: Date = Date()
 
-    enum FocusedField { case name, unit, currentQty, desiredQty, acquiredQty, newLocation }
+    enum FocusedField: Hashable { case name, unit, currentQty, desiredQty, acquiredQty, newLocation, batchQty(UUID) }
     @FocusState private var focusedField: FocusedField?
 
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
@@ -150,6 +152,7 @@ struct AddInventoryItemView: View {
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 6)
                                     .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
+                                    .focused($focusedField, equals: .batchQty(batch.id))
 
                                 if !unit.isEmpty {
                                     Text(unit)
@@ -161,9 +164,17 @@ struct AddInventoryItemView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
 
-                                DatePicker("", selection: $batch.expiresOn, displayedComponents: .date)
-                                    .labelsHidden()
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                Button {
+                                    pendingBatchDate = batch.expiresOn
+                                    editingBatchDateID = batch.id
+                                } label: {
+                                    Text(batch.expiresOn.formatted(date: .abbreviated, time: .omitted))
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.appAccent)
+                                        .underline()
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
 
                                 Button {
                                     expirationBatches.removeAll { $0.id == batch.id }
@@ -195,13 +206,25 @@ struct AddInventoryItemView: View {
                         }
                     } else {
                         Button {
+                            let newBatch = (id: UUID(), quantityText: "", expiresOn: Date())
+                            expirationBatches = [newBatch]
                             showingExpirationSection = true
-                            expirationBatches = [(id: UUID(), quantityText: "", expiresOn: Date())]
+                            pendingBatchDate = newBatch.expiresOn
+                            focusedField = nil
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(50))
+                                editingBatchDateID = newBatch.id
+                            }
                         } label: {
                             Label("Add Expiration Date", systemImage: "calendar.badge.exclamationmark")
                                 .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.appAccent.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                                 .foregroundStyle(Color.appAccent)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -300,6 +323,41 @@ struct AddInventoryItemView: View {
                 CategoryPickerSheet { chosen in
                     selectedCategory = chosen
                 }
+            }
+            .sheet(isPresented: Binding(
+                get: { editingBatchDateID != nil },
+                set: { if !$0 { editingBatchDateID = nil } }
+            )) {
+                VStack(spacing: 0) {
+                    DatePicker("Expiration Date", selection: $pendingBatchDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    Spacer()
+                    Button {
+                        if let id = editingBatchDateID, let idx = expirationBatches.firstIndex(where: { $0.id == id }) {
+                            expirationBatches[idx].expiresOn = pendingBatchDate
+                        }
+                        let refocusID = editingBatchDateID
+                        editingBatchDateID = nil
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(50))
+                            if let id = refocusID {
+                                focusedField = .batchQty(id)
+                            }
+                        }
+                    } label: {
+                        Text("Done")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                }
+                .presentationDetents([.medium])
             }
         }
     }
