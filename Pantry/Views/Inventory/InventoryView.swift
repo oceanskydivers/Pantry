@@ -683,9 +683,9 @@ struct InventoryRowView: View {
                     .overlay(Capsule().stroke(Color(.systemGray4), lineWidth: 0.5))
                 }
 
-                // Bottom Stock Gauge
-                if item.initialQuantity > 0 {
-                    let stockRatio = min(1.0, item.currentQuantity / item.initialQuantity)
+                // Bottom Stock Gauge — based on desired quantity
+                if item.desiredQuantity > 0 {
+                    let stockRatio = min(1.0, item.currentQuantity / item.desiredQuantity)
                     VStack(spacing: 4) {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
@@ -707,14 +707,14 @@ struct InventoryRowView: View {
                         .frame(height: 6)
 
                         HStack {
-                            Text("\(formatQuantity(item.currentQuantity)) of \(formatQuantity(item.initialQuantity)) \(item.unit)")
+                            Text("\(formatQuantity(item.currentQuantity)) of \(formatQuantity(item.desiredQuantity)) \(item.unit)")
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
 
                             Spacer()
 
-                            Text("\(stockRatio, format: .percent.precision(.fractionLength(0))) remaining")
+                            Text("\(stockRatio, format: .percent.precision(.fractionLength(0))) of desired")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.secondary)
@@ -736,21 +736,21 @@ struct InventoryRowView: View {
     }
 
     private var quantityColor: Color {
-        let ratio = item.initialQuantity > 0 ? item.currentQuantity / item.initialQuantity : 1
-        if ratio <= 0.15 { return .red }
-        if ratio <= 0.35 { return .orange }
-        return Color.appAccent
+        let ratio = item.desiredQuantity > 0 ? item.currentQuantity / item.desiredQuantity : 1
+        if ratio < 0.1 { return .statusCritical }
+        if ratio < 0.3 { return .statusLow }
+        return .statusGood
     }
 
     private func adjustQuantity(by delta: Double) {
         let prevCurrent = item.currentQuantity
-        let prevInitial = item.initialQuantity
+        let prevAcquired = item.acquiredQuantity
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
 
-        // When incrementing (topping off), expand the total pool baseline
+        // When adding stock, silently grow the lifetime acquired total for consumption metrics.
         if change > 0 {
-            item.initialQuantity += change
+            item.acquiredQuantity += change
         }
 
         item.currentQuantity = newQty
@@ -767,7 +767,7 @@ struct InventoryRowView: View {
         let capturedItem = item
         onAdjust?(message) {
             capturedItem.currentQuantity = prevCurrent
-            capturedItem.initialQuantity = prevInitial
+            capturedItem.acquiredQuantity = prevAcquired
             capturedItem.logs.removeAll { $0.id == log.id }
             modelContext.delete(log)
             try? modelContext.save()
@@ -989,7 +989,8 @@ struct ManageLocationsView: View {
     let item1 = InventoryItem(
         name: "Chocolate Chips",
         unit: "bags",
-        initialQuantity: 4.0,
+        acquiredQuantity: 4.0,
+        desiredQuantity: 4.0,
         currentQuantity: 3.0,
         dateBought: Date(),
         location: pantry,
@@ -999,7 +1000,8 @@ struct ManageLocationsView: View {
     let item2 = InventoryItem(
         name: "Whole Milk",
         unit: "gal",
-        initialQuantity: 1.0,
+        acquiredQuantity: 1.0,
+        desiredQuantity: 1.0,
         currentQuantity: 0.15,
         dateBought: Date(),
         location: fridge,
@@ -1009,7 +1011,8 @@ struct ManageLocationsView: View {
     let item3 = InventoryItem(
         name: "Organic Bananas",
         unit: "qty",
-        initialQuantity: 7.0,
+        acquiredQuantity: 7.0,
+        desiredQuantity: 6.0,
         currentQuantity: 2.0,
         dateBought: Date(),
         location: pantry,
@@ -1019,7 +1022,8 @@ struct ManageLocationsView: View {
     let item4 = InventoryItem(
         name: "Frozen Strawberries",
         unit: "oz",
-        initialQuantity: 32.0,
+        acquiredQuantity: 32.0,
+        desiredQuantity: 24.0,
         currentQuantity: 32.0,
         dateBought: Date(),
         location: freezer,

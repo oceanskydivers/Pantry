@@ -9,9 +9,13 @@ struct AddInventoryItemView: View {
 
     @State private var name = ""
     @State private var unit = ""
-    @State private var initialQuantityText = ""
     @State private var currentQuantityText = ""
+    @State private var desiredQuantityText = ""
     @State private var dateBought = Date()
+
+    // Advanced (power user) fields — only shown on creation
+    @State private var showAdvanced = false
+    @State private var acquiredQuantityText = ""
 
     // Location picker state
     @State private var selectedLocation: StorageLocation? = nil
@@ -22,7 +26,7 @@ struct AddInventoryItemView: View {
     @State private var selectedCategory: InventoryCategory? = nil
     @State private var showingCategoryPicker = false
 
-    enum FocusedField { case name, unit, initialQty, currentQty, newLocation }
+    enum FocusedField { case name, unit, currentQty, desiredQty, acquiredQty, newLocation }
     @FocusState private var focusedField: FocusedField?
 
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
@@ -42,21 +46,7 @@ struct AddInventoryItemView: View {
 
                 Section("Quantity") {
                     HStack {
-                        Text("Acquired Stock")
-                        Spacer()
-                        TextField("0", text: $initialQuantityText)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                            .focused($focusedField, equals: .initialQty)
-                        Text(unit.isEmpty ? "units" : unit)
-                            .foregroundStyle(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { focusedField = .initialQty }
-
-                    HStack {
-                        Text("Current Quantity")
+                        Text("Current Stock")
                         Spacer()
                         TextField("0", text: $currentQuantityText)
                             .keyboardType(.decimalPad)
@@ -69,7 +59,23 @@ struct AddInventoryItemView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .currentQty }
 
-                    DatePicker("Date Bought", selection: $dateBought, displayedComponents: .date)
+                    HStack {
+                        Text("Desired Stock")
+                        Spacer()
+                        TextField(currentQuantityText.isEmpty ? "0" : currentQuantityText, text: $desiredQuantityText)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .focused($focusedField, equals: .desiredQty)
+                        Text(unit.isEmpty ? "units" : unit)
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .desiredQty }
+
+                    if isEditing {
+                        DatePicker("Date First Bought", selection: $dateBought, displayedComponents: .date)
+                    }
                 }
 
                 // MARK: Location
@@ -128,26 +134,39 @@ struct AddInventoryItemView: View {
                     }
                 }
 
-                // MARK: Explanatory Info Card
-                Section {
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(Color.accentColor)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("What is Acquired Stock?")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                            
-                            Text("This represents your total stock pool for the current cycle (e.g., 5 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 5. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 8 so consumption rates and remaining-day estimates remain highly accurate.")
-                                .font(.footnote)
+                // MARK: Advanced (creation only)
+                if !isEditing {
+                    Section {
+                        DisclosureGroup(isExpanded: $showAdvanced) {
+                            HStack {
+                                Text("Acquired Stock")
+                                Spacer()
+                                TextField(currentQuantityText.isEmpty ? "0" : currentQuantityText, text: $acquiredQuantityText)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 80)
+                                    .focused($focusedField, equals: .acquiredQty)
+                                Text(unit.isEmpty ? "units" : unit)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { focusedField = .acquiredQty }
+
+                            DatePicker("Date First Bought", selection: $dateBought, displayedComponents: .date)
+
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(.secondary)
+                                Text("For power users who were already tracking before adding this item. Enter the total you've ever bought and the date you started buying it. Leave these blank and they'll default to your current stock and today.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.top, 4)
+                        } label: {
+                            Text("Advanced")
                                 .foregroundStyle(.secondary)
-                                .lineSpacing(3)
                         }
                     }
-                    .padding(.vertical, 4)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -166,27 +185,29 @@ struct AddInventoryItemView: View {
                         Button {
                             switch focusedField {
                             case .unit:         focusedField = .name
-                            case .initialQty:   focusedField = .unit
-                            case .currentQty:   focusedField = .initialQty
+                            case .currentQty:   focusedField = .unit
+                            case .desiredQty:   focusedField = .currentQty
+                            case .acquiredQty:  focusedField = .desiredQty
                             default:            focusedField = nil
                             }
                         } label: {
                             Label("Previous", systemImage: "chevron.up")
                         }
                         .padding(5)
-                        
+
                         Button {
                             switch focusedField {
                             case .name:         focusedField = .unit
-                            case .unit:         focusedField = .initialQty
-                            case .initialQty:   focusedField = .currentQty
+                            case .unit:         focusedField = .currentQty
+                            case .currentQty:   focusedField = .desiredQty
+                            case .desiredQty:   focusedField = showAdvanced ? .acquiredQty : nil
                             default:            focusedField = nil
                             }
                         } label: {
                             Label("Next", systemImage: "chevron.down")
                         }
                         .padding(5)
-                        
+
                         Spacer()
                         Button { focusedField = nil } label: {
                             Label("Done", systemImage: "checkmark")
@@ -232,23 +253,27 @@ struct AddInventoryItemView: View {
         name = item.name
         unit = item.unit
         dateBought = item.dateBought
-        initialQuantityText = formatQty(item.initialQuantity)
         currentQuantityText = formatQty(item.currentQuantity)
+        desiredQuantityText = formatQty(item.desiredQuantity)
         selectedLocation = item.location
         selectedCategory = item.category
     }
 
     private func save() {
-        let initial = Double(initialQuantityText) ?? 0
-        let current = Double(currentQuantityText) ?? initial
+        let current = Double(currentQuantityText) ?? 0
+        let desired = Double(desiredQuantityText).flatMap { $0 > 0 ? $0 : nil } ?? current
         let savedItem: InventoryItem
 
         if let item = existingItem {
             let delta = current - item.currentQuantity
             item.name = name.trimmingCharacters(in: .whitespaces)
             item.unit = unit.trimmingCharacters(in: .whitespaces)
-            item.initialQuantity = initial
             item.currentQuantity = current
+            item.desiredQuantity = desired
+            // Grow acquiredQuantity if current increased
+            if delta > 0 {
+                item.acquiredQuantity += delta
+            }
             item.dateBought = dateBought
             item.location = selectedLocation
             item.category = selectedCategory
@@ -259,22 +284,25 @@ struct AddInventoryItemView: View {
             }
             savedItem = item
         } else {
+            // For new items, acquired defaults to current unless the user filled in the advanced field.
+            let acquired = Double(acquiredQuantityText).flatMap { $0 > 0 ? $0 : nil } ?? current
             let item = InventoryItem(
                 name: name.trimmingCharacters(in: .whitespaces),
                 unit: unit.trimmingCharacters(in: .whitespaces),
-                initialQuantity: initial,
+                acquiredQuantity: acquired,
+                desiredQuantity: desired,
                 currentQuantity: current,
                 dateBought: dateBought,
                 location: selectedLocation,
                 category: selectedCategory
             )
             modelContext.insert(item)
-            if initial > 0 {
-                let acquisition = InventoryLog(change: initial, note: "Initial stock", date: dateBought)
+            if acquired > 0 {
+                let acquisition = InventoryLog(change: acquired, note: "Initial stock", date: dateBought)
                 acquisition.item = item
                 modelContext.insert(acquisition)
 
-                let consumed = initial - current
+                let consumed = acquired - current
                 if consumed > 0 {
                     let midpoint = Date(timeIntervalSince1970: (dateBought.timeIntervalSince1970 + Date().timeIntervalSince1970) / 2)
                     let consumption = InventoryLog(change: -consumed, note: "Pre-tracking consumption (date estimated as midpoint between purchase and app entry)", date: midpoint)

@@ -6,7 +6,11 @@ final class InventoryItem {
     var id: UUID
     var name: String
     var unit: String
-    var initialQuantity: Double
+    /// Cumulative lifetime stock acquired — used internally for consumption metrics only.
+    /// Incremented silently whenever stock is added. Never shown directly to the user post-creation.
+    var acquiredQuantity: Double
+    /// The user's target/desired stock level. Used as the ring/bar denominator.
+    var desiredQuantity: Double
     var currentQuantity: Double
     var dateBought: Date
     var createdAt: Date
@@ -25,7 +29,8 @@ final class InventoryItem {
     init(
         name: String = "",
         unit: String = "",
-        initialQuantity: Double = 0,
+        acquiredQuantity: Double = 0,
+        desiredQuantity: Double = 0,
         currentQuantity: Double = 0,
         dateBought: Date = Date(),
         location: StorageLocation? = nil,
@@ -34,7 +39,8 @@ final class InventoryItem {
         self.id = UUID()
         self.name = name
         self.unit = unit
-        self.initialQuantity = initialQuantity
+        self.acquiredQuantity = acquiredQuantity
+        self.desiredQuantity = desiredQuantity
         self.currentQuantity = currentQuantity
         self.dateBought = dateBought
         self.createdAt = Date()
@@ -45,28 +51,84 @@ final class InventoryItem {
         self.historicalDays = []
     }
 
-    /// Consumption rate derived from log history (consumed units / days between first and last log).
+    /// Consumption rate derived from log history.
+    /// Only counts days where the running stock was > 0 (excludes out-of-stock periods).
     var logBasedConsumptionRate: Double? {
         let deletions = logs.filter { $0.change < 0 }
         guard !deletions.isEmpty else { return nil }
 
         let totalConsumed = deletions.reduce(0) { $0 + abs($1.change) }
-        let sortedLogs = logs.sorted { $0.date < $1.date }
-        guard let first = sortedLogs.first, let last = sortedLogs.last else { return nil }
 
-        let days = Calendar.current.dateComponents([.day], from: first.date, to: last.date).day ?? 0
-        guard days > 0 else { return nil }
-        return totalConsumed / Double(days)
+        // Reconstruct running quantity forward through time to find zero-stock periods.
+        let sortedLogs = logs.sorted { $0.date < $1.date }
+        guard let firstLog = sortedLogs.first, let lastLog = sortedLogs.last else { return nil }
+
+        let totalDays = Calendar.current.dateComponents([.day], from: firstLog.date, to: lastLog.date).day ?? 0
+        guard totalDays > 0 else { return nil }
+
+        // Walk logs forward, tracking time spent at zero stock.
+        var running = acquiredQuantity
+        // Rewind to the initial state before any logs
+        for log in sortedLogs { running -= log.change }
+
+        var zeroStockDays = 0
+        var prevDate = firstLog.date
+        var prevQty = running
+
+        for log in sortedLogs {
+            let days = Calendar.current.dateComponents([.day], from: prevDate, to: log.date).day ?? 0
+            if prevQty <= 0 { zeroStockDays += days }
+            prevQty += log.change
+            prevDate = log.date
+        }
+
+        let activeDays = totalDays - zeroStockDays
+        guard activeDays > 0 else { return nil }
+        return totalConsumed / Double(activeDays)
     }
 
-    /// Consumption rate derived from dateBought: total consumed since purchase divided by days owned.
-    /// Only available when currentQuantity differs from initialQuantity.
+    /// Consumption rate derived from dateBought: consumed since purchase divided by days owned,
+    /// excluding any period where stock was at zero.
     var dateBoughtConsumptionRate: Double? {
-        guard currentQuantity < initialQuantity else { return nil }
-        let consumed = initialQuantity - currentQuantity
-        let days = Calendar.current.dateComponents([.day], from: dateBought, to: Date()).day ?? 0
-        guard days > 0 else { return nil }
-        return consumed / Double(days)
+        guard currentQuantity < acquiredQuantity else { return nil }
+        let consumed = acquiredQuantity - currentQuantity
+        let totalDays = Calendar.current.dateComponents([.day], from: dateBought, to: Date()).day ?? 0
+        guard totalDays > 0 else { return nil }
+
+        // Estimate zero-stock days: if current is 0, we don't know when it ran out —
+        // use the log-based zero period if available, otherwise use total days as denominator.
+        let zeroStockDays = estimatedZeroStockDays
+        let activeDays = max(1, totalDays - zeroStockDays)
+        return consumed / Double(activeDays)
+    }
+
+    /// Estimates the number of days the item has been at zero stock,
+    /// by walking the log history chronologically from dateBought.
+    private var estimatedZeroStockDays: Int {
+        let sortedLogs = logs.filter { $0.date >= dateBought }.sorted { $0.date < $1.date }
+        guard !sortedLogs.isEmpty else { return currentQuantity <= 0 ? 0 : 0 }
+
+        var running = acquiredQuantity
+        for log in sortedLogs { running -= log.change }
+
+        var zeroStockDays = 0
+        var prevDate = dateBought
+        var prevQty = running
+
+        for log in sortedLogs {
+            let days = Calendar.current.dateComponents([.day], from: prevDate, to: log.date).day ?? 0
+            if prevQty <= 0 { zeroStockDays += days }
+            prevQty += log.change
+            prevDate = log.date
+        }
+
+        // Include time from last log to now if currently at zero
+        if currentQuantity <= 0 {
+            let tailDays = Calendar.current.dateComponents([.day], from: prevDate, to: Date()).day ?? 0
+            zeroStockDays += tailDays
+        }
+
+        return zeroStockDays
     }
 
     /// Best available consumption rate for the current period only.
@@ -87,7 +149,6 @@ final class InventoryItem {
     /// Longer periods have proportionally more influence on the result.
     var consumptionRate: Double? {
         guard let currentRate = currentPeriodRate else {
-            // No current data — fall back to historical average if available
             guard !historicalRates.isEmpty else { return nil }
             let totalDays = historicalDays.reduce(0, +)
             guard totalDays > 0 else { return nil }
