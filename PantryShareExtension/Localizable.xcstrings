@@ -6,7 +6,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حسناً"
+            "value" : "موافق"
           }
         },
         "bn" : {
@@ -84,13 +84,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "好"
+            "value" : "确定"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "好"
+            "value" : "確定"
           }
         }
       }

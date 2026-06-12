@@ -1,0 +1,45 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add to my ${applicationName} shopping list" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Add to my ${applicationName} shopping list",
+              "Add item to ${applicationName}",
+              "Add to ${applicationName} list"
+            ]
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मेरी ${applicationName} शॉपिंग सूची में जोड़ें"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "${applicationName} 쇼핑 목록에 추가"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить в мой список покупок ${applicationName}"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入我的 ${applicationName} 購物清單"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

@@ -43,6 +43,7 @@
 		CDF357993DB1D8816BF024CB /* InventoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D831C5DCB4887DACE8D29B07 /* InventoryItem.swift */; };
 		D27513602FDADE9600A652F0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D275135F2FDADE9600A652F0 /* Localizable.xcstrings */; };
 		D27513612FDADE9600A652F0 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D275135E2FDADE9600A652F0 /* InfoPlist.xcstrings */; };
+		D28EC0912FDC5BB00047034D /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D28EC0902FDC5BB00047034D /* AppShortcuts.xcstrings */; };
 		D592AF9DF387D9BCF579885C /* InventoryLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22DFCD65F79C84A111D448F3 /* InventoryLog.swift */; };
 		D67706EDD342A159D074E8D4 /* ShoppingIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2467C8FE708159099981814 /* ShoppingIntents.swift */; };
 		D8AC9AA34AA8E20F15A19167 /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BFEF1D6886EFCF5787D3704 /* ShoppingListView.swift */; };
@@ -111,6 +112,7 @@
 		C22B7CAC133877507349B5CE /* Color+App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+App.swift"; sourceTree = "<group>"; };
 		D275135E2FDADE9600A652F0 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		D275135F2FDADE9600A652F0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		D28EC0902FDC5BB00047034D /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
 		D50567F005318E49277C33EC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D7137AFC04D7CA775CE75971 /* Pantry.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pantry.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D831C5DCB4887DACE8D29B07 /* InventoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryItem.swift; sourceTree = "<group>"; };
@@ -218,6 +220,7 @@
 			children = (
 				D275135E2FDADE9600A652F0 /* InfoPlist.xcstrings */,
 				D275135F2FDADE9600A652F0 /* Localizable.xcstrings */,
+				D28EC0902FDC5BB00047034D /* AppShortcuts.xcstrings */,
 				D50567F005318E49277C33EC /* Assets.xcassets */,
 				95B2AD112AC45ACF63B1B589 /* ContentView.swift */,
 				221C5EAFDD24C50F2F8F060D /* Info.plist */,
@@ -433,6 +436,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D27513602FDADE9600A652F0 /* Localizable.xcstrings in Resources */,
+				D28EC0912FDC5BB00047034D /* AppShortcuts.xcstrings in Resources */,
 				D27513612FDADE9600A652F0 /* InfoPlist.xcstrings in Resources */,
 				7567884B377F0D3625B35EFB /* Assets.xcassets in Resources */,
 				120850AD339445FCC5FD58FD /* GoogleService-Info.plist in Resources */,
