@@ -43,7 +43,7 @@ extension View {
 
 struct ToastModifier: ViewModifier {
     @Binding var isPresented: Bool
-    let message: String
+    let message: LocalizedStringKey
     /// When provided, an "Undo" button appears in the toast.
     var onUndo: (() -> Void)? = nil
     /// When provided (and onUndo is nil), tapping the whole toast fires this.
@@ -103,19 +103,19 @@ struct ToastModifier: ViewModifier {
 }
 
 extension View {
-    func toast(isPresented: Binding<Bool>, message: String) -> some View {
+    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey) -> some View {
         modifier(ToastModifier(isPresented: isPresented, message: message))
     }
 
-    func toast(isPresented: Binding<Bool>, message: String, onTap: @escaping () -> Void) -> some View {
+    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onTap: @escaping () -> Void) -> some View {
         modifier(ToastModifier(isPresented: isPresented, message: message, onTap: onTap))
     }
 
-    func toast(isPresented: Binding<Bool>, message: String, onUndo: @escaping () -> Void) -> some View {
+    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onUndo: @escaping () -> Void) -> some View {
         modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo))
     }
 
-    func toast(isPresented: Binding<Bool>, message: String, onTap: @escaping () -> Void, onUndo: @escaping () -> Void) -> some View {
+    func toast(isPresented: Binding<Bool>, message: LocalizedStringKey, onTap: @escaping () -> Void, onUndo: @escaping () -> Void) -> some View {
         modifier(ToastModifier(isPresented: isPresented, message: message, onUndo: onUndo, onTap: onTap))
     }
 }
@@ -124,7 +124,7 @@ extension View {
 
 struct FloatingSearchBar: View {
     @Binding var text: String
-    let placeholder: String
+    let placeholder: LocalizedStringKey
     let onDismiss: () -> Void
 
     @FocusState private var isFocused: Bool

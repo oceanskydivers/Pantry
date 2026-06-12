@@ -12,7 +12,7 @@ struct InventoryItemDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingResetConfirmation = false
     @State private var showToast = false
-    @State private var toastMessage = ""
+    @State private var toastMessage: LocalizedStringKey = ""
     @State private var lastAdjustmentUndo: (prevCurrent: Double, prevAcquired: Double, prevDesired: Double, log: InventoryLog)? = nil
 
     @Environment(\.dismiss) private var dismiss
@@ -384,7 +384,7 @@ struct DetailsCard: View {
 }
 
 struct DetailRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
 
     var body: some View {
