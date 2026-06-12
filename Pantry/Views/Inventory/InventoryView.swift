@@ -413,57 +413,58 @@ struct SupplyFilterSheet: View {
     @State private var localValue: Int = 1
     @State private var localUnit: SupplyUnit = .months
 
+    private let numbers = Array(1...99)
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    HStack(spacing: 12) {
-                        // Number stepper + field
-                        HStack(spacing: 0) {
-                            Button {
-                                if localValue > 1 { localValue -= 1 }
-                            } label: {
-                                Image(systemName: "minus")
-                                    .frame(width: 40, height: 40)
-                                    .foregroundStyle(localValue > 1 ? .primary : Color(.systemGray3))
-                            }
-                            .buttonStyle(.plain)
-
-                            Text("\(localValue)")
-                                .font(.title2.monospacedDigit())
-                                .fontWeight(.semibold)
-                                .frame(minWidth: 36)
-                                .multilineTextAlignment(.center)
-
-                            Button {
-                                localValue += 1
-                            } label: {
-                                Image(systemName: "plus")
-                                    .frame(width: 40, height: 40)
-                                    .foregroundStyle(.primary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
-
-                        // Unit picker
-                        Picker("Unit", selection: $localUnit) {
-                            ForEach(SupplyUnit.allCases) { u in
-                                Text(u.rawValue).tag(u)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    .padding(.vertical, 4)
-                } header: {
+            VStack(spacing: 0) {
+                // Label
+                VStack(spacing: 4) {
                     Text("Show items with less than")
-                } footer: {
-                    Text("Only items with a tracked consumption rate will be matched.")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    Text("\(localValue) \(localUnit.rawValue)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.appAccent)
+                        .contentTransition(.numericText())
+                        .animation(.spring(duration: 0.25), value: localValue)
+                        .animation(.spring(duration: 0.25), value: localUnit)
                 }
+                .padding(.top, 24)
+                .padding(.bottom, 8)
 
-                Section {
+                // Dual wheel picker
+                HStack(spacing: 0) {
+                    Picker("Amount", selection: $localValue) {
+                        ForEach(numbers, id: \.self) { n in
+                            Text("\(n)").tag(n)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                    Picker("Unit", selection: $localUnit) {
+                        ForEach(SupplyUnit.allCases) { u in
+                            Text(u.rawValue).tag(u)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                }
+                .padding(.horizontal, 16)
+
+                Text("Items without a tracked consumption rate are excluded.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+
+                // Buttons
+                VStack(spacing: 10) {
                     Button {
                         value = localValue
                         unit = localUnit
@@ -471,8 +472,12 @@ struct SupplyFilterSheet: View {
                         dismiss()
                     } label: {
                         Text("Apply Filter")
-                            .frame(maxWidth: .infinity)
+                            .font(.body)
                             .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.white)
                     }
 
                     if isActive {
@@ -481,10 +486,17 @@ struct SupplyFilterSheet: View {
                             dismiss()
                         } label: {
                             Text("Clear Filter")
+                                .font(.body)
+                                .fontWeight(.medium)
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundStyle(.red)
                         }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Filter by Supply")
             .navigationBarTitleDisplayMode(.inline)
