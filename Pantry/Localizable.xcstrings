@@ -2,7 +2,104 @@
   "sourceLanguage" : "en",
   "strings" : {
     " · " : {
-
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · "
+          }
+        }
+      }
     },
     " button to add more subcategories to an existing list." : {
       "comment" : "A description of how to add more subcategories to an existing list.",
@@ -184,7 +281,7 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "machine_translated",
+            "state" : "translated",
             "value" : " 按钮可在某项目下方嵌套新的子分类。"
           }
         },
@@ -280,7 +377,7 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "machine_translated",
+            "state" : "translated",
             "value" : " 长按可重命名。"
           }
         },
@@ -583,6 +680,298 @@
         }
       }
     },
+    "%lld days" : {
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أيام"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld يومًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld يوم"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld يوم"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld يومان"
+                }
+              }
+            }
+          }
+        },
+        "bn" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld দিন"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld দিন"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Tag"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Tage"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld día"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld días"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld jour"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld jours"
+                }
+              }
+            }
+          }
+        },
+        "hi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld दिन"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld दिन"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld hari"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld giorno"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld giorni"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld日"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld일"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld dias"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld дня"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld дней"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld день"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld дня"
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld gün"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld gün"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld天"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld天"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld ingredients" : {
       "comment" : "A label displaying the number of ingredients in a recipe. The argument is the number of ingredients in the recipe.",
       "isCommentAutoGenerated" : true,
@@ -876,6 +1265,292 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld 種食材"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld mo" : {
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld أشهر"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld شهرًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld شهر"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld شهر"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld شهران"
+                }
+              }
+            }
+          }
+        },
+        "bn" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld মাস"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld মাস"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Mon."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Mon."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld mo"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mes"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld meses"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mois"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mois"
+                }
+              }
+            }
+          }
+        },
+        "hi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld माह"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld माह"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld bln"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mese"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mesi"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lldヶ月"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld개월"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mês"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld meses"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld мес."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld мес."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld мес."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld мес."
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld ay"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld ay"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld月"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld個月"
                 }
               }
             }
@@ -1183,6 +1858,298 @@
         }
       }
     },
+    "%lld wks" : {
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أسابيع"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أسبوعًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أسبوع"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أسبوع"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld أسبوعان"
+                }
+              }
+            }
+          }
+        },
+        "bn" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld সপ্তাহ"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld সপ্তাহ"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Wo."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld Wo."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wk"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld wks"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              }
+            }
+          }
+        },
+        "hi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld सप्ताह"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld सप्ताह"
+                }
+              }
+            }
+          }
+        },
+        "id" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld mgg"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sett."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sett."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld週"
+                }
+              }
+            }
+          }
+        },
+        "ko" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld주"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sem."
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld нед."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld нед."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld нед."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld нед."
+                }
+              }
+            }
+          }
+        },
+        "tr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld hf."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld hf."
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld周"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld週"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "×%@" : {
       "comment" : "A badge displaying the quantity of a shopping item. The argument is the quantity of the item.",
       "isCommentAutoGenerated" : true,
@@ -1275,6 +2242,100 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "×%@"
+          }
+        }
+      }
+    },
+    "< 1 day" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "أقل من يوم"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "১ দিনের কম"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 Tag"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 día"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 jour"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 दिन"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 hari"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 giorno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "1日未満"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "1일 미만"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 dia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 дня"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "< 1 gün"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "不足1天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "不足1天"
           }
         }
       }
@@ -5395,7 +6456,98 @@
       }
     },
     "Remaining: " : {
-
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "متبقي: "
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "অবশিষ্ট: "
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Verbleibend: "
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restante: "
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restant : "
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "शेष: "
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sisa: "
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rimanente: "
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "残り: "
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "잔여: "
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restante: "
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Осталось: "
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Kalan: "
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "剩余: "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "剩餘: "
+          }
+        }
+      }
     },
     "Remove" : {
       "comment" : "A label for a picker item that removes an item from the stock.",
@@ -6646,101 +7798,97 @@
       }
     },
     "This represents your total stock pool for the current cycle (e.g., 5 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 5. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 8 so consumption rates and remaining-day estimates remain highly accurate." : {
-
-    },
-    "This represents your total stock pool for the current cycle (e.g., 20 blocks of cheese). As you consume cheese, your current count falls, but the pool size remains 20. If you do a minor top-off run later and buy 3 more, simply tap '+' in the list. The app automatically grows your Acquired Stock to 23 so consumption rates and remaining-day estimates remain highly accurate." : {
       "comment" : "A description of the Acquired Stock feature.",
-      "extractionState" : "stale",
       "isCommentAutoGenerated" : true,
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يمثل هذا إجمالي مخزونك للدورة الحالية (على سبيل المثال، 20 قالب جبن). ومع استهلاكك للجبن، ينخفض عددك الحالي، لكن حجم المخزون الإجمالي يظل 20. إذا قمت بعملية شراء بسيطة لاحقًا واشتريت 3 قوالب إضافية، فما عليك سوى الضغط على '+' في القائمة. سيقوم التطبيق تلقائيًا بزيادة المخزون المقتنى إلى 23 حتى تظل معدلات الاستهلاك وتقديرات الأيام المتبقية دقيقة للغاية."
+            "value" : "يمثل هذا إجمالي مخزونك للدورة الحالية (على سبيل المثال، 5 قالب جبن). ومع استهلاكك للجبن، ينخفض عددك الحالي، لكن حجم المخزون الإجمالي يظل 5. إذا قمت بعملية شراء بسيطة لاحقًا واشتريت 3 قوالب إضافية، فما عليك سوى الضغط على '+' في القائمة. سيقوم التطبيق تلقائيًا بزيادة المخزون المقتنى إلى 8 حتى تظل معدلات الاستهلاك وتقديرات الأيام المتبقية دقيقة للغاية."
           }
         },
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এটি বর্তমান চক্রের জন্য আপনার মোট স্টক পুলকে নির্দেশ করে (যেমন, ২০টি চিজের ব্লক)। আপনি চিজ ব্যবহার করার সাথে সাথে আপনার বর্তমান সংখ্যা হ্রাস পায়, তবে পুলের আকার ২০-ই থাকে। আপনি যদি পরে সামান্য কেনাকাটা করে আরও ৩টি কেনেন, তবে তালিকায় কেবল '+' ট্যাপ করুন। অ্যাপটি স্বয়ংক্রিয়ভাবে আপনার সংগৃহীত স্টক বাড়িয়ে ২৩ করে দেবে যাতে ব্যবহারের হার এবং অবশিষ্ট দিনের অনুমান অত্যন্ত সঠিক থাকে।"
+            "value" : "এটি বর্তমান চক্রের জন্য আপনার মোট স্টক পুলকে নির্দেশ করে (যেমন, ৫টি চিজের ব্লক)। আপনি চিজ ব্যবহার করার সাথে সাথে আপনার বর্তমান সংখ্যা হ্রাস পায়, তবে পুলের আকার ৫-ই থাকে। আপনি যদি পরে সামান্য কেনাকাটা করে আরও ৩টি কেনেন, তবে তালিকায় কেবল '+' ট্যাপ করুন। অ্যাপটি স্বয়ংক্রিয়ভাবে আপনার সংগৃহীত স্টক বাড়িয়ে ৮ করে দেবে যাতে ব্যবহারের হার এবং অবশিষ্ট দিনের অনুমান অত্যন্ত সঠিক থাকে।"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies stellt deinen gesamten Vorratspool für den aktuellen Zyklus dar (z. B. 20 Blöcke Käse). Wenn du Käse verbrauchst, sinkt dein aktueller Bestand, aber die Poolgröße bleibt bei 20. Wenn du später eine kleine Nachfüllung machst und 3 weitere kaufst, tippe einfach auf '+' in der Liste. Die App erhöht deinen erworbenen Bestand automatisch auf 23, sodass die Verbrauchsraten und die Schätzungen der verbleibenden Tage hochpräzise bleiben."
+            "value" : "Dies stellt deinen gesamten Vorratspool für den aktuellen Zyklus dar (z. B. 5 Blöcke Käse). Wenn du Käse verbrauchst, sinkt dein aktueller Bestand, aber die Poolgröße bleibt bei 5. Wenn du später eine kleine Nachfüllung machst und 3 weitere kaufst, tippe einfach auf '+' in der Liste. Die App erhöht deinen erworbenen Bestand automatisch auf 8, sodass die Verbrauchsraten und die Schätzungen der verbleibenden Tage hochpräzise bleiben."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esto representa tu stock total para el ciclo actual (por ejemplo, 20 bloques de queso). A medida que consumes queso, tu cantidad actual disminuye, pero el tamaño del stock total sigue siendo 20. Si más tarde haces una pequeña compra de reposición y compras 3 más, simplemente toca '+' en la lista. La aplicación aumenta automáticamente tu Stock adquirido a 23 para que las tasas de consumo y las estimaciones de días restantes sigan siendo muy precisas."
+            "value" : "Esto representa tu stock total para el ciclo actual (por ejemplo, 5 bloques de queso). A medida que consumes queso, tu cantidad actual disminuye, pero el tamaño del stock total sigue siendo 5. Si más tarde haces una pequeña compra de reposición y compras 3 más, simplemente toca '+' en la lista. La aplicación aumenta automáticamente tu Stock adquirido a 8 para que las tasas de consumo y las estimaciones de días restantes sigan siendo muy precisas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cela représente votre réserve totale de stock pour le cycle en cours (par ex., 20 portions de fromage). À mesure que vous consommez du fromage, votre quantité actuelle diminue, mais la taille de la réserve reste de 20. Si vous faites un petit réapprovisionnement plus tard et en achetez 3 de plus, appuyez simplement sur '+' dans la liste. L'application augmente automatiquement votre stock acquis à 23 afin que les taux de consommation et les estimations de jours restants restent très précis."
+            "value" : "Cela représente votre réserve totale de stock pour le cycle en cours (par ex., 5 portions de fromage). À mesure que vous consommez du fromage, votre quantité actuelle diminue, mais la taille de la réserve reste de 5. Si vous faites un petit réapprovisionnement plus tard et en achetez 3 de plus, appuyez simplement sur '+' dans la liste. L'application augmente automatiquement votre stock acquis à 8 afin que les taux de consommation et les estimations de jours restants restent très précis."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "यह वर्तमान चक्र के लिए आपके कुल स्टॉक पूल को दर्शाता है (जैसे, पनीर के 20 ब्लॉक)। जैसे-जैसे आप पनीर का उपभोग करते हैं, आपकी वर्तमान संख्या कम हो जाती है, लेकिन पूल का आकार 20 ही रहता है। यदि आप बाद में थोड़ा और सामान खरीदते हैं और 3 और पनीर लेते हैं, तो सूची में बस '+' पर टैप करें। ऐप स्वचालित रूप से आपके प्राप्त स्टॉक को बढ़ाकर 23 कर देता है ताकि खपत दर और शेष दिनों के अनुमान अत्यधिक सटीक रहें।"
+            "value" : "यह वर्तमान चक्र के लिए आपके कुल स्टॉक पूल को दर्शाता है (जैसे, पनीर के 5 ब्लॉक)। जैसे-जैसे आप पनीर का उपभोग करते हैं, आपकी वर्तमान संख्या कम हो जाती है, लेकिन पूल का आकार 5 ही रहता है। यदि आप बाद में थोड़ा और सामान खरीदते हैं और 3 और पनीर लेते हैं, तो सूची में बस '+' पर टैप करें। ऐप स्वचालित रूप से आपके प्राप्त स्टॉक को बढ़ाकर 8 कर देता है ताकि खपत दर और शेष दिनों के अनुमान अत्यधिक सटीक रहें।"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ini mewakili total persediaan stok Anda untuk siklus saat ini (misalnya, 20 blok keju). Saat Anda mengonsumsi keju, jumlah saat ini akan berkurang, tetapi ukuran persediaan tetap 20. Jika Anda melakukan pengisian ulang kecil nanti dan membeli 3 lagi, cukup ketuk '+' di daftar. Aplikasi ini secara otomatis meningkatkan Stok yang Diperoleh menjadi 23 sehingga tingkat konsumsi dan perkiraan sisa hari tetap sangat akurat."
+            "value" : "Ini mewakili total persediaan stok Anda untuk siklus saat ini (misalnya, 5 blok keju). Saat Anda mengonsumsi keju, jumlah saat ini akan berkurang, tetapi ukuran persediaan tetap 5. Jika Anda melakukan pengisian ulang kecil nanti dan membeli 3 lagi, cukup ketuk '+' di daftar. Aplikasi ini secara otomatis meningkatkan Stok yang Diperoleh menjadi 8 sehingga tingkat konsumsi dan perkiraan sisa hari tetap sangat akurat."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo rappresenta la tua scorta totale per il ciclo corrente (ad es. 20 pezzi di formaggio). Man mano che consumi il formaggio, il conteggio attuale diminuisce, ma la dimensione della scorta totale rimane 20. Se in seguito fai una piccola spesa di rifornimento e ne acquisti altri 3, tocca semplicemente '+' nell'elenco. L'app aumenterà automaticamente la tua Scorta acquisita a 23, in modo che i tassi di consumo e le stime dei giorni rimanenti rimangano estremamente precisi."
+            "value" : "Questo rappresenta la tua scorta totale per il ciclo corrente (ad es. 5 pezzi di formaggio). Man mano che consumi il formaggio, il conteggio attuale diminuisce, ma la dimensione della scorta totale rimane 5. Se in seguito fai una piccola spesa di rifornimento e ne acquisti altri 3, tocca semplicemente '+' nell'elenco. L'app aumenterà automaticamente la tua Scorta acquisita a 8, in modo che i tassi di consumo e le stime dei giorni rimanenti rimangano estremamente precisi."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "これは、現在のサイクルにおける総在庫プール（例：チーズ20個）を表します。チーズを消費すると現在の数は減りますが、プールサイズは20のまま維持されます。後で少し買い足して3個追加した場合は、リストの「+」をタップするだけです。アプリが自動的に取得済み在庫を23に増やすため、消費ペースや残り日数の予測が非常に正確に保たれます。"
+            "value" : "これは、現在のサイクルにおける総在庫プール（例：チーズ5個）を表します。チーズを消費すると現在の数は減りますが、プールサイズは5のまま維持されます。後で少し買い足して3個追加した場合は、リストの「+」をタップするだけです。アプリが自動的に取得済み在庫を8に増やすため、消費ペースや残り日数の予測が非常に正確に保たれます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이것은 현재 주기 동안의 총 재고 풀을 나타냅니다(예: 치즈 20개). 치즈를 소비함에 따라 현재 수량은 줄어들지만, 풀 크기는 20개로 유지됩니다. 나중에 소량으로 추가 구매하여 3개를 더 샀다면 목록에서 '+'를 탭하기만 하면 됩니다. 앱이 자동으로 확보된 재고를 23개로 늘려주므로 소비율과 남은 일수 예측이 매우 정확하게 유지됩니다."
+            "value" : "이것은 현재 주기 동안의 총 재고 풀을 나타냅니다(예: 치즈 5개). 치즈를 소비함에 따라 현재 수량은 줄어들지만, 풀 크기는 5개로 유지됩니다. 나중에 소량으로 추가 구매하여 3개를 더 샀다면 목록에서 '+'를 탭하기만 하면 됩니다. 앱이 자동으로 확보된 재고를 8개로 늘려주므로 소비율과 남은 일수 예측이 매우 정확하게 유지됩니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Isso representa o seu estoque total para o ciclo atual (por exemplo, 20 pedaços de queijo). À medida que você consome o queijo, sua contagem atual diminui, mas o tamanho do estoque total permanece 20. Se você fizer uma pequena compra de reposição mais tarde e comprar mais 3, basta tocar em '+' na lista. O aplicativo aumenta automaticamente seu Estoque Adquirido para 23 para que as taxas de consumo e as estimativas de dias restantes permaneçam altamente precisas."
+            "value" : "Isso representa o seu estoque total para o ciclo atual (por exemplo, 5 pedaços de queijo). À medida que você consome o queijo, sua contagem atual diminui, mas o tamanho do estoque total permanece 5. Se você fizer uma pequena compra de reposição mais tarde e comprar mais 3, basta tocar em '+' na lista. O aplicativo aumenta automaticamente seu Estoque Adquirido para 8 para que as taxas de consumo e as estimativas de dias restantes permaneçam altamente precisas."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Это представляет собой ваш общий пул запасов на текущий цикл (например, 20 головок сыра). По мере потребления сыра ваше текущее количество уменьшается, но размер пула остается равным 20. Если позже вы сделаете небольшую докупку и приобретете еще 3 штуки, просто нажмите «+» в списке. Приложение автоматически увеличит ваш закупленный запас до 23, чтобы показатели потребления и прогнозы оставшихся дней оставались максимально точными."
+            "value" : "Это представляет собой ваш общий пул запасов на текущий цикл (например, 5 головок сыра). По мере потребления сыра ваше текущее количество уменьшается, но размер пула остается равным 5. Если позже вы сделаете небольшую докупку и приобретете еще 3 штуки, просто нажмите «+» в списке. Приложение автоматически увеличит ваш закупленный запас до 8, чтобы показатели потребления и прогнозы оставшихся дней оставались максимально точными."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bu, mevcut döngü için toplam stok havuzunuzu temsil eder (örneğin, 20 kalıp peynir). Peynir tükettikçe mevcut miktarınız düşer ancak havuz boyutu 20 olarak kalır. Daha sonra ufak bir takviye yapıp 3 tane daha satın alırsanız, listedeki '+' simgesine dokunmanız yeterlidir. Uygulama, Edinilen Stok miktarınızı otomatik olarak 23'e çıkarır; böylece tüketim oranları ve kalan gün tahminleri son derece doğru kalır."
+            "value" : "Bu, mevcut döngü için toplam stok havuzunuzu temsil eder (örneğin, 5 kalıp peynir). Peynir tükettikçe mevcut miktarınız düşer ancak havuz boyutu 5 olarak kalır. Daha sonra ufak bir takviye yapıp 3 tane daha satın alırsanız, listedeki '+' simgesine dokunmanız yeterlidir. Uygulama, Edinilen Stok miktarınızı otomatik olarak 8'e çıkarır; böylece tüketim oranları ve kalan gün tahminleri son derece doğru kalır."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这代表您当前周期的总库存池（例如，20 块奶酪）。当您消耗奶酪时，您的当前数量会下降，但库存池大小仍为 20。如果您稍后进行了微调补货并多买了 3 块，只需轻点列表中的“+”即可。应用会自动将您的“已购库存”增加到 23，从而使消耗率和剩余天数估算保持高度准确。"
+            "value" : "这代表您当前周期的总库存池（例如，5 块奶酪）。当您消耗奶酪时，您的当前数量会下降，但库存池大小仍为 5。如果您稍后进行了微调补货并多买了 3 块，只需轻点列表中的“+”即可。应用会自动将您的“已购库存”增加到 8，从而使消耗率和剩余天数估算保持高度准确。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這代表您目前週期的總庫存量（例如 20 塊起司）。當您消耗起司時，目前的數量會減少，但總庫存量仍維持 20。如果您稍後進行微量補充並多買了 3 塊，只需輕點清單中的「+」即可。應用程式會自動將您的「已購入庫存」增加到 23，以便消耗率和剩餘天數估算保持高度準確。"
+            "value" : "這代表您目前週期的總庫存量（例如 5 塊起司）。當您消耗起司時，目前的數量會減少，但總庫存量仍維持 5。如果您稍後進行微量補充並多買了 3 塊，只需輕點清單中的「+」即可。應用程式會自動將您的「已購入庫存」增加到 8，以便消耗率和剩餘天數估算保持高度準確。"
           }
         }
       }
