@@ -26,13 +26,16 @@ This matters because decimal separators (`.` vs `,`), percent sign placement, an
 
 ### String Catalog extraction
 
-`String(localized:)` with `String.LocalizationValue` is **not reliably extracted** into the String Catalog by Xcode's build-time extractor in this project. Use these patterns instead, which are extracted correctly:
+The project has `SWIFT_EMIT_LOC_STRINGS = YES`, which enables the Swift compiler to extract all `LocalizedStringKey` parameters automatically on build. These patterns are extracted correctly:
 
 - `Text("literal string")` — static strings
+- `Label("title", systemImage: "icon")` — tab items, list rows, buttons
 - `Text("\(intVal, specifier: "%lld") unit")` — integer with plural support  
 - `Text("\(value, format: .percent.precision(.fractionLength(0))) suffix")` — formatted numbers
-- `LocalizedStringKey` parameters on view structs (e.g. `label: LocalizedStringKey`)
+- `LocalizedStringKey` parameters on any SwiftUI view initializer
 - `@ViewBuilder` functions returning `Text(...)` — for conditional localized strings (see `remainingTimeText` in `InventoryView.swift`)
+
+`String(localized:)` with `String.LocalizationValue` is **not** extracted by the compiler extractor (it's not `LocalizedStringKey`). Avoid it in views; use `Text("literal")` or a `LocalizedStringKey` parameter instead.
 
 ## Marketing Site (`public/index.html`)
 
