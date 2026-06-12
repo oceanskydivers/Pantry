@@ -19,6 +19,27 @@ enum SupplyUnit: String, CaseIterable, Identifiable {
         case .years:  return 365.25
         }
     }
+
+    func formatted(value: Int) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        var components = DateComponents()
+        switch self {
+        case .days:
+            formatter.allowedUnits = [.day]
+            components.day = value
+        case .weeks:
+            formatter.allowedUnits = [.weekOfMonth]
+            components.weekOfMonth = value
+        case .months:
+            formatter.allowedUnits = [.month]
+            components.month = value
+        case .years:
+            formatter.allowedUnits = [.year]
+            components.year = value
+        }
+        return formatter.string(from: components) ?? rawValue
+    }
 }
 
 // MARK: - Grouping Mode
@@ -288,7 +309,7 @@ struct InventoryView: View {
                 showingSupplyFilter = true
             } label: {
                 FilterChip(
-                    label: isSupplyFilterActive ? LocalizedStringKey("< \(filterSupplyValue) \(filterSupplyUnit.rawValue)") : "Supply",
+                    label: isSupplyFilterActive ? "< \(filterSupplyUnit.formatted(value: filterSupplyValue))" : "Supply",
                     icon: "calendar.badge.clock",
                     isActive: isSupplyFilterActive
                 )
@@ -298,7 +319,7 @@ struct InventoryView: View {
                 showingExpirationFilter = true
             } label: {
                 FilterChip(
-                    label: isExpirationFilterActive ? "Exp < \(filterExpirationValue) \(filterExpirationUnit.rawValue)" : "Expiring",
+                    label: isExpirationFilterActive ? "Exp < \(filterExpirationUnit.formatted(value: filterExpirationValue))" : "Expiring",
                     icon: "calendar.badge.exclamationmark",
                     isActive: isExpirationFilterActive
                 )
@@ -480,7 +501,7 @@ struct SupplyFilterSheet: View {
                 HStack(spacing: 0) {
                     Picker("Amount", selection: $localValue) {
                         ForEach(numbers, id: \.self) { n in
-                            Text("\(n)").tag(n)
+                            Text(n, format: .number).tag(n)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -592,7 +613,7 @@ struct ExpirationFilterSheet: View {
                 HStack(spacing: 0) {
                     Picker("Amount", selection: $localValue) {
                         ForEach(numbers, id: \.self) { n in
-                            Text("\(n)").tag(n)
+                            Text(n, format: .number).tag(n)
                         }
                     }
                     .pickerStyle(.wheel)

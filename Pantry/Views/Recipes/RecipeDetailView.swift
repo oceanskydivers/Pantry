@@ -67,7 +67,7 @@ struct RecipeBrowserView: View {
                                             .fontWeight(.medium)
                                             .foregroundStyle(.primary)
                                             .lineLimit(1)
-                                        Text("\(recipe.ingredients.count, specifier: "%lld") ingredients")
+                                        Text("\(recipe.ingredients.count) ingredients")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -759,7 +759,7 @@ struct InstructionStepView: View {
         HStack(spacing: 12) {
             // Left Column indicator: height stretches dynamically with the parent HStack's fixed size
             VStack {
-                Text("\(number)")
+                Text(number, format: .number)
                     .fontWeight(.bold)
                     .foregroundStyle(Color.appAccent)
                 if isMultiline {

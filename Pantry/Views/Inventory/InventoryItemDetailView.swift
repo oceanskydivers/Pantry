@@ -268,14 +268,9 @@ struct StockLevelCard: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.spring, value: ringFill)
 
-                if ratio > 1 {
-                    Text(">100%")
-                        .font(.system(size: 9, weight: .bold))
-                } else {
-                    Text(ratio, format: .percent.precision(.fractionLength(0)))
-                        .font(.caption)
-                        .fontWeight(.bold)
-                }
+                Text(ratio, format: .percent.precision(.fractionLength(0)))
+                    .font(.caption)
+                    .fontWeight(.bold)
             }
         }
         .padding()
