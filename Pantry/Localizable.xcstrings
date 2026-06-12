@@ -2476,7 +2476,6 @@
           }
         }
       }
->>>>>>> e764d4266125b8a23039807d6685e8da7a4d5b0e
     },
     "Acquired Stock" : {
       "comment" : "A label displayed under the current quantity of an inventory item.",
@@ -4614,7 +4613,6 @@
       }
     },
     "Desired Stock" : {
->>>>>>> e764d4266125b8a23039807d6685e8da7a4d5b0e
 
     },
     "Details" : {
