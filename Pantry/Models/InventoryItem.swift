@@ -26,6 +26,9 @@ final class InventoryItem {
     @Relationship(deleteRule: .cascade, inverse: \InventoryLog.item)
     var logs: [InventoryLog]
 
+    @Relationship(deleteRule: .cascade, inverse: \ExpirationBatch.item)
+    var expirationBatches: [ExpirationBatch]
+
     init(
         name: String = "",
         unit: String = "",
@@ -47,6 +50,7 @@ final class InventoryItem {
         self.location = location
         self.category = category
         self.logs = []
+        self.expirationBatches = []
         self.historicalRates = []
         self.historicalDays = []
     }
@@ -171,5 +175,50 @@ final class InventoryItem {
     var estimatedDaysRemaining: Double? {
         guard let rate = consumptionRate, rate > 0 else { return nil }
         return currentQuantity / rate
+    }
+
+    // MARK: - Expiration helpers
+
+    /// The soonest expiration date among batches that still have stock.
+    var soonestExpiration: Date? {
+        expirationBatches
+            .filter { $0.quantity > 0 }
+            .map(\.expiresOn)
+            .min()
+    }
+
+    var isExpired: Bool {
+        guard let d = soonestExpiration else { return false }
+        return d < Date()
+    }
+
+    /// Days until the soonest expiration. Negative if already expired.
+    var daysUntilExpiration: Int? {
+        guard let d = soonestExpiration else { return nil }
+        return Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: d)).day
+    }
+
+    /// Batches sorted soonest-first, filtering out empty ones.
+    var sortedActiveBatches: [ExpirationBatch] {
+        expirationBatches
+            .filter { $0.quantity > 0 }
+            .sorted { $0.expiresOn < $1.expiresOn }
+    }
+
+    /// Deducts `amount` from batches in soonest-first order.
+    /// Returns the batch that was primarily deducted from (for toast display), or nil if no batches exist.
+    @discardableResult
+    func deductFromBatches(amount: Double) -> ExpirationBatch? {
+        guard !sortedActiveBatches.isEmpty else { return nil }
+        var remaining = amount
+        var primaryBatch: ExpirationBatch? = nil
+        for batch in sortedActiveBatches {
+            guard remaining > 0 else { break }
+            if primaryBatch == nil { primaryBatch = batch }
+            let deducted = min(batch.quantity, remaining)
+            batch.quantity -= deducted
+            remaining -= deducted
+        }
+        return primaryBatch
     }
 }

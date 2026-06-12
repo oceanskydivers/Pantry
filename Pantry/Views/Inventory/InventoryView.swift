@@ -58,6 +58,11 @@ struct InventoryView: View {
     @State private var isSupplyFilterActive = false
     @State private var filterSupplyValue: Int = 1
     @State private var filterSupplyUnit: SupplyUnit = .months
+    @State private var showingExpirationFilter = false
+    @State private var isExpirationFilterActive = false
+    @State private var filterExpirationValue: Int = 7
+    @State private var filterExpirationUnit: SupplyUnit = .days
+    @State private var filterExpirationIncludeExpired = true
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastUndo: (() -> Void)? = nil
@@ -99,7 +104,25 @@ struct InventoryView: View {
                 matchesSupply = true
             }
 
-            return matchesSearch && matchesLocation && matchesCategory && matchesSupply
+            let matchesExpiration: Bool
+            if isExpirationFilterActive {
+                let threshold = Calendar.current.date(
+                    byAdding: filterExpirationUnit == .days ? .day :
+                              filterExpirationUnit == .weeks ? .weekOfYear :
+                              filterExpirationUnit == .months ? .month : .year,
+                    value: filterExpirationValue,
+                    to: Date()
+                ) ?? Date()
+                if let soonest = item.soonestExpiration {
+                    matchesExpiration = soonest <= threshold && (filterExpirationIncludeExpired || soonest >= Date())
+                } else {
+                    matchesExpiration = false
+                }
+            } else {
+                matchesExpiration = true
+            }
+
+            return matchesSearch && matchesLocation && matchesCategory && matchesSupply && matchesExpiration
         }
     }
 
@@ -175,6 +198,14 @@ struct InventoryView: View {
                     value: $filterSupplyValue,
                     unit: $filterSupplyUnit,
                     isActive: $isSupplyFilterActive
+                )
+            }
+            .sheet(isPresented: $showingExpirationFilter) {
+                ExpirationFilterSheet(
+                    value: $filterExpirationValue,
+                    unit: $filterExpirationUnit,
+                    includeExpired: $filterExpirationIncludeExpired,
+                    isActive: $isExpirationFilterActive
                 )
             }
             .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() })
@@ -263,11 +294,22 @@ struct InventoryView: View {
                 )
             }
 
-            if filterLocation != nil || !filterCategoryIDs.isEmpty || isSupplyFilterActive {
+            Button {
+                showingExpirationFilter = true
+            } label: {
+                FilterChip(
+                    label: isExpirationFilterActive ? "Exp < \(filterExpirationValue) \(filterExpirationUnit.rawValue)" : "Expiring",
+                    icon: "calendar.badge.exclamationmark",
+                    isActive: isExpirationFilterActive
+                )
+            }
+
+            if filterLocation != nil || !filterCategoryIDs.isEmpty || isSupplyFilterActive || isExpirationFilterActive {
                 Button {
                     filterLocation = nil
                     filterCategoryIDs = []
                     isSupplyFilterActive = false
+                    isExpirationFilterActive = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -514,6 +556,123 @@ struct SupplyFilterSheet: View {
     }
 }
 
+// MARK: - ExpirationFilterSheet
+
+struct ExpirationFilterSheet: View {
+    @Binding var value: Int
+    @Binding var unit: SupplyUnit
+    @Binding var includeExpired: Bool
+    @Binding var isActive: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var localValue: Int = 7
+    @State private var localUnit: SupplyUnit = .days
+    @State private var localIncludeExpired: Bool = true
+
+    private let numbers = Array(1...99)
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                VStack(spacing: 4) {
+                    Text("Show items expiring within")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("\(localValue) \(localUnit.rawValue)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.appAccent)
+                        .contentTransition(.numericText())
+                        .animation(.spring(duration: 0.25), value: localValue)
+                        .animation(.spring(duration: 0.25), value: localUnit)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 8)
+
+                HStack(spacing: 0) {
+                    Picker("Amount", selection: $localValue) {
+                        ForEach(numbers, id: \.self) { n in
+                            Text("\(n)").tag(n)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                    Picker("Unit", selection: $localUnit) {
+                        ForEach(SupplyUnit.allCases) { u in
+                            Text(u.rawValue).tag(u)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                }
+                .padding(.horizontal, 16)
+
+                Toggle("Include already expired", isOn: $localIncludeExpired)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
+
+                Text("Only items with tracked expiration batches are shown.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+
+                VStack(spacing: 10) {
+                    Button {
+                        value = localValue
+                        unit = localUnit
+                        includeExpired = localIncludeExpired
+                        isActive = true
+                        dismiss()
+                    } label: {
+                        Text("Apply Filter")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.appAccent, in: RoundedRectangle(cornerRadius: 14))
+                            .foregroundStyle(.white)
+                    }
+
+                    if isActive {
+                        Button(role: .destructive) {
+                            isActive = false
+                            dismiss()
+                        } label: {
+                            Text("Clear Filter")
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 14))
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+            }
+            .navigationTitle("Filter by Expiration")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .onAppear {
+                localValue = value
+                localUnit = unit
+                localIncludeExpired = includeExpired
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
 // MARK: - FilterChip
 
 struct FilterChip: View {
@@ -594,13 +753,18 @@ struct InventoryRowView: View {
             // MARK: - Card content
             VStack(spacing: 12) {
                 // Top Meta Badges
-                if item.location != nil || item.category != nil {
+                let hasExpiration = item.soonestExpiration != nil
+                if item.location != nil || item.category != nil || hasExpiration {
                     HStack(spacing: 6) {
                         if let cat = item.category {
                             RowBadge(text: cat.displayPath, icon: "tag", color: accent)
                         }
                         if let loc = item.location {
                             RowBadge(text: loc.name, icon: "mappin.and.ellipse", color: Color.accentColor(for: loc.name))
+                        }
+                        if let days = item.daysUntilExpiration, days <= 30 {
+                            let (badgeText, badgeColor) = expirationBadge(days: days)
+                            RowBadge(text: badgeText, icon: "calendar.badge.exclamationmark", color: badgeColor)
                         }
                         Spacer()
                     }
@@ -642,7 +806,7 @@ struct InventoryRowView: View {
                             .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture().onEnded {
                                 guard item.currentQuantity > 0 else { return }
-                                adjustQuantity(by: -1)
+                                quickDeductOne()
                             })
                             .simultaneousGesture(LongPressGesture(minimumDuration: 0.4).onEnded { _ in
                                 guard item.currentQuantity > 0 else { return }
@@ -666,7 +830,7 @@ struct InventoryRowView: View {
                             QuickAdjustPopover(
                                 item: item,
                                 isAddition: $quickAdjustIsAddition,
-                                onApply: { delta, _ in adjustQuantity(by: delta) }
+                                onApply: { delta, _, batch, expirationDate in adjustQuantity(by: delta, batch: batch, expirationDate: expirationDate) }
                             )
                         }
 
@@ -676,7 +840,7 @@ struct InventoryRowView: View {
                             .foregroundStyle(.primary)
                             .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture().onEnded {
-                                adjustQuantity(by: 1)
+                                adjustQuantity(by: 1, batch: nil, expirationDate: nil)
                             })
                     }
                     .background(Color(.systemGray6), in: Capsule())
@@ -742,18 +906,65 @@ struct InventoryRowView: View {
         return .statusGood
     }
 
-    private func adjustQuantity(by delta: Double) {
+    /// Quick-tap minus: deducts 1 from soonest-expiring batch (if any), with a batch-aware toast.
+    private func quickDeductOne() {
         let prevCurrent = item.currentQuantity
         let prevAcquired = item.acquiredQuantity
+        guard item.currentQuantity > 0 else { return }
+
+        // Capture previous batch quantities for undo
+        let prevBatchQtys: [(ExpirationBatch, Double)] = item.expirationBatches.map { ($0, $0.quantity) }
+        let affectedBatch = item.deductFromBatches(amount: 1)
+
+        adjustQuantityCore(by: -1, prevCurrent: prevCurrent, prevAcquired: prevAcquired, affectedBatch: affectedBatch, prevBatchQtys: prevBatchQtys)
+    }
+
+    /// Full adjust (from popover). Handles batch deduction and optional new expiration.
+    private func adjustQuantity(by delta: Double, batch: ExpirationBatch? = nil, expirationDate: Date? = nil) {
+        let prevCurrent = item.currentQuantity
+        let prevAcquired = item.acquiredQuantity
+        let prevBatchQtys: [(ExpirationBatch, Double)] = item.expirationBatches.map { ($0, $0.quantity) }
+
+        var affectedBatch: ExpirationBatch? = nil
+
+        if delta < 0 {
+            // Removing: deduct from specified batch or auto soonest
+            let removeAmount = abs(delta)
+            if let specificBatch = batch {
+                let deducted = min(specificBatch.quantity, removeAmount)
+                specificBatch.quantity -= deducted
+                // Deduct remainder from other batches
+                if deducted < removeAmount {
+                    item.deductFromBatches(amount: removeAmount - deducted)
+                }
+                affectedBatch = specificBatch
+            } else if !item.sortedActiveBatches.isEmpty {
+                affectedBatch = item.deductFromBatches(amount: removeAmount)
+            }
+        } else if delta > 0, let expDate = expirationDate {
+            // Adding with an expiration date: find matching batch or create new
+            let cal = Calendar.current
+            if let existing = item.expirationBatches.first(where: { cal.isDate($0.expiresOn, inSameDayAs: expDate) }) {
+                existing.quantity += delta
+                affectedBatch = existing
+            } else {
+                let newBatch = ExpirationBatch(quantity: delta, expiresOn: expDate)
+                newBatch.item = item
+                modelContext.insert(newBatch)
+                affectedBatch = newBatch
+            }
+        }
+
+        adjustQuantityCore(by: delta, prevCurrent: prevCurrent, prevAcquired: prevAcquired, affectedBatch: affectedBatch, prevBatchQtys: prevBatchQtys)
+    }
+
+    private func adjustQuantityCore(by delta: Double, prevCurrent: Double, prevAcquired: Double, affectedBatch: ExpirationBatch?, prevBatchQtys: [(ExpirationBatch, Double)]) {
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
 
-        // When adding stock, silently grow the lifetime acquired total for consumption metrics.
-        if change > 0 {
-            item.acquiredQuantity += change
-        }
-
+        if change > 0 { item.acquiredQuantity += change }
         item.currentQuantity = newQty
+
         let log = InventoryLog(change: change)
         log.item = item
         modelContext.insert(log)
@@ -763,13 +974,20 @@ struct InventoryRowView: View {
 
         let sign = change >= 0 ? "+" : ""
         let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
-        let message = "\(item.name) \(sign)\(formatted)"
+        var message = "\(item.name) \(sign)\(formatted)"
+        if change < 0, let batch = affectedBatch {
+            let dateStr = batch.expiresOn.formatted(date: .abbreviated, time: .omitted)
+            message += " · exp. \(dateStr)"
+        }
+
         let capturedItem = item
         onAdjust?(message) {
             capturedItem.currentQuantity = prevCurrent
             capturedItem.acquiredQuantity = prevAcquired
             capturedItem.logs.removeAll { $0.id == log.id }
             modelContext.delete(log)
+            // Restore batch quantities
+            for (batch, qty) in prevBatchQtys { batch.quantity = qty }
             try? modelContext.save()
             SyncService.shared.syncInventoryItem(capturedItem)
         }
@@ -777,6 +995,25 @@ struct InventoryRowView: View {
 
     private func formatQuantity(_ val: Double) -> String {
         val.formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    private func expirationBadge(days: Int) -> (String, Color) {
+        if days < 0 { return ("Expired", .red) }
+        if days == 0 { return ("Expires today", .red) }
+        if days <= 3 {
+            let d = item.soonestExpiration.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? ""
+            return ("Exp. \(d)", .red)
+        }
+        if days <= 7 {
+            let d = item.soonestExpiration.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? ""
+            return ("Exp. \(d)", .orange)
+        }
+        if days <= 30 {
+            let d = item.soonestExpiration.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? ""
+            return ("Exp. \(d)", Color(.systemYellow))
+        }
+        // > 30 days: no badge shown (daysUntilExpiration guard handles this below)
+        return ("", .clear)
     }
 
     @ViewBuilder
@@ -794,13 +1031,18 @@ struct QuickAdjustPopover: View {
     let item: InventoryItem
     @Binding var isAddition: Bool
     var showNoteField: Bool = false
-    /// Called with (delta, note) where delta is already signed (+/-)
-    let onApply: (Double, String) -> Void
+    /// Called with (delta, note, selectedBatch, addExpirationDate) where delta is already signed (+/-)
+    let onApply: (Double, String, ExpirationBatch?, Date?) -> Void
 
     @State private var amountText = ""
     @State private var note = ""
+    @State private var selectedBatch: ExpirationBatch? = nil
+    @State private var showExpirationPicker = false
+    @State private var newExpirationDate = Date()
     @FocusState private var isFocused: Bool
     @Environment(\.dismiss) private var dismiss
+
+    private var activeBatches: [ExpirationBatch] { item.sortedActiveBatches }
 
     private var parsedValue: Double? {
         Double(amountText.trimmingCharacters(in: .whitespaces))
@@ -814,6 +1056,11 @@ struct QuickAdjustPopover: View {
                 Text("Add").tag(true)
             }
             .pickerStyle(.segmented)
+            .onChange(of: isAddition) { _, _ in
+                // Reset batch/expiry state when switching modes
+                selectedBatch = nil
+                showExpirationPicker = false
+            }
 
             // Amount field
             HStack(spacing: 8) {
@@ -835,6 +1082,59 @@ struct QuickAdjustPopover: View {
             .padding(.vertical, 10)
             .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
 
+            // Remove side: batch selector (only when batches exist)
+            if !isAddition && !activeBatches.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("From which batch?")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+
+                    VStack(spacing: 0) {
+                        batchOption(nil, label: "Soonest expiring (auto)")
+                        ForEach(activeBatches) { batch in
+                            Divider().padding(.leading, 32)
+                            batchOption(batch, label: batchLabel(batch))
+                        }
+                    }
+                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+                }
+            }
+
+            // Add side: optional expiration date
+            if isAddition {
+                if showExpirationPicker {
+                    HStack {
+                        Text("Expires")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        DatePicker("", selection: $newExpirationDate, displayedComponents: .date)
+                            .labelsHidden()
+                        Button {
+                            showExpirationPicker = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+                } else {
+                    Button {
+                        showExpirationPicker = true
+                        newExpirationDate = Date()
+                    } label: {
+                        Label("Add expiration date", systemImage: "calendar.badge.plus")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.appAccent)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
             // Optional note field
             if showNoteField {
                 TextField("Note (optional)", text: $note)
@@ -847,7 +1147,9 @@ struct QuickAdjustPopover: View {
             // Apply button
             Button {
                 guard let value = parsedValue, value > 0 else { return }
-                onApply(isAddition ? value : -value, note)
+                let expirationDate = (isAddition && showExpirationPicker) ? newExpirationDate : nil
+                let batch = (!isAddition && selectedBatch != nil) ? selectedBatch : nil
+                onApply(isAddition ? value : -value, note, batch, expirationDate)
                 dismiss()
             } label: {
                 Text(isAddition ? "Add to Stock" : "Remove from Stock")
@@ -861,9 +1163,43 @@ struct QuickAdjustPopover: View {
             .disabled(parsedValue == nil || parsedValue! <= 0)
         }
         .padding(20)
-        .frame(minWidth: 240)
+        .frame(minWidth: 260)
         .presentationCompactAdaptation(.popover)
-        .onAppear { isFocused = true }
+        .onAppear {
+            isFocused = true
+            // Default to soonest batch when removing
+            if !isAddition && !activeBatches.isEmpty {
+                selectedBatch = nil  // nil = auto (soonest)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func batchOption(_ batch: ExpirationBatch?, label: String) -> some View {
+        let isSelected = batch?.id == selectedBatch?.id && !(batch == nil && selectedBatch != nil)
+        Button {
+            selectedBatch = batch
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.appAccent : .secondary)
+                Text(label)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func batchLabel(_ batch: ExpirationBatch) -> String {
+        let qty = batch.quantity.formatted(.number.precision(.fractionLength(0...1)))
+        let unitSuffix = item.unit.isEmpty ? "" : " \(item.unit)"
+        let dateStr = batch.expiresOn.formatted(date: .abbreviated, time: .omitted)
+        return "\(qty)\(unitSuffix) · \(dateStr)"
     }
 }
 

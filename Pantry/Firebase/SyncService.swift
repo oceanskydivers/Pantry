@@ -572,6 +572,13 @@ final class SyncService {
         ]
         if let locationID = item.location?.id { d["locationID"] = locationID.uuidString }
         if let categoryID = item.category?.id { d["categoryID"] = categoryID.uuidString }
+        d["expirationBatches"] = item.expirationBatches.map { batch in
+            [
+                "id": batch.id.uuidString,
+                "quantity": batch.quantity,
+                "expiresOn": Timestamp(date: batch.expiresOn)
+            ] as [String: Any]
+        }
         return d
     }
 
@@ -777,6 +784,22 @@ final class SyncService {
                 }
                 log.item = item
                 context.insert(log)
+            }
+        }
+
+        if let batchesData = data["expirationBatches"] as? [[String: Any]] {
+            for existing in item.expirationBatches { context.delete(existing) }
+            item.expirationBatches = []
+            for batchData in batchesData {
+                let batch = ExpirationBatch(
+                    quantity: batchData["quantity"] as? Double ?? 0,
+                    expiresOn: (batchData["expiresOn"] as? Timestamp)?.dateValue() ?? Date()
+                )
+                if let idStr = batchData["id"] as? String, let batchId = UUID(uuidString: idStr) {
+                    batch.id = batchId
+                }
+                batch.item = item
+                context.insert(batch)
             }
         }
     }

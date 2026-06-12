@@ -13,7 +13,7 @@ struct InventoryItemDetailView: View {
     @State private var showingResetConfirmation = false
     @State private var showToast = false
     @State private var toastMessage = ""
-    @State private var lastAdjustmentUndo: (prevCurrent: Double, prevAcquired: Double, prevDesired: Double, log: InventoryLog)? = nil
+    @State private var lastAdjustmentUndo: (prevCurrent: Double, prevAcquired: Double, log: InventoryLog, prevBatchQtys: [(ExpirationBatch, Double)])? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -45,6 +45,10 @@ struct InventoryItemDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 StockLevelCard(item: item)
+
+                if !item.sortedActiveBatches.isEmpty {
+                    ExpirationCard(item: item)
+                }
 
                 EstimateCard(item: item)
 
@@ -102,7 +106,7 @@ struct InventoryItemDetailView: View {
                         item: item,
                         isAddition: $adjustIsAddition,
                         showNoteField: true,
-                        onApply: { delta, note in applyAdjustment(delta: delta, note: note) }
+                        onApply: { delta, note, batch, expirationDate in applyAdjustment(delta: delta, note: note, batch: batch, expirationDate: expirationDate) }
                     )
                 }
 
@@ -122,15 +126,34 @@ struct InventoryItemDetailView: View {
         .toast(isPresented: $showToast, message: toastMessage, onUndo: undoLastAdjustment)
     }
 
-    private func applyAdjustment(delta: Double, note: String) {
+    private func applyAdjustment(delta: Double, note: String, batch: ExpirationBatch? = nil, expirationDate: Date? = nil) {
         let prevCurrent = item.currentQuantity
         let prevAcquired = item.acquiredQuantity
-        let prevDesired = item.desiredQuantity
+        let prevBatchQtys: [(ExpirationBatch, Double)] = item.expirationBatches.map { ($0, $0.quantity) }
         let newQty = max(0, item.currentQuantity + delta)
         let change = newQty - item.currentQuantity
-        if change > 0 {
-            item.acquiredQuantity += change
+
+        if delta < 0 {
+            let removeAmount = abs(delta)
+            if let specificBatch = batch {
+                let deducted = min(specificBatch.quantity, removeAmount)
+                specificBatch.quantity -= deducted
+                if deducted < removeAmount { item.deductFromBatches(amount: removeAmount - deducted) }
+            } else if !item.sortedActiveBatches.isEmpty {
+                item.deductFromBatches(amount: removeAmount)
+            }
+        } else if delta > 0, let expDate = expirationDate {
+            let cal = Calendar.current
+            if let existing = item.expirationBatches.first(where: { cal.isDate($0.expiresOn, inSameDayAs: expDate) }) {
+                existing.quantity += delta
+            } else {
+                let newBatch = ExpirationBatch(quantity: delta, expiresOn: expDate)
+                newBatch.item = item
+                modelContext.insert(newBatch)
+            }
         }
+
+        if change > 0 { item.acquiredQuantity += change }
         item.currentQuantity = newQty
         let log = InventoryLog(change: change, note: note)
         log.item = item
@@ -138,7 +161,7 @@ struct InventoryItemDetailView: View {
         try? modelContext.save()
         SyncService.shared.syncInventoryItem(item)
 
-        lastAdjustmentUndo = (prevCurrent, prevAcquired, prevDesired, log)
+        lastAdjustmentUndo = (prevCurrent, prevAcquired, log, prevBatchQtys)
         let sign = change >= 0 ? "+" : ""
         let unitSuffix = item.unit.isEmpty ? "" : " \(item.unit)"
         let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
@@ -150,9 +173,9 @@ struct InventoryItemDetailView: View {
         guard let undo = lastAdjustmentUndo else { return }
         item.currentQuantity = undo.prevCurrent
         item.acquiredQuantity = undo.prevAcquired
-        item.desiredQuantity = undo.prevDesired
         item.logs.removeAll { $0.id == undo.log.id }
         modelContext.delete(undo.log)
+        for (batch, qty) in undo.prevBatchQtys { batch.quantity = qty }
         try? modelContext.save()
         SyncService.shared.syncInventoryItem(item)
         lastAdjustmentUndo = nil
@@ -291,6 +314,65 @@ struct ChartCard: View {
         }
         .padding()
         .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - ExpirationCard
+
+struct ExpirationCard: View {
+    let item: InventoryItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Expiration")
+                .font(.headline)
+
+            ForEach(item.sortedActiveBatches) { batch in
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(urgencyColor(for: batch.expiresOn))
+                        .frame(width: 10, height: 10)
+
+                    let qty = batch.quantity.formatted(.number.precision(.fractionLength(0...1)))
+                    let unitSuffix = item.unit.isEmpty ? "" : " \(item.unit)"
+                    Text("\(qty)\(unitSuffix)")
+                        .fontWeight(.medium)
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    Text(expirationLabel(for: batch.expiresOn))
+                        .font(.subheadline)
+                        .foregroundStyle(urgencyColor(for: batch.expiresOn))
+                }
+                .padding(.vertical, 2)
+
+                if batch.id != item.sortedActiveBatches.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func urgencyColor(for date: Date) -> Color {
+        let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: date)).day ?? 0
+        if days < 0 { return .red }
+        if days <= 3 { return .red }
+        if days <= 7 { return .orange }
+        if days <= 30 { return .yellow }
+        return .secondary
+    }
+
+    private func expirationLabel(for date: Date) -> String {
+        let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: date)).day ?? 0
+        if days < 0 { return "Expired \(abs(days)) day\(abs(days) == 1 ? "" : "s") ago" }
+        if days == 0 { return "Expires today" }
+        if days <= 14 {
+            return "Expires in \(days) day\(days == 1 ? "" : "s")"
+        }
+        return "Expires \(date.formatted(date: .abbreviated, time: .omitted))"
     }
 }
 

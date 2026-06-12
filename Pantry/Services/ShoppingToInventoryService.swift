@@ -1,8 +1,29 @@
 import Foundation
 import SwiftData
+import NaturalLanguage
 
 @MainActor
 struct ShoppingToInventoryService {
+
+    /// Returns the lemmatized (singular/base) form of a name using NLTagger.
+    /// Wraps the text in a sentence ("I need <text>.") so the tagger has enough
+    /// grammatical context to singularize plural nouns reliably.
+    /// Falls back to the original lowercased input if lemmatization yields nothing.
+    private static func lemmatize(_ text: String) -> String {
+        let sentence = "I need \(text)."
+        guard let targetRange = sentence.range(of: text) else {
+            return text.lowercased()
+        }
+        let tagger = NLTagger(tagSchemes: [.lemma])
+        tagger.string = sentence
+        var lemmas: [String] = []
+        tagger.enumerateTags(in: targetRange, unit: .word, scheme: .lemma, options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            let word = String(sentence[range])
+            lemmas.append(tag?.rawValue.lowercased() ?? word.lowercased())
+            return true
+        }
+        return lemmas.isEmpty ? text.lowercased() : lemmas.joined(separator: " ")
+    }
 
     /// Checks a shopping item name against inventory and either increments an existing item
     /// or creates a new one. Returns the affected item, a toast message, and an undo closure, or nil if the setting is disabled.
@@ -12,12 +33,12 @@ struct ShoppingToInventoryService {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
 
-        let searchName = trimmed.lowercased()
+        let searchLemma = lemmatize(trimmed)
         let descriptor = FetchDescriptor<InventoryItem>()
         let allItems = (try? context.fetch(descriptor)) ?? []
 
         if let existing = allItems.first(where: {
-            $0.name.trimmingCharacters(in: .whitespaces).lowercased() == searchName
+            lemmatize($0.name.trimmingCharacters(in: .whitespaces)) == searchLemma
         }) {
             // Increment existing item — silently grow acquiredQuantity for consumption metrics.
             let prevCurrent = existing.currentQuantity
@@ -43,10 +64,19 @@ struct ShoppingToInventoryService {
             }
             return (existing, "\(existing.name) \(formattedQty) in inventory", undo)
         } else {
-            // Create a new inventory item. Desired defaults to what was just bought.
+            // Create a new inventory item using the singular/lemmatized name.
             let qty = Double(quantity)
+            // Preserve the user's original casing for the display name, but use the
+            // singular form derived from lemmatization (e.g. "limes" → "lime").
+            let singularName: String = {
+                let lemma = lemmatize(trimmed)
+                // If lemmatization changed only the last word (pluralization), rebuild
+                // the name with original casing for the non-changed words and lowercase
+                // only where the lemma differs. For simplicity, capitalize the first letter.
+                return lemma.prefix(1).uppercased() + lemma.dropFirst()
+            }()
             let item = InventoryItem(
-                name: trimmed,
+                name: singularName,
                 unit: "",
                 acquiredQuantity: qty,
                 desiredQuantity: qty,
@@ -67,7 +97,7 @@ struct ShoppingToInventoryService {
                 context.delete(item)
                 try? context.save()
             }
-            return (item, "\(trimmed) added to inventory", undo)
+            return (item, "\(singularName) added to inventory", undo)
         }
     }
 }
