@@ -974,10 +974,12 @@ struct InventoryRowView: View {
 
         let sign = change >= 0 ? "+" : ""
         let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
-        let message: LocalizedStringKey = "\(item.name) \(sign)\(formatted)"
+        let message: LocalizedStringKey
         if change < 0, let batch = affectedBatch {
             let dateStr = batch.expiresOn.formatted(date: .abbreviated, time: .omitted)
-            message += " · exp. \(dateStr)"
+            message = "\(item.name) \(sign)\(formatted) · exp. \(dateStr)"
+        } else {
+            message = "\(item.name) \(sign)\(formatted)"
         }
 
         let capturedItem = item
