@@ -608,10 +608,13 @@ struct InventoryRowView: View {
                                 .foregroundStyle(.secondary)
 
                             if let days = item.estimatedDaysRemaining {
-                                Text("~\(formatDays(days)) left")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 0) {
+                                    Text("Remaining: ")
+                                    remainingTimeText(days)
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -764,11 +767,12 @@ struct InventoryRowView: View {
         val == val.rounded() ? "\(Int(val))" : String(format: "%.1f", val)
     }
 
-    private func formatDays(_ days: Double) -> String {
-        if days < 1 { return "< 1 day" }
-        if days < 7 { return "\(Int(days)) days" }
-        if days < 30 { return "\(Int(days / 7)) wks" }
-        return "\(Int(days / 30)) mo"
+    @ViewBuilder
+    private func remainingTimeText(_ days: Double) -> some View {
+        if days < 1 { Text("< 1 day") }
+        else if days < 7 { Text("\(Int(days), specifier: "%lld") days") }
+        else if days < 30 { Text("\(Int(days / 7), specifier: "%lld") wks") }
+        else { Text("\(Int(days / 30), specifier: "%lld") mo") }
     }
 }
 
