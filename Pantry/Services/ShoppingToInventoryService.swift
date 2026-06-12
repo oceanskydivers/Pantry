@@ -19,11 +19,11 @@ struct ShoppingToInventoryService {
         if let existing = allItems.first(where: {
             $0.name.trimmingCharacters(in: .whitespaces).lowercased() == searchName
         }) {
-            // Increment existing item — matches the top-off pattern used elsewhere in the app
+            // Increment existing item — silently grow acquiredQuantity for consumption metrics.
             let prevCurrent = existing.currentQuantity
-            let prevInitial = existing.initialQuantity
+            let prevAcquired = existing.acquiredQuantity
             existing.currentQuantity += Double(quantity)
-            existing.initialQuantity += Double(quantity)
+            existing.acquiredQuantity += Double(quantity)
 
             let log = InventoryLog(change: Double(quantity), note: "Added from shopping list")
             log.item = existing
@@ -35,7 +35,7 @@ struct ShoppingToInventoryService {
             let formattedQty = quantity == 1 ? "+1" : "+\(quantity)"
             let undo = {
                 existing.currentQuantity = prevCurrent
-                existing.initialQuantity = prevInitial
+                existing.acquiredQuantity = prevAcquired
                 existing.logs.removeAll { $0.id == log.id }
                 context.delete(log)
                 try? context.save()
@@ -43,17 +43,19 @@ struct ShoppingToInventoryService {
             }
             return (existing, "\(existing.name) \(formattedQty) in inventory", undo)
         } else {
-            // Create a new inventory item with the bought quantity
+            // Create a new inventory item. Desired defaults to what was just bought.
+            let qty = Double(quantity)
             let item = InventoryItem(
                 name: trimmed,
                 unit: "",
-                initialQuantity: Double(quantity),
-                currentQuantity: Double(quantity),
+                acquiredQuantity: qty,
+                desiredQuantity: qty,
+                currentQuantity: qty,
                 dateBought: Date()
             )
             context.insert(item)
 
-            let log = InventoryLog(change: Double(quantity), note: "Added from shopping list")
+            let log = InventoryLog(change: qty, note: "Added from shopping list")
             log.item = item
             context.insert(log)
 

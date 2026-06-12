@@ -554,7 +554,10 @@ final class SyncService {
             "id": item.id.uuidString,
             "name": item.name,
             "unit": item.unit,
-            "initialQuantity": item.initialQuantity,
+            // "initialQuantity" key kept for backward compatibility with older clients.
+            "initialQuantity": item.acquiredQuantity,
+            "acquiredQuantity": item.acquiredQuantity,
+            "desiredQuantity": item.desiredQuantity,
             "currentQuantity": item.currentQuantity,
             "dateBought": Timestamp(date: item.dateBought),
             "createdAt": Timestamp(date: item.createdAt),
@@ -735,8 +738,12 @@ final class SyncService {
         item.id = id
         item.name = data["name"] as? String ?? ""
         item.unit = data["unit"] as? String ?? ""
-        item.initialQuantity = data["initialQuantity"] as? Double ?? 0
+        // Read acquiredQuantity; fall back to legacy "initialQuantity" key for older documents.
+        let acquired = (data["acquiredQuantity"] as? Double) ?? (data["initialQuantity"] as? Double) ?? 0
+        item.acquiredQuantity = acquired
         item.currentQuantity = data["currentQuantity"] as? Double ?? 0
+        // desiredQuantity defaults to acquiredQuantity if missing (migration from old documents).
+        item.desiredQuantity = (data["desiredQuantity"] as? Double) ?? acquired
         if let ts = data["dateBought"] as? Timestamp { item.dateBought = ts.dateValue() }
         if let ts = data["createdAt"] as? Timestamp { item.createdAt = ts.dateValue() }
 

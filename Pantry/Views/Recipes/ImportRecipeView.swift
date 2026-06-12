@@ -73,6 +73,52 @@ struct ImportRecipeView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.rectangle.on.rectangle")
+                                .font(.title3)
+                                .foregroundStyle(Color.appAccent)
+                            Text("Video links supported")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        Text("Paste a link from any of these platforms and we'll extract the recipe for you:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 8) {
+                            ForEach(["TikTok", "Instagram", "YouTube", "Facebook"], id: \.self) { platform in
+                                Text(platform)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.quaternary, in: Capsule())
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
+
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "globe")
+                                .font(.title3)
+                                .foregroundStyle(Color.appAccent)
+                            Text("Recipe websites supported")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        Text("Paste any recipe page URL and we'll extract the ingredients and steps automatically.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color(.secondarySystemGroupedBackground))
+
                 if let error = errorMessage {
                     Section {
                         Label(error, systemImage: "exclamationmark.triangle")
