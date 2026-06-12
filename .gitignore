@@ -39,3 +39,6 @@ Carthage/Build/
 # Node packages
 node_modules/
 functions/node_modules/
+
+# Localization XLIFF files
+Pantry Localizations/

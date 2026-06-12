@@ -4,6 +4,36 @@
     "Add to my ${applicationName} shopping list" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "أضف إلى قائمة تسوق ${applicationName} الخاصة بي",
+              "أضف عنصراً إلى ${applicationName}",
+              "أضف إلى قائمة ${applicationName}"
+            ]
+          }
+        },
+        "bn" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "আমার ${applicationName} শপিং লিস্টে যোগ করুন",
+              "${applicationName}-এ আইটেম যোগ করুন",
+              "${applicationName} লিস্টে যোগ করুন"
+            ]
+          }
+        },
+        "de" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Zu meiner ${applicationName}-Einkaufsliste hinzufügen",
+              "Artikel zu ${applicationName} hinzufügen",
+              "Zur ${applicationName}-Liste hinzufügen"
+            ]
+          }
+        },
         "en" : {
           "stringSet" : {
             "state" : "new",
@@ -14,28 +44,124 @@
             ]
           }
         },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Añadir a mi lista de la compra de ${applicationName}",
+              "Añadir artículo a ${applicationName}",
+              "Añadir a la lista de ${applicationName}"
+            ]
+          }
+        },
+        "fr" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Ajouter à ma liste de courses ${applicationName}",
+              "Ajouter un article à ${applicationName}",
+              "Ajouter à la liste ${applicationName}"
+            ]
+          }
+        },
         "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "मेरी ${applicationName} शॉपिंग सूची में जोड़ें"
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "मेरी ${applicationName} शॉपिंग सूची में जोड़ें",
+              "${applicationName} में आइटम जोड़ें",
+              "${applicationName} सूची में जोड़ें"
+            ]
+          }
+        },
+        "id" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Tambahkan ke daftar belanja ${applicationName} saya",
+              "Tambahkan item ke ${applicationName}",
+              "Tambahkan ke daftar ${applicationName}"
+            ]
+          }
+        },
+        "it" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Aggiungi alla mia lista della spesa di ${applicationName}",
+              "Aggiungi articolo a ${applicationName}",
+              "Aggiungi alla lista di ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}の買い物リストに追加して",
+              "${applicationName}にアイテムを追加して",
+              "${applicationName}のリストに追加して"
+            ]
           }
         },
         "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "${applicationName} 쇼핑 목록에 추가"
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName} 쇼핑 목록에 추가해 줘",
+              "${applicationName}에 항목 추가해 줘",
+              "${applicationName} 목록에 추가해 줘"
+            ]
+          }
+        },
+        "pt-BR" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Adicionar à minha lista de compras do ${applicationName}",
+              "Adicionar item ao ${applicationName}",
+              "Adicionar à lista do ${applicationName}"
+            ]
           }
         },
         "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить в мой список покупок ${applicationName}"
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Добавить в мой список покупок ${applicationName}",
+              "Добавить товар в ${applicationName}",
+              "Добавить в список ${applicationName}"
+            ]
+          }
+        },
+        "tr" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName} alışveriş listeme ekle",
+              "${applicationName}'a ürün ekle",
+              "${applicationName} listesine ekle"
+            ]
+          }
+        },
+        "zh-Hans" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "添加到我的 ${applicationName} 购物清单",
+              "向 ${applicationName} 添加物品",
+              "添加到 ${applicationName} 清单"
+            ]
           }
         },
         "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入我的 ${applicationName} 購物清單"
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "加入我的 ${applicationName} 購物清單",
+              "新增物品到 ${applicationName}",
+              "加入 ${applicationName} 清單"
+            ]
           }
         }
       }
