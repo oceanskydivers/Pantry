@@ -64,14 +64,14 @@ struct InventoryView: View {
     @State private var filterExpirationUnit: SupplyUnit = .days
     @State private var filterExpirationIncludeExpired = true
     @State private var showToast = false
-    @State private var toastMessage = ""
+    @State private var toastMessage: LocalizedStringKey = ""
     @State private var toastUndo: (() -> Void)? = nil
 
-    private var categoryFilterLabel: String {
+    private var categoryFilterLabel: LocalizedStringKey {
         let selected = categories.filter { filterCategoryIDs.contains($0.id) }
         switch selected.count {
         case 0: return "All Categories"
-        case 1: return selected[0].name
+        case 1: return LocalizedStringKey(selected[0].name)
         default: return "\(selected.count) Categories"
         }
     }
@@ -246,7 +246,7 @@ struct InventoryView: View {
                 }
             } label: {
                 FilterChip(
-                    label: groupMode.rawValue,
+                    label: LocalizedStringKey(groupMode.rawValue),
                     icon: groupMode.icon,
                     isActive: true
                 )
@@ -265,7 +265,7 @@ struct InventoryView: View {
                     }
                 } label: {
                     FilterChip(
-                        label: filterLocation?.name ?? "All Locations",
+                        label: LocalizedStringKey(filterLocation?.name ?? "All Locations"),
                         icon: "mappin.and.ellipse",
                         isActive: filterLocation != nil
                     )
@@ -288,7 +288,7 @@ struct InventoryView: View {
                 showingSupplyFilter = true
             } label: {
                 FilterChip(
-                    label: isSupplyFilterActive ? "< \(filterSupplyValue) \(filterSupplyUnit.rawValue)" : "Supply",
+                    label: isSupplyFilterActive ? LocalizedStringKey("< \(filterSupplyValue) \(filterSupplyUnit.rawValue)") : "Supply",
                     icon: "calendar.badge.clock",
                     isActive: isSupplyFilterActive
                 )
@@ -676,7 +676,7 @@ struct ExpirationFilterSheet: View {
 // MARK: - FilterChip
 
 struct FilterChip: View {
-    let label: String
+    let label: LocalizedStringKey
     let icon: String
     let isActive: Bool
 
@@ -715,7 +715,7 @@ struct InventoryRowView: View {
     @Bindable var item: InventoryItem
     @Environment(\.modelContext) private var modelContext
 
-    var onAdjust: ((String, @escaping () -> Void) -> Void)? = nil
+    var onAdjust: ((LocalizedStringKey, @escaping () -> Void) -> Void)? = nil
 
     @State private var showingQuickAdjust = false
     @State private var quickAdjustIsAddition = false
@@ -974,10 +974,12 @@ struct InventoryRowView: View {
 
         let sign = change >= 0 ? "+" : ""
         let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
-        var message = "\(item.name) \(sign)\(formatted)"
+        let message: LocalizedStringKey
         if change < 0, let batch = affectedBatch {
             let dateStr = batch.expiresOn.formatted(date: .abbreviated, time: .omitted)
-            message += " · exp. \(dateStr)"
+            message = "\(item.name) \(sign)\(formatted) · exp. \(dateStr)"
+        } else {
+            message = "\(item.name) \(sign)\(formatted)"
         }
 
         let capturedItem = item

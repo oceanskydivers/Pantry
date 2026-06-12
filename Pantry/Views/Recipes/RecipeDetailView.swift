@@ -441,7 +441,7 @@ struct RecipeDetailView: View {
                             Divider()
                                 .padding(.top, 4)
                             HStack(spacing: 16) {
-                                ForEach(InventoryLegendItem.all, id: \.label) { item in
+                                ForEach(InventoryLegendItem.all, id: \.systemImage) { item in
                                     HStack(spacing: 5) {
                                         Image(systemName: item.systemImage)
                                             .font(.system(size: 9, weight: .semibold))
@@ -723,7 +723,7 @@ struct IngredientRowView: View {
 private struct InventoryLegendItem {
     let systemImage: String
     let color: Color
-    let label: String
+    let label: LocalizedStringKey
 
     static let all: [InventoryLegendItem] = [
         InventoryLegendItem(systemImage: "circle.fill", color: Color(red: 0.6, green: 0.9, blue: 0.6), label: "In stock"),

@@ -23,7 +23,7 @@ struct ShoppingListView: View {
     @State private var editMode: EditMode = .inactive
     @State private var isKeyboardVisible = false
     @State private var showToast = false
-    @State private var toastMessage = ""
+    @State private var toastMessage: LocalizedStringKey = ""
     @State private var toastInventoryItem: InventoryItem? = nil
     @State private var editingInventoryItem: InventoryItem? = nil
     @State private var toastUndo: (() -> Void)? = nil
@@ -165,7 +165,7 @@ struct ShoppingCategorySection: View {
     @Bindable var category: ShoppingCategory
     @Environment(\.modelContext) private var modelContext
     let showChecked: Bool
-    var onAutoAddMessage: ((String, InventoryItem, @escaping () -> Void) -> Void)?
+    var onAutoAddMessage: ((LocalizedStringKey, InventoryItem, @escaping () -> Void) -> Void)?
 
     // Plain value-type row — only unchecked items live here.
     // Checked items are read directly from SwiftData and displayed separately.
@@ -352,7 +352,7 @@ struct ShoppingCategorySection: View {
 
         // Auto-add to inventory if the setting is enabled
         if let result = ShoppingToInventoryService.processCheckedItem(name: trimmed, quantity: quantity, context: modelContext) {
-            onAutoAddMessage?(result.message, result.item, result.undo)
+            onAutoAddMessage?(LocalizedStringKey(result.message), result.item, result.undo)
         }
 
         // Sync immediately with the updated checked state, then rebuild unchecked rows

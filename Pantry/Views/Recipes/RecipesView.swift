@@ -203,7 +203,7 @@ struct RecipesView: View {
                 }
             } label: {
                 FilterChip(
-                    label: sortMode.rawValue,
+                    label: LocalizedStringKey(sortMode.rawValue),
                     icon: sortMode.icon,
                     isActive: true
                 )
