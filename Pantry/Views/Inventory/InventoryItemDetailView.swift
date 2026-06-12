@@ -10,6 +10,7 @@ struct InventoryItemDetailView: View {
     @State private var showingAdjust = false
     @State private var adjustIsAddition = true
     @State private var showingDeleteConfirmation = false
+    @State private var showingResetConfirmation = false
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var lastAdjustmentUndo: (prevCurrent: Double, prevInitial: Double, log: InventoryLog)? = nil
@@ -24,17 +25,20 @@ struct InventoryItemDetailView: View {
         var running = item.currentQuantity
         var points: [(date: Date, quantity: Double)] = [(date: Date(), quantity: running)]
 
-        for log in item.logs.sorted(by: { $0.date > $1.date }) {
+        // Only walk logs that occurred after dateBought. The dateBought anchor already
+        // represents the starting quantity, so including the "Initial stock" addition log
+        // (or any other addition at dateBought) in the backwards walk would incorrectly
+        // drop the running total below zero.
+        let sortedLogs = item.logs
+            .filter { $0.date > item.dateBought }
+            .sorted(by: { $0.date > $1.date })
+
+        for log in sortedLogs {
             running -= log.change
-            // Only include points after dateBought; the anchor below covers the origin
-            if log.date > item.dateBought {
-                points.append((date: log.date, quantity: max(0, running)))
-            }
+            points.append((date: log.date, quantity: max(0, running)))
         }
 
         var result = points.reversed() as [(date: Date, quantity: Double)]
-
-        // Always anchor the chart at dateBought with initialQuantity
         result.insert((date: item.dateBought, quantity: item.initialQuantity), at: 0)
 
         return result
@@ -44,13 +48,13 @@ struct InventoryItemDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
-                StockLevelCard(item: item)
+                StockLevelCard(item: item, onResetTapped: { showingResetConfirmation = true })
+
+                EstimateCard(item: item)
 
                 if chartData.count > 1 {
                     ChartCard(data: chartData, unit: item.unit)
                 }
-
-                EstimateCard(item: item)
 
                 DetailsCard(item: item)
 
@@ -68,6 +72,17 @@ struct InventoryItemDetailView: View {
                 .padding(.top, 8)
             }
             .padding()
+        }
+        .alert("Reset acquired stock?", isPresented: $showingResetConfirmation) {
+            Button("Reset", role: .destructive) {
+                resetAcquiredStock()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            let qty = item.currentQuantity == item.currentQuantity.rounded()
+                ? "\(Int(item.currentQuantity))"
+                : String(format: "%.1f", item.currentQuantity)
+            Text("Your new baseline will be \(qty)\(item.unit.isEmpty ? "" : " \(item.unit)"). Previous history and consumption data will be preserved.")
         }
         .alert("Delete \(item.name)?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -147,50 +162,116 @@ struct InventoryItemDetailView: View {
         SyncService.shared.syncInventoryItem(item)
         lastAdjustmentUndo = nil
     }
+
+    private func resetAcquiredStock() {
+        // Archive the current period's consumption rate before resetting.
+        // Use the item's current-period rate (log-based if enough data, otherwise date-bought rate).
+        let periodDays = max(1, Calendar.current.dateComponents([.day], from: item.dateBought, to: Date()).day ?? 1)
+        let deletionCount = item.logs.filter { $0.change < 0 }.count
+        let periodRate: Double?
+        if deletionCount >= 5 {
+            periodRate = item.logBasedConsumptionRate ?? item.dateBoughtConsumptionRate
+        } else {
+            periodRate = item.dateBoughtConsumptionRate ?? item.logBasedConsumptionRate
+        }
+
+        if let rate = periodRate {
+            item.historicalRates.append(rate)
+            item.historicalDays.append(periodDays)
+        }
+
+        // Reset the current batch baseline to current stock level.
+        item.initialQuantity = item.currentQuantity
+        item.dateBought = Date()
+
+        // Log the reset event for visibility in the activity log.
+        let log = InventoryLog(change: 0, note: "Acquired stock reset to \(item.currentQuantity == item.currentQuantity.rounded() ? "\(Int(item.currentQuantity))" : String(format: "%.1f", item.currentQuantity)) \(item.unit)")
+        log.item = item
+        modelContext.insert(log)
+
+        try? modelContext.save()
+        SyncService.shared.syncInventoryItem(item)
+    }
 }
 
 struct StockLevelCard: View {
     let item: InventoryItem
+    var onResetTapped: (() -> Void)? = nil
 
     private var percent: Double {
         guard item.initialQuantity > 0 else { return 1 }
-        return min(1, item.currentQuantity / item.initialQuantity)
+        return min(1, max(0, item.currentQuantity / item.initialQuantity))
+    }
+
+    private var statusColor: Color {
+        if percent < 0.1 { return .red }
+        if percent < 0.3 { return .orange }
+        return .green
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Current Stock")
-                        .font(.caption)
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Stock Level")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(formatQty(item.currentQuantity))
+                        .font(.system(.largeTitle, design: .rounded))
+                        .fontWeight(.black)
+                    Text(item.unit)
+                        .font(.headline)
                         .foregroundStyle(.secondary)
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(formatQty(item.currentQuantity))
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        Text(item.unit)
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
                 }
-                Spacer()
-                VStack(alignment: .trailing) {
-                    Text("Acquired")
+
+                HStack(spacing: 4) {
+                    Text("out of \(formatQty(item.initialQuantity))\(item.unit.isEmpty ? "" : " \(item.unit)") acquired")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(formatQty(item.initialQuantity))
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Text(item.unit)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+
+                    if onResetTapped != nil {
+                        Button {
+                            onResetTapped?()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.trianglehead.counterclockwise.rotate.90")
+                                Text("Reset")
+                            }
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Color.appAccent)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.appAccent.opacity(0.12), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
 
-            ProgressView(value: percent)
-                .tint(percent < 0.1 ? .red : percent < 0.3 ? .orange : .green)
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .stroke(Color(.systemGray4), lineWidth: 10)
+                    .frame(width: 70, height: 70)
+
+                Circle()
+                    .trim(from: 0.0, to: CGFloat(percent))
+                    .stroke(
+                        statusColor,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+                    .frame(width: 70, height: 70)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.spring, value: percent)
+
+                Text(String(format: "%.0f%%", percent * 100))
+                    .font(.caption)
+                    .fontWeight(.bold)
+            }
         }
         .padding()
         .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 14))
@@ -333,6 +414,8 @@ struct DetailRow: View {
 struct LogSection: View {
     let logs: [InventoryLog]
     let unit: String
+    
+    @State private var visibleCount = 5
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -344,7 +427,10 @@ struct LogSection: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(logs) { log in
+                let displayedLogs = Array(logs.prefix(visibleCount))
+                let remainingCount = logs.count - visibleCount
+
+                ForEach(displayedLogs) { log in
                     HStack {
                         Image(systemName: log.isAddition ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
                             .foregroundStyle(log.isAddition ? .green : .red)
@@ -367,9 +453,29 @@ struct LogSection: View {
                     }
                     .padding(.vertical, 4)
 
-                    if log.id != logs.last?.id {
+                    if log.id != displayedLogs.last?.id {
                         Divider()
                     }
+                }
+
+                if remainingCount > 0 {
+                    Button {
+                        withAnimation {
+                            visibleCount += min(10, remainingCount)
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("Show \(remainingCount > 10 ? 10 : remainingCount) More")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                        .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
             }
         }
@@ -378,5 +484,38 @@ struct LogSection: View {
     }
 }
 
+// MARK: - PREVIEW
+#Preview("Item Detail Page") {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: InventoryItem.self, StorageLocation.self, InventoryCategory.self, InventoryLog.self, configurations: config)
+    
+    let context = container.mainContext
+    
+    let item = InventoryItem(
+        name: "Olive Oil",
+        unit: "bottles",
+        initialQuantity: 5.0,
+        currentQuantity: 1.5,
+        dateBought: Date().addingTimeInterval(-86400 * 10)
+    )
+    
+    // Add logs for a nice history presentation
+    let log1 = InventoryLog(change: 5.0, note: "Initial buy", date: Date().addingTimeInterval(-86400 * 10))
+    let log2 = InventoryLog(change: -2.0, note: "Baking bread", date: Date().addingTimeInterval(-86400 * 7))
+    let log3 = InventoryLog(change: -1.5, note: "Salad dressings", date: Date().addingTimeInterval(-86400 * 3))
+    
+    log1.item = item
+    log2.item = item
+    log3.item = item
+    
+    context.insert(item)
+    context.insert(log1)
+    context.insert(log2)
+    context.insert(log3)
 
+    return NavigationStack {
+        InventoryItemDetailView(item: item)
+    }
+    .modelContainer(container)
+}
 

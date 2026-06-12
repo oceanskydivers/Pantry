@@ -22,6 +22,6 @@ final class ShoppingCategory {
     }
 
     var checkedItems: [ShoppingItem] {
-        items.filter { $0.isChecked }.sorted { $0.addedAt < $1.addedAt }
+        items.filter { $0.isChecked }.sorted { ($0.checkedAt ?? $0.addedAt) < ($1.checkedAt ?? $1.addedAt) }
     }
 }

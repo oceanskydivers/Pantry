@@ -8,6 +8,7 @@ final class ShoppingItem {
     var isChecked: Bool
     var quantity: Int
     var addedAt: Date
+    var checkedAt: Date?
     var category: ShoppingCategory?
 
     init(name: String, quantity: Int = 1, category: ShoppingCategory? = nil, addedAt: Date = Date()) {
@@ -16,6 +17,7 @@ final class ShoppingItem {
         self.isChecked = false
         self.quantity = quantity
         self.addedAt = addedAt
+        self.checkedAt = nil
         self.category = category
     }
 }

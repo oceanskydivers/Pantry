@@ -14,6 +14,11 @@ final class InventoryItem {
     var location: StorageLocation?
     var category: InventoryCategory?
 
+    /// Parallel arrays storing archived consumption periods from previous resets.
+    /// Each index i represents: rate[i] units/day over days[i] days.
+    var historicalRates: [Double]
+    var historicalDays: [Int]
+
     @Relationship(deleteRule: .cascade, inverse: \InventoryLog.item)
     var logs: [InventoryLog]
 
@@ -36,6 +41,8 @@ final class InventoryItem {
         self.location = location
         self.category = category
         self.logs = []
+        self.historicalRates = []
+        self.historicalDays = []
     }
 
     /// Consumption rate derived from log history (consumed units / days between first and last log).
@@ -62,13 +69,42 @@ final class InventoryItem {
         return consumed / Double(days)
     }
 
-    /// Best available consumption rate: uses log-based only when there are at least 5 log entries, otherwise uses date-bought average.
-    var consumptionRate: Double? {
+    /// Best available consumption rate for the current period only.
+    private var currentPeriodRate: Double? {
         let deletionCount = logs.filter { $0.change < 0 }.count
         if deletionCount >= 5 {
             return logBasedConsumptionRate ?? dateBoughtConsumptionRate
         }
         return dateBoughtConsumptionRate ?? logBasedConsumptionRate
+    }
+
+    /// Duration in days of the current period (dateBought → now).
+    private var currentPeriodDays: Int {
+        max(1, Calendar.current.dateComponents([.day], from: dateBought, to: Date()).day ?? 1)
+    }
+
+    /// Weighted average of all historical periods plus the current period.
+    /// Longer periods have proportionally more influence on the result.
+    var consumptionRate: Double? {
+        guard let currentRate = currentPeriodRate else {
+            // No current data — fall back to historical average if available
+            guard !historicalRates.isEmpty else { return nil }
+            let totalDays = historicalDays.reduce(0, +)
+            guard totalDays > 0 else { return nil }
+            let weightedSum = zip(historicalRates, historicalDays).reduce(0.0) { $0 + $1.0 * Double($1.1) }
+            return weightedSum / Double(totalDays)
+        }
+
+        guard !historicalRates.isEmpty else { return currentRate }
+
+        let currentDays = currentPeriodDays
+        let historicalTotal = historicalDays.reduce(0, +)
+        let totalDays = historicalTotal + currentDays
+        guard totalDays > 0 else { return currentRate }
+
+        let historicalWeighted = zip(historicalRates, historicalDays).reduce(0.0) { $0 + $1.0 * Double($1.1) }
+        let currentWeighted = currentRate * Double(currentDays)
+        return (historicalWeighted + currentWeighted) / Double(totalDays)
     }
 
     var estimatedDaysRemaining: Double? {

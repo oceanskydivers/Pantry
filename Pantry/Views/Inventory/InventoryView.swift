@@ -1,6 +1,26 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Supply Unit
+
+enum SupplyUnit: String, CaseIterable, Identifiable {
+    case days = "Days"
+    case weeks = "Weeks"
+    case months = "Months"
+    case years = "Years"
+
+    var id: String { rawValue }
+
+    var inDays: Double {
+        switch self {
+        case .days:   return 1
+        case .weeks:  return 7
+        case .months: return 30.44
+        case .years:  return 365.25
+        }
+    }
+}
+
 // MARK: - Grouping Mode
 
 enum InventoryGroupMode: String, CaseIterable {
@@ -34,6 +54,10 @@ struct InventoryView: View {
     @State private var showingManageLocations = false
     @State private var showingManageCategories = false
     @State private var showingCategoryPicker = false
+    @State private var showingSupplyFilter = false
+    @State private var isSupplyFilterActive = false
+    @State private var filterSupplyValue: Int = 1
+    @State private var filterSupplyUnit: SupplyUnit = .months
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var toastUndo: (() -> Void)? = nil
@@ -66,7 +90,16 @@ struct InventoryView: View {
                 matchesCategory = false
             }
 
-            return matchesSearch && matchesLocation && matchesCategory
+            let matchesSupply: Bool
+            if isSupplyFilterActive {
+                let threshold = Double(filterSupplyValue) * filterSupplyUnit.inDays
+                let daysLeft = item.estimatedDaysRemaining ?? Double.infinity
+                matchesSupply = daysLeft < threshold
+            } else {
+                matchesSupply = true
+            }
+
+            return matchesSearch && matchesLocation && matchesCategory && matchesSupply
         }
     }
 
@@ -135,6 +168,13 @@ struct InventoryView: View {
                         filterCategoryIDs = Set(selected.map(\.id))
                     },
                     initialSelection: filterCategoryIDs
+                )
+            }
+            .sheet(isPresented: $showingSupplyFilter) {
+                SupplyFilterSheet(
+                    value: $filterSupplyValue,
+                    unit: $filterSupplyUnit,
+                    isActive: $isSupplyFilterActive
                 )
             }
             .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() })
@@ -213,10 +253,21 @@ struct InventoryView: View {
                 }
             }
 
-            if filterLocation != nil || !filterCategoryIDs.isEmpty {
+            Button {
+                showingSupplyFilter = true
+            } label: {
+                FilterChip(
+                    label: isSupplyFilterActive ? "< \(filterSupplyValue) \(filterSupplyUnit.rawValue)" : "Supply",
+                    icon: "calendar.badge.clock",
+                    isActive: isSupplyFilterActive
+                )
+            }
+
+            if filterLocation != nil || !filterCategoryIDs.isEmpty || isSupplyFilterActive {
                 Button {
                     filterLocation = nil
                     filterCategoryIDs = []
+                    isSupplyFilterActive = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -348,6 +399,106 @@ struct InventoryView: View {
             SyncService.shared.deleteInventoryItem(id: item.id)
             modelContext.delete(item)
         }
+    }
+}
+
+// MARK: - SupplyFilterSheet
+
+struct SupplyFilterSheet: View {
+    @Binding var value: Int
+    @Binding var unit: SupplyUnit
+    @Binding var isActive: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var localValue: Int = 1
+    @State private var localUnit: SupplyUnit = .months
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack(spacing: 12) {
+                        // Number stepper + field
+                        HStack(spacing: 0) {
+                            Button {
+                                if localValue > 1 { localValue -= 1 }
+                            } label: {
+                                Image(systemName: "minus")
+                                    .frame(width: 40, height: 40)
+                                    .foregroundStyle(localValue > 1 ? .primary : Color(.systemGray3))
+                            }
+                            .buttonStyle(.plain)
+
+                            Text("\(localValue)")
+                                .font(.title2.monospacedDigit())
+                                .fontWeight(.semibold)
+                                .frame(minWidth: 36)
+                                .multilineTextAlignment(.center)
+
+                            Button {
+                                localValue += 1
+                            } label: {
+                                Image(systemName: "plus")
+                                    .frame(width: 40, height: 40)
+                                    .foregroundStyle(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+
+                        // Unit picker
+                        Picker("Unit", selection: $localUnit) {
+                            ForEach(SupplyUnit.allCases) { u in
+                                Text(u.rawValue).tag(u)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Show items with less than")
+                } footer: {
+                    Text("Only items with a tracked consumption rate will be matched.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Button {
+                        value = localValue
+                        unit = localUnit
+                        isActive = true
+                        dismiss()
+                    } label: {
+                        Text("Apply Filter")
+                            .frame(maxWidth: .infinity)
+                            .fontWeight(.semibold)
+                    }
+
+                    if isActive {
+                        Button(role: .destructive) {
+                            isActive = false
+                            dismiss()
+                        } label: {
+                            Text("Clear Filter")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Filter by Supply")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .onAppear {
+                localValue = value
+                localUnit = unit
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

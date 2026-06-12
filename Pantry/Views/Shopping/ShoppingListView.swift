@@ -92,6 +92,14 @@ struct ShoppingListView: View {
                         }
 
                         Button {
+                            withAnimation {
+                                editMode = editMode == .active ? .inactive : .active
+                            }
+                        } label: {
+                            Image(systemName: editMode == .active ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle")
+                        }
+
+                        Button {
                             showingAddCategory = true
                         } label: {
                             Image(systemName: "plus")
@@ -196,10 +204,13 @@ struct ShoppingCategorySection: View {
             .onDelete { offsets in
                 mutateRows(actionName: "Delete Item") { $0.remove(atOffsets: offsets) }
             }
+            .onMove { source, destination in
+                mutateRows(actionName: "Move Item") { $0.move(fromOffsets: source, toOffset: destination) }
+            }
 
-            // Checked items — read-only, straight from SwiftData
+            // Checked items — read-only, straight from SwiftData (most recent 5 only)
             if showChecked {
-                ForEach(category.checkedItems) { item in
+                ForEach(category.checkedItems.suffix(5)) { item in
                     CheckedShoppingItemRow(item: item) {
                         item.isChecked = false
                         try? modelContext.save()
@@ -208,7 +219,7 @@ struct ShoppingCategorySection: View {
                     }
                 }
                 .onDelete { offsets in
-                    let items = category.checkedItems
+                    let items = Array(category.checkedItems.suffix(5))
                     offsets.map { items[$0] }.forEach { modelContext.delete($0) }
                     try? modelContext.save()
                     SyncService.shared.syncShoppingCategory(category)
@@ -335,6 +346,7 @@ struct ShoppingCategorySection: View {
         // Mark as checked in SwiftData first, save, then sync the full category
         if let item = category.items.first(where: { $0.cloudID == id }) {
             item.isChecked = true
+            item.checkedAt = Date()
             try? modelContext.save()
         }
 
