@@ -503,6 +503,9 @@ struct ShoppingItemRow: View {
 
             // Quantity badge — larger tap target via padding inside the button
             Button {
+                // Dismiss any active keyboard before showing the popover so it
+                // doesn't distort the popover layout.
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 showingQuantityPicker = true
             } label: {
                 Text("×\(row.quantity)")

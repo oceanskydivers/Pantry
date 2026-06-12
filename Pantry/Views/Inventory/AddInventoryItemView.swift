@@ -26,6 +26,10 @@ struct AddInventoryItemView: View {
     @State private var selectedCategory: InventoryCategory? = nil
     @State private var showingCategoryPicker = false
 
+    // Expiration batch state
+    @State private var expirationBatches: [(id: UUID, quantityText: String, expiresOn: Date)] = []
+    @State private var showingExpirationSection = false
+
     enum FocusedField { case name, unit, currentQty, desiredQty, acquiredQty, newLocation }
     @FocusState private var focusedField: FocusedField?
 
@@ -130,6 +134,73 @@ struct AddInventoryItemView: View {
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                // MARK: Expiration
+                Section("Expiration") {
+                    if showingExpirationSection {
+                        ForEach($expirationBatches, id: \.id) { $batch in
+                            HStack(spacing: 8) {
+                                TextField("Qty", text: $batch.quantityText)
+                                    .keyboardType(.decimalPad)
+                                    .frame(width: 52)
+                                    .multilineTextAlignment(.trailing)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
+
+                                if !unit.isEmpty {
+                                    Text(unit)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text("expires")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                DatePicker("", selection: $batch.expiresOn, displayedComponents: .date)
+                                    .labelsHidden()
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+
+                                Button {
+                                    expirationBatches.removeAll { $0.id == batch.id }
+                                    if expirationBatches.isEmpty { showingExpirationSection = false }
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.red.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        Button {
+                            expirationBatches.append((id: UUID(), quantityText: "", expiresOn: Date()))
+                        } label: {
+                            Label("Add Another Batch", systemImage: "plus.circle")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appAccent)
+                        }
+
+                        let batchTotal = expirationBatches.compactMap { Double($0.quantityText) }.reduce(0, +)
+                        let current = Double(currentQuantityText) ?? 0
+                        if current > 0 && batchTotal < current {
+                            let remaining = (current - batchTotal).formatted(.number.precision(.fractionLength(0...1)))
+                            let unitLabel = unit.isEmpty ? "units" : unit
+                            Text("\(remaining) \(unitLabel) have no expiration assigned.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Button {
+                            showingExpirationSection = true
+                            expirationBatches = [(id: UUID(), quantityText: "", expiresOn: Date())]
+                        } label: {
+                            Label("Add Expiration Date", systemImage: "calendar.badge.exclamationmark")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appAccent)
                         }
                     }
                 }
@@ -257,6 +328,11 @@ struct AddInventoryItemView: View {
         desiredQuantityText = formatQty(item.desiredQuantity)
         selectedLocation = item.location
         selectedCategory = item.category
+        let batches = item.expirationBatches.filter { $0.quantity > 0 }.sorted { $0.expiresOn < $1.expiresOn }
+        if !batches.isEmpty {
+            showingExpirationSection = true
+            expirationBatches = batches.map { (id: UUID(), quantityText: formatQty($0.quantity), expiresOn: $0.expiresOn) }
+        }
     }
 
     private func save() {
@@ -313,8 +389,25 @@ struct AddInventoryItemView: View {
             savedItem = item
         }
 
+        // Persist expiration batches
+        saveExpirationBatches(to: savedItem)
+
         SyncService.shared.syncInventoryItem(savedItem)
         dismiss()
+    }
+
+    private func saveExpirationBatches(to item: InventoryItem) {
+        // Remove all existing batches then re-create from current state
+        for batch in item.expirationBatches { modelContext.delete(batch) }
+        item.expirationBatches = []
+
+        guard showingExpirationSection else { return }
+        for entry in expirationBatches {
+            guard let qty = Double(entry.quantityText), qty > 0 else { continue }
+            let batch = ExpirationBatch(quantity: qty, expiresOn: entry.expiresOn)
+            batch.item = item
+            modelContext.insert(batch)
+        }
     }
 
     private func formatQty(_ v: Double) -> String {
