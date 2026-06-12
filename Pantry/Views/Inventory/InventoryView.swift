@@ -702,7 +702,7 @@ struct InventoryRowView: View {
 
                             Spacer()
 
-                            Text("\(Int(stockRatio * 100))% remaining")
+                            Text("\(stockRatio, format: .percent.precision(.fractionLength(0))) remaining")
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.secondary)
@@ -750,7 +750,7 @@ struct InventoryRowView: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         let sign = change >= 0 ? "+" : ""
-        let formatted = change == change.rounded() ? "\(Int(change))" : String(format: "%.1f", change)
+        let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
         let message = "\(item.name) \(sign)\(formatted)"
         let capturedItem = item
         onAdjust?(message) {
@@ -764,7 +764,7 @@ struct InventoryRowView: View {
     }
 
     private func formatQuantity(_ val: Double) -> String {
-        val == val.rounded() ? "\(Int(val))" : String(format: "%.1f", val)
+        val.formatted(.number.precision(.fractionLength(0...1)))
     }
 
     @ViewBuilder

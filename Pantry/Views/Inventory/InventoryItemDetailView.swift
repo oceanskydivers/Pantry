@@ -79,9 +79,7 @@ struct InventoryItemDetailView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            let qty = item.currentQuantity == item.currentQuantity.rounded()
-                ? "\(Int(item.currentQuantity))"
-                : String(format: "%.1f", item.currentQuantity)
+            let qty = item.currentQuantity.formatted(.number.precision(.fractionLength(0...1)))
             Text("Your new baseline will be \(qty)\(item.unit.isEmpty ? "" : " \(item.unit)"). Previous history and consumption data will be preserved.")
         }
         .alert("Delete \(item.name)?", isPresented: $showingDeleteConfirmation) {
@@ -147,7 +145,7 @@ struct InventoryItemDetailView: View {
         lastAdjustmentUndo = (prevCurrent, prevInitial, log)
         let sign = change >= 0 ? "+" : ""
         let unitSuffix = item.unit.isEmpty ? "" : " \(item.unit)"
-        let formatted = change == change.rounded() ? "\(Int(change))" : String(format: "%.1f", change)
+        let formatted = change.formatted(.number.precision(.fractionLength(0...1)))
         toastMessage = "\(item.name) \(sign)\(formatted)\(unitSuffix)"
         withAnimation { showToast = true }
     }
@@ -268,7 +266,7 @@ struct StockLevelCard: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.spring, value: percent)
 
-                Text(String(format: "%.0f%%", percent * 100))
+                Text(percent, format: .percent.precision(.fractionLength(0)))
                     .font(.caption)
                     .fontWeight(.bold)
             }
@@ -278,7 +276,7 @@ struct StockLevelCard: View {
     }
 
     private func formatQty(_ v: Double) -> String {
-        v == v.rounded() ? "\(Int(v))" : String(format: "%.1f", v)
+        v.formatted(.number.precision(.fractionLength(0...1)))
     }
 }
 
@@ -327,13 +325,19 @@ struct EstimateCard: View {
 
             if let days = item.estimatedDaysRemaining, let rate = item.consumptionRate {
                 let daysPerUnit = 1.0 / rate
-                let unitDurationLabel = daysPerUnit < 1 ? "< 1 day" : daysPerUnit < 14 ? String(format: "%.1f days", daysPerUnit) : String(format: "%.1f wks", daysPerUnit / 7)
+                let daysFormatted = days.formatted(.number.precision(.fractionLength(0)))
+                let weeksFormatted = (days / 7).formatted(.number.precision(.fractionLength(0...1)))
+                let unitDurationLabel = daysPerUnit < 1
+                    ? "< 1 day"
+                    : daysPerUnit < 14
+                        ? "\(daysPerUnit.formatted(.number.precision(.fractionLength(0...1)))) days"
+                        : "\(( daysPerUnit / 7).formatted(.number.precision(.fractionLength(0...1)))) wks"
                 HStack {
-                    EstimateCell(label: "Days Left", value: String(format: "%.0f", days), icon: "calendar")
+                    EstimateCell(label: "Days Left", value: daysFormatted, icon: "calendar")
                     Divider()
                     EstimateCell(label: "1 \(item.unit) lasts", value: unitDurationLabel, icon: "chart.line.downtrend.xyaxis")
                     Divider()
-                    EstimateCell(label: "Weeks Left", value: String(format: "%.1f", days / 7), icon: "clock")
+                    EstimateCell(label: "Weeks Left", value: weeksFormatted, icon: "clock")
                 }
                 .frame(maxWidth: .infinity)
 
@@ -358,7 +362,7 @@ struct EstimateCard: View {
 }
 
 struct EstimateCell: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     let icon: String
 

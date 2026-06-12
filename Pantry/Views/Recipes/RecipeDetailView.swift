@@ -648,8 +648,7 @@ struct ServingsScalerView: View {
     }
 
     private func formatServings(_ val: Double) -> String {
-        if val == val.rounded() { return String(Int(val)) }
-        return String(format: "%.1f", val)
+        val.formatted(.number.precision(.fractionLength(0...1)))
     }
 }
 

@@ -290,6 +290,6 @@ struct AddInventoryItemView: View {
     }
 
     private func formatQty(_ v: Double) -> String {
-        v == 0 ? "" : (v == v.rounded() ? "\(Int(v))" : String(format: "%.1f", v))
+        v == 0 ? "" : v.formatted(.number.precision(.fractionLength(0...1)))
     }
 }

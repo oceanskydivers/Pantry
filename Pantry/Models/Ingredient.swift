@@ -28,6 +28,6 @@ final class Ingredient {
         if scaled == scaled.rounded() {
             return String(Int(scaled))
         }
-        return String(format: "%.2g", scaled)
+        return scaled.formatted(.number.precision(.significantDigits(1...2)))
     }
 }

@@ -26,9 +26,6 @@ final class InventoryLog {
     }
 
     private func formatQuantity(_ value: Double) -> String {
-        if value == value.rounded() {
-            return String(Int(abs(value)))
-        }
-        return String(format: "%.1f", abs(value))
+        abs(value).formatted(.number.precision(.fractionLength(0...1)))
     }
 }
