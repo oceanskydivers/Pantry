@@ -457,10 +457,13 @@ struct InventoryRowView: View {
                                 .foregroundStyle(.secondary)
 
                             if let days = item.estimatedDaysRemaining {
-                                Text("~\(formatDays(days)) left")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 0) {
+                                    Text("Remaining: ")
+                                    Text(formatDays(days))
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
                             }
                         }
                     }
