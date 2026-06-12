@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pantry</title>
+  <meta name="description" id="meta-desc" content="Track inventory, build shopping lists, and plan meals — all in one place." />
+  <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="4cad9905-9694-44b3-9e05-11e678037b06";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #86AC78;
+      --accent-dark: #6a9460;
+      --accent-light: #eef4ec;
+      --text: #1a1a1a;
+      --text2: #5c5c5c;
+      --border: #e5e5e5;
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 64px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 18px;
+      text-decoration: none; color: var(--text);
+    }
+    .nav-icon-img {
+      width: 32px; height: 32px; border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 28px;
+    }
+    .nav-links a {
+      text-decoration: none; color: var(--text2); font-size: 15px;
+      transition: color 0.12s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-dl {
+      background: var(--text);
+      color: #fff !important;
+      padding: 9px 20px;
+      border-radius: 24px;
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-dl:hover { background: #333 !important; }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: 700px; margin: 0 auto;
+      text-align: center;
+      padding: 88px 24px 64px;
+    }
+    .hero h1 {
+      font-size: clamp(38px, 7vw, 64px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 22px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-sub {
+      font-size: 19px; color: var(--text2);
+      line-height: 1.55; margin-bottom: 40px;
+    }
+    .appstore-wrap {
+      display: inline-flex; flex-direction: column;
+      align-items: center; gap: 8px;
+    }
+    .appstore-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: #000; color: #fff;
+      padding: 12px 24px; border-radius: 14px;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .appstore-btn:hover { opacity: 0.82; }
+    .appstore-btn svg { flex-shrink: 0; }
+    .appstore-text { display: flex; flex-direction: column; }
+    .appstore-sub { font-size: 10px; letter-spacing: 0.03em; opacity: 0.75; line-height: 1; }
+    .appstore-main { font-size: 18px; font-weight: 600; line-height: 1.2; }
+    .appstore-note { font-size: 13px; color: var(--text2); }
+
+    /* ── Screenshots ── */
+    .screens-section {
+      background: var(--accent-light);
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .section-title {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 700; letter-spacing: -0.025em;
+      margin-bottom: 52px;
+    }
+    .screens-row {
+      display: flex; justify-content: center;
+      gap: 28px; flex-wrap: wrap;
+    }
+    .screen-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 18px;
+    }
+    .screen-frame {
+      width: 210px; height: 453px;
+      background: #111;
+      border-radius: 46px;
+      border: 8px solid #111;
+      overflow: hidden; position: relative;
+      box-shadow: 0 28px 72px rgba(0,0,0,0.22);
+    }
+    /* Dynamic Island */
+    .screen-frame::before {
+      content: '';
+      position: absolute; top: 10px;
+      left: 50%; transform: translateX(-50%);
+      width: 108px; height: 28px;
+      background: #111; border-radius: 20px; z-index: 10;
+    }
+    .screen-ph {
+      width: 100%; height: 100%;
+      background: linear-gradient(150deg, #b8d5b0 0%, #86AC78 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+    }
+    .screen-ph-icon { font-size: 40px; opacity: 0.7; }
+    .screen-ph-label {
+      font-size: 12px; font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .screen-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; display: none;
+    }
+    .screen-caption {
+      font-size: 14px; font-weight: 600;
+      color: var(--text2);
+    }
+
+    /* ── Features ── */
+    .features-section { padding: 88px 24px; }
+    .features-section .section-title { text-align: center; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px; max-width: 1040px; margin: 0 auto;
+    }
+    .feat-card {
+      background: var(--accent-light);
+      border-radius: var(--radius);
+      padding: 30px 28px 26px;
+    }
+    .feat-icon { font-size: 34px; margin-bottom: 14px; display: block; }
+    .feat-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat-desc { font-size: 15px; color: var(--text2); line-height: 1.55; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+    }
+    .footer-inner {
+      max-width: 1040px; margin: 0 auto;
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 14px;
+    }
+    .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+    .footer-links a, .footer-copy {
+      font-size: 13px; color: var(--text2);
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .lang-sel {
+      appearance: none;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 28px 6px 10px;
+      font-size: 13px; color: var(--text2);
+      cursor: pointer;
+    }
+    [dir=rtl] .lang-sel {
+      background-position: left 9px center;
+      padding: 6px 10px 6px 28px;
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .nav-hide { display: none; }
+      .hero { padding: 60px 16px 48px; }
+      .screen-frame { width: 160px; height: 346px; border-radius: 36px; }
+      .screen-frame::before { width: 84px; height: 22px; }
+      footer { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="/">
+    <img src="/icon.png" alt="Pantry" class="nav-icon-img" />
+    Pantry
+  </a>
+  <div class="nav-links">
+    <a href="#features" class="nav-hide" data-i18n="nav_features">Features</a>
+    <a href="#" onclick="if(window.$crisp){$crisp.push(['do','chat:open'])};return false;" data-i18n="nav_support">Support</a>
+    <!-- TODO: Replace href with actual App Store URL -->
+    <a href="https://apps.apple.com/app/id" class="btn-dl" data-i18n="nav_download">Download</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1 id="hero-h1"></h1>
+  <p class="hero-sub" id="hero-sub"></p>
+  <div class="appstore-wrap">
+    <!-- TODO: Replace href with actual App Store URL -->
+    <a class="appstore-btn" href="https://apps.apple.com/app/id" id="appstore-link">
+      <svg width="20" height="24" viewBox="0 0 814 1000" fill="white">
+        <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 528.5 26.3 422.5 26.3 330.7c0-153.8 100.1-235.5 198.3-235.5 51.3 0 94.3 33.9 126.6 33.9 30.7 0 79.4-35.8 138.1-35.8 22.4 0 108.2 1.9 166.2 82.7zm-240.7-187.8c28.1-32.9 47.9-78.7 47.9-124.5 0-6.4-.6-12.8-1.9-18-45.3 1.7-99.8 30.1-132.7 66.3-25.9 28.7-50.8 74.5-50.8 121.6 0 6.9 1.3 14.5 1.9 16.8 3.2.6 8.4 1.3 13.5 1.3 40.8 0 91.9-27.5 122.1-63.5z"/>
+      </svg>
+      <span class="appstore-text">
+        <span class="appstore-sub" data-i18n="appstore_sub">Download on the</span>
+        <span class="appstore-main" data-i18n="appstore_main">App Store</span>
+      </span>
+    </a>
+    <span class="appstore-note" data-i18n="hero_note">Free · iPhone &amp; iPad</span>
+  </div>
+</section>
+
+<section class="screens-section">
+  <h2 class="section-title" data-i18n="screens_title">Everything you need</h2>
+  <div class="screens-row">
+    <div class="screen-wrap">
+      <div class="screen-frame">
+        <div class="screen-ph">
+          <span class="screen-ph-icon">📦</span>
+          <span class="screen-ph-label" data-i18n="screen_1_label">Feature 1</span>
+        </div>
+        <img class="screen-img" data-n="1" alt="" />
+      </div>
+      <span class="screen-caption" data-i18n="screen_1_cap">Inventory</span>
+    </div>
+    <div class="screen-wrap">
+      <div class="screen-frame">
+        <div class="screen-ph">
+          <span class="screen-ph-icon">🛒</span>
+          <span class="screen-ph-label" data-i18n="screen_2_label">Feature 2</span>
+        </div>
+        <img class="screen-img" data-n="2" alt="" />
+      </div>
+      <span class="screen-caption" data-i18n="screen_2_cap">Shopping</span>
+    </div>
+    <div class="screen-wrap">
+      <div class="screen-frame">
+        <div class="screen-ph">
+          <span class="screen-ph-icon">📋</span>
+          <span class="screen-ph-label" data-i18n="screen_3_label">Feature 3</span>
+        </div>
+        <img class="screen-img" data-n="3" alt="" />
+      </div>
+      <span class="screen-caption" data-i18n="screen_3_cap">Recipes</span>
+    </div>
+  </div>
+</section>
+
+<section class="features-section" id="features">
+  <h2 class="section-title" data-i18n="feats_title">Simple. Smart. Stocked.</h2>
+  <div class="features-grid">
+    <div class="feat-card">
+      <span class="feat-icon">📦</span>
+      <h3 class="feat-title" data-i18n="feat_1_title">Smart Inventory</h3>
+      <p class="feat-desc" data-i18n="feat_1_desc">See everything in your fridge, pantry, and cupboards at a glance.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">🛒</span>
+      <h3 class="feat-title" data-i18n="feat_2_title">Shopping Lists</h3>
+      <p class="feat-desc" data-i18n="feat_2_desc">Your list stays in sync as ingredients are used or added.</p>
+    </div>
+    <div class="feat-card">
+      <span class="feat-icon">📋</span>
+      <h3 class="feat-title" data-i18n="feat_3_title">Recipe Planning</h3>
+      <p class="feat-desc" data-i18n="feat_3_desc">Import recipes and see instantly what you already have on hand.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="/privacy" data-i18n="footer_privacy">Privacy Policy</a>
+      <a href="#" onclick="if(window.$crisp){$crisp.push(['do','chat:open'])};return false;" data-i18n="footer_support">Support</a>
+    </div>
+    <select class="lang-sel" id="lang-sel" onchange="setLang(this.value)" aria-label="Language"></select>
+    <span class="footer-copy" data-i18n="footer_copy">&copy; 2026 Pantry</span>
+  </div>
+</footer>
+
+<script>
+const LOCALES = {
+  en: { name: 'English', dir: 'ltr', t: {
+    nav_features: 'Features', nav_support: 'Support', nav_download: 'Download',
+    hero_pre: "Always know what’s in your ", hero_em: 'pantry', hero_post: '.',
+    hero_sub: 'Track inventory, build shopping lists, and plan meals — all in one place.',
+    appstore_sub: 'Download on the', appstore_main: 'App Store',
+    hero_note: 'Free · iPhone & iPad',
+    screens_title: 'Everything you need',
+    screen_1_label: 'Feature 1', screen_1_cap: 'Inventory',
+    screen_2_label: 'Feature 2', screen_2_cap: 'Shopping',
+    screen_3_label: 'Feature 3', screen_3_cap: 'Recipes',
+    feats_title: 'Simple. Smart. Stocked.',
+    feat_1_title: 'Smart Inventory', feat_1_desc: 'See everything in your fridge, pantry, and cupboards at a glance.',
+    feat_2_title: 'Shopping Lists', feat_2_desc: 'Your list stays in sync as ingredients are used or added.',
+    feat_3_title: 'Recipe Planning', feat_3_desc: 'Import recipes and see instantly what you already have on hand.',
+    footer_privacy: 'Privacy Policy', footer_support: 'Support', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Track inventory, build shopping lists, and plan meals — all in one place.',
+  }},
+  de: { name: 'Deutsch', dir: 'ltr', t: {
+    nav_features: 'Funktionen', nav_support: 'Support', nav_download: 'Laden',
+    hero_pre: 'Behalten Sie immer den Überblick über Ihre ', hero_em: 'Vorratskammer', hero_post: '.',
+    hero_sub: 'Inventar verwalten, Einkaufslisten erstellen und Mahlzeiten planen — alles an einem Ort.',
+    appstore_sub: 'Laden im', appstore_main: 'App Store',
+    hero_note: 'Kostenlos · iPhone & iPad',
+    screens_title: 'Alles was Sie brauchen',
+    screen_1_label: 'Funktion 1', screen_1_cap: 'Inventar',
+    screen_2_label: 'Funktion 2', screen_2_cap: 'Einkaufen',
+    screen_3_label: 'Funktion 3', screen_3_cap: 'Rezepte',
+    feats_title: 'Einfach. Clever. Bestens vorrätig.',
+    feat_1_title: 'Cleveres Inventar', feat_1_desc: 'Behalten Sie alles in Kühlschrank, Vorratskammer und Schranken im Blick.',
+    feat_2_title: 'Einkaufslisten', feat_2_desc: 'Ihre Liste bleibt synchronisiert, wenn Zutaten verbraucht oder hinzugefügt werden.',
+    feat_3_title: 'Rezeptplanung', feat_3_desc: 'Rezepte importieren und sofort sehen, was Sie bereits vorrätig haben.',
+    footer_privacy: 'Datenschutz', footer_support: 'Support', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Inventar verwalten, Einkaufslisten erstellen und Mahlzeiten planen — alles an einem Ort.',
+  }},
+  es: { name: 'Español', dir: 'ltr', t: {
+    nav_features: 'Funciones', nav_support: 'Soporte', nav_download: 'Descargar',
+    hero_pre: 'Siempre sepa lo que hay en su ', hero_em: 'despensa', hero_post: '.',
+    hero_sub: 'Gestione el inventario, cree listas de compras y planifique comidas — todo en un solo lugar.',
+    appstore_sub: 'Descargar en el', appstore_main: 'App Store',
+    hero_note: 'Gratis · iPhone & iPad',
+    screens_title: 'Todo lo que necesita',
+    screen_1_label: 'Función 1', screen_1_cap: 'Inventario',
+    screen_2_label: 'Función 2', screen_2_cap: 'Compras',
+    screen_3_label: 'Función 3', screen_3_cap: 'Recetas',
+    feats_title: 'Simple. Inteligente. Surtido.',
+    feat_1_title: 'Inventario inteligente', feat_1_desc: 'Vea todo en su nevera, despensa y armarios de un vistazo.',
+    feat_2_title: 'Listas de compras', feat_2_desc: 'Su lista se mantiene sincronizada cuando se usan o añaden ingredientes.',
+    feat_3_title: 'Planificación de recetas', feat_3_desc: 'Importe recetas y vea al instante lo que ya tiene a mano.',
+    footer_privacy: 'Privacidad', footer_support: 'Soporte', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Gestione el inventario, cree listas de compras y planifique comidas — todo en un solo lugar.',
+  }},
+  fr: { name: 'Français', dir: 'ltr', t: {
+    nav_features: 'Fonctionnalités', nav_support: 'Assistance', nav_download: 'Télécharger',
+    hero_pre: 'Sachez toujours ce qui est dans votre ', hero_em: 'garde-manger', hero_post: '.',
+    hero_sub: 'Gérez votre inventaire, créez des listes de courses et planifiez vos repas — tout en un seul endroit.',
+    appstore_sub: 'Télécharger dans l’', appstore_main: 'App Store',
+    hero_note: 'Gratuit · iPhone & iPad',
+    screens_title: 'Tout ce dont vous avez besoin',
+    screen_1_label: 'Fonction 1', screen_1_cap: 'Inventaire',
+    screen_2_label: 'Fonction 2', screen_2_cap: 'Courses',
+    screen_3_label: 'Fonction 3', screen_3_cap: 'Recettes',
+    feats_title: 'Simple. Intelligent. Bien approvisionné.',
+    feat_1_title: 'Inventaire intelligent', feat_1_desc: 'Voyez tout dans votre frigo, garde-manger et placards d’un coup d’œil.',
+    feat_2_title: 'Listes de courses', feat_2_desc: 'Votre liste reste synchronisée lorsque des ingrédients sont utilisés ou ajoutés.',
+    feat_3_title: 'Planification des recettes', feat_3_desc: 'Importez des recettes et voyez instantanément ce que vous avez déjà à disposition.',
+    footer_privacy: 'Confidentialité', footer_support: 'Assistance', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Gérez votre inventaire, créez des listes de courses et planifiez vos repas — tout en un seul endroit.',
+  }},
+  it: { name: 'Italiano', dir: 'ltr', t: {
+    nav_features: 'Funzionalità', nav_support: 'Supporto', nav_download: 'Scarica',
+    hero_pre: 'Sapete sempre cosa c’è nella vostra ', hero_em: 'dispensa', hero_post: '.',
+    hero_sub: 'Gestite l’inventario, create liste della spesa e pianificate i pasti — tutto in un unico posto.',
+    appstore_sub: 'Scarica sull’', appstore_main: 'App Store',
+    hero_note: 'Gratis · iPhone & iPad',
+    screens_title: 'Tutto quello che ti serve',
+    screen_1_label: 'Funzione 1', screen_1_cap: 'Inventario',
+    screen_2_label: 'Funzione 2', screen_2_cap: 'Spesa',
+    screen_3_label: 'Funzione 3', screen_3_cap: 'Ricette',
+    feats_title: 'Semplice. Intelligente. Ben fornito.',
+    feat_1_title: 'Inventario intelligente', feat_1_desc: 'Vedi tutto nel tuo frigo, dispensa e armadi in un colpo d’occhio.',
+    feat_2_title: 'Liste della spesa', feat_2_desc: 'La tua lista rimane sincronizzata quando gli ingredienti vengono usati o aggiunti.',
+    feat_3_title: 'Pianificazione ricette', feat_3_desc: 'Importa ricette e scopri immediatamente cosa hai già a portata di mano.',
+    footer_privacy: 'Privacy', footer_support: 'Supporto', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Gestite l’inventario, create liste della spesa e pianificate i pasti — tutto in un unico posto.',
+  }},
+  ja: { name: '日本語', dir: 'ltr', t: {
+    nav_features: '機能', nav_support: 'サポート', nav_download: 'ダウンロード',
+    hero_pre: 'パントリーの中身を、いつでも ', hero_em: '把握', hero_post: '。',
+    hero_sub: '在庫管理・買い物リスト・レシピプランニングをすべてひとつのアプリで。',
+    appstore_sub: 'App Storeで', appstore_main: 'ダウンロード',
+    hero_note: '無料 · iPhone & iPad',
+    screens_title: '必要なものがすべてここに',
+    screen_1_label: '機能 1', screen_1_cap: '在庫管理',
+    screen_2_label: '機能 2', screen_2_cap: '買い物',
+    screen_3_label: '機能 3', screen_3_cap: 'レシピ',
+    feats_title: 'シンプル。スマート。いつも満杯。',
+    feat_1_title: 'スマートな在庫管理', feat_1_desc: '冷蔵庫・パントリー・棚の中身を一目で確認。',
+    feat_2_title: '買い物リスト', feat_2_desc: '食材を使ったり追加すると、リストが自動で同期されます。',
+    feat_3_title: 'レシピプランニング', feat_3_desc: 'レシピをインポートして、手持ちの食材をすぐに確認。',
+    footer_privacy: 'プライバシーポリシー', footer_support: 'サポート', footer_copy: '© 2026 Pantry',
+    meta_desc: '在庫管理・買い物リスト・レシピプランニングをすべてひとつのアプリで。',
+  }},
+  ko: { name: '한국어', dir: 'ltr', t: {
+    nav_features: '기능', nav_support: '지원', nav_download: '다운로드',
+    hero_pre: '식품 보관함에 뭐가 있는지 항상 ', hero_em: '파악하세요', hero_post: '.',
+    hero_sub: '재고 관리, 쇼핑 목록 작성, 식사 계획 — 모두 한 곳에서.',
+    appstore_sub: 'App Store에서', appstore_main: '다운로드',
+    hero_note: '무료 · iPhone & iPad',
+    screens_title: '필요한 모든 것',
+    screen_1_label: '기능 1', screen_1_cap: '재고',
+    screen_2_label: '기능 2', screen_2_cap: '쇼핑',
+    screen_3_label: '기능 3', screen_3_cap: '레시피',
+    feats_title: '간단하게. 스마트하게. 항상 채워지게.',
+    feat_1_title: '스마트 재고 관리', feat_1_desc: '냉장고, 식료품 창고, 선반의 모든 것을 한눈에.',
+    feat_2_title: '쇼핑 목록', feat_2_desc: '식재료가 사용되거나 추가될 때 목록이 동기화됩니다.',
+    feat_3_title: '레시피 계획', feat_3_desc: '레시피를 가져와 지금 가지고 있는 것을 즉시 확인하세요.',
+    footer_privacy: '개인정보 처리방침', footer_support: '지원', footer_copy: '© 2026 Pantry',
+    meta_desc: '재고 관리, 쇼핑 목록 작성, 식사 계획 — 모두 한 곳에서.',
+  }},
+  ar: { name: 'العربية', dir: 'rtl', t: {
+    nav_features: 'المميزات', nav_support: 'الدعم', nav_download: 'تحميل',
+    hero_pre: 'اعرف دائمًا ما يوجد في ', hero_em: 'مخزنك', hero_post: '.',
+    hero_sub: 'تتبع المخزون وأنشئ قوائم التسوق وخطط لوجباتك — كل ذلك في مكان واحد.',
+    appstore_sub: 'تحميل من', appstore_main: 'App Store',
+    hero_note: 'مجاني · iPhone & iPad',
+    screens_title: 'كل ما تحتاجه',
+    screen_1_label: 'ميزة 1', screen_1_cap: 'المخزون',
+    screen_2_label: 'ميزة 2', screen_2_cap: 'التسوق',
+    screen_3_label: 'ميزة 3', screen_3_cap: 'الوصفات',
+    feats_title: 'بسيط. ذكي. مكتمل.',
+    feat_1_title: 'إدارة المخزون الذكية', feat_1_desc: 'شاهد كل شيء في ثلاجتك ومخزنك وخزاناتك دفعة واحدة.',
+    feat_2_title: 'قوائم التسوق', feat_2_desc: 'تبقى قائمتك متزامنة عند استخدام المكونات أو إضافتها.',
+    feat_3_title: 'تخطيط الوصفات', feat_3_desc: 'استورد الوصفات وشاهد فورًا ما لديك في متناول يدك.',
+    footer_privacy: 'سياسة الخصوصية', footer_support: 'الدعم', footer_copy: '© 2026 Pantry',
+    meta_desc: 'تتبع المخزون وأنشئ قوائم التسوق وخطط لوجباتك — كل ذلك في مكان واحد.',
+  }},
+  hi: { name: 'हिन्दी', dir: 'ltr', t: {
+    nav_features: 'सुविधाएं', nav_support: 'सहायता', nav_download: 'डाउनलोड',
+    hero_pre: 'अपनी ', hero_em: 'पेंट्री', hero_post: ' में क्या है, हमेशा जानें।',
+    hero_sub: 'इन्वेंटरी ट्रैक करें, शॉपिंग लिस्ट बनाएं और भोजन की योजना करें — सब एक जगह।',
+    appstore_sub: 'डाउनलोड करें', appstore_main: 'App Store से',
+    hero_note: 'मुफ़्त · iPhone & iPad',
+    screens_title: 'आपको जो चाहिए',
+    screen_1_label: 'विशेषता 1', screen_1_cap: 'इन्वेंटरी',
+    screen_2_label: 'विशेषता 2', screen_2_cap: 'खरीदारी',
+    screen_3_label: 'विशेषता 3', screen_3_cap: 'रेसिपी',
+    feats_title: 'सरल। स्मार्ट। भरा-पूरा।',
+    feat_1_title: 'स्मार्ट इन्वेंटरी', feat_1_desc: 'फ्रिज, पेंट्री और अलमारी में सब कुछ एक नज़र में देखें।',
+    feat_2_title: 'शॉपिंग लिस्ट', feat_2_desc: 'सामग्री उपयोग या जोड़ने पर आपकी सूची स्वतः अपडेट होती है।',
+    feat_3_title: 'रेसिपी प्लानिंग', feat_3_desc: 'रेसिपी इम्पोर्ट करें और तुरंत देखें कि आपके पास क्या उपलब्ध है।',
+    footer_privacy: 'गोपनीयता नीति', footer_support: 'सहायता', footer_copy: '© 2026 Pantry',
+    meta_desc: 'इन्वेंटरी ट्रैक करें, शॉपिंग लिस्ट बनाएं और भोजन की योजना करें — सब एक जगह।',
+  }},
+  id: { name: 'Indonesia', dir: 'ltr', t: {
+    nav_features: 'Fitur', nav_support: 'Dukungan', nav_download: 'Unduh',
+    hero_pre: 'Selalu tahu apa yang ada di ', hero_em: 'dapur Anda', hero_post: '.',
+    hero_sub: 'Pantau stok, buat daftar belanja, dan rencanakan makan — semuanya di satu tempat.',
+    appstore_sub: 'Unduh di', appstore_main: 'App Store',
+    hero_note: 'Gratis · iPhone & iPad',
+    screens_title: 'Semua yang Anda butuhkan',
+    screen_1_label: 'Fitur 1', screen_1_cap: 'Inventaris',
+    screen_2_label: 'Fitur 2', screen_2_cap: 'Belanja',
+    screen_3_label: 'Fitur 3', screen_3_cap: 'Resep',
+    feats_title: 'Sederhana. Cerdas. Selalu penuh.',
+    feat_1_title: 'Inventaris Cerdas', feat_1_desc: 'Lihat semua yang ada di kulkas, dapur, dan lemari Anda sekilas.',
+    feat_2_title: 'Daftar Belanja', feat_2_desc: 'Daftar Anda tetap tersinkronisasi saat bahan digunakan atau ditambahkan.',
+    feat_3_title: 'Perencanaan Resep', feat_3_desc: 'Impor resep dan lihat seketika apa yang sudah Anda miliki.',
+    footer_privacy: 'Kebijakan Privasi', footer_support: 'Dukungan', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Pantau stok, buat daftar belanja, dan rencanakan makan — semuanya di satu tempat.',
+  }},
+  bn: { name: 'বাংলা', dir: 'ltr', t: {
+    nav_features: 'বৈশিষ্ট্য', nav_support: 'সহায়তা', nav_download: 'ডাউনলোড',
+    hero_pre: 'আপনার ', hero_em: 'প্যান্ট্রিতে', hero_post: ' কী আছে সবসময় জানুন।',
+    hero_sub: 'ইনভেন্টরি ট্র্যাক করুন, কেনাকাটার তালিকা তৈরি করুন ও খাবার পরিকল্পনা করুন — সব এক জায়গায়।',
+    appstore_sub: 'ডাউনলোড করুন', appstore_main: 'App Store থেকে',
+    hero_note: 'বিনামূল্যে · iPhone & iPad',
+    screens_title: 'আপনার যা দরকার তা সব',
+    screen_1_label: 'বৈশিষ্ট্য ১', screen_1_cap: 'ইনভেন্টরি',
+    screen_2_label: 'বৈশিষ্ট্য ২', screen_2_cap: 'কেনাকাটা',
+    screen_3_label: 'বৈশিষ্ট্য ৩', screen_3_cap: 'রেসিপি',
+    feats_title: 'সহজ। স্মার্ট। সবসময় প্রস্তুত।',
+    feat_1_title: 'স্মার্ট ইনভেন্টরি', feat_1_desc: 'ফ্রিজ, প্যান্ট্রি ও আলমারিতে কী আছে এক নজরে দেখুন।',
+    feat_2_title: 'কেনাকাটার তালিকা', feat_2_desc: 'উপাদান ব্যবহার বা যোগ করার সময় আপনার তালিকা স্বয়ংক্রিয়ভাবে আপডেট হয়।',
+    feat_3_title: 'রেসিপি পরিকল্পনা', feat_3_desc: 'রেসিপি আমদানি করুন ও তাৎক্ষণিকভাবে দেখুন আপনার কাছে কী আছে।',
+    footer_privacy: 'গোপনীয়তা নীতি', footer_support: 'সহায়তা', footer_copy: '© 2026 Pantry',
+    meta_desc: 'ইনভেন্টরি ট্র্যাক করুন, কেনাকাটার তালিকা তৈরি করুন ও খাবার পরিকল্পনা করুন।',
+  }},
+  ru: { name: 'Русский', dir: 'ltr', t: {
+    nav_features: 'Функции', nav_support: 'Поддержка', nav_download: 'Скачать',
+    hero_pre: 'Всегда знайте, что у вас в ', hero_em: 'кладовой', hero_post: '.',
+    hero_sub: 'Отслеживайте запасы, составляйте списки покупок и планируйте питание — всё в одном месте.',
+    appstore_sub: 'Загрузить в', appstore_main: 'App Store',
+    hero_note: 'Бесплатно · iPhone & iPad',
+    screens_title: 'Всё необходимое',
+    screen_1_label: 'Функция 1', screen_1_cap: 'Инвентарь',
+    screen_2_label: 'Функция 2', screen_2_cap: 'Покупки',
+    screen_3_label: 'Функция 3', screen_3_cap: 'Рецепты',
+    feats_title: 'Просто. Умно. Всегда в запасе.',
+    feat_1_title: 'Умный инвентарь', feat_1_desc: 'Смотрите всё содержимое холодильника, кладовой и шкафов с первого взгляда.',
+    feat_2_title: 'Списки покупок', feat_2_desc: 'Список обновляется автоматически при использовании или добавлении ингредиентов.',
+    feat_3_title: 'Планирование рецептов', feat_3_desc: 'Импортируйте рецепты и сразу видите, что уже есть под рукой.',
+    footer_privacy: 'Политика конфиденциальности', footer_support: 'Поддержка', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Отслеживайте запасы, составляйте списки покупок и планируйте питание — всё в одном месте.',
+  }},
+  tr: { name: 'Türkçe', dir: 'ltr', t: {
+    nav_features: 'Özellikler', nav_support: 'Destek', nav_download: 'İndir',
+    hero_pre: 'Kilerınızdeki her şeyi her zaman ', hero_em: 'bilin', hero_post: '.',
+    hero_sub: 'Envanteri takip edin, alışveriş listeleri oluşturun ve yemek planlayın — hepsi tek bir yerde.',
+    appstore_sub: 'App Store\'dan', appstore_main: 'İndir',
+    hero_note: 'Ücretsiz · iPhone & iPad',
+    screens_title: 'İhtiyacınız olan her şey',
+    screen_1_label: 'Özellik 1', screen_1_cap: 'Envanter',
+    screen_2_label: 'Özellik 2', screen_2_cap: 'Alışveriş',
+    screen_3_label: 'Özellik 3', screen_3_cap: 'Tarifler',
+    feats_title: 'Basit. Akıllı. Her zaman dolu.',
+    feat_1_title: 'Akıllı Envanter', feat_1_desc: 'Buzdolabınız, kilerdeki ve dolaplarınızdaki her şeyi bir bakışta görün.',
+    feat_2_title: 'Alışveriş Listeleri', feat_2_desc: 'Malzemeler kullanıldıkça veya eklenince listeniz senkronize kalır.',
+    feat_3_title: 'Tarif Planlaması', feat_3_desc: 'Tarifleri içe aktarın ve elinizde ne olduğunu anında görün.',
+    footer_privacy: 'Gizlilik Politikası', footer_support: 'Destek', footer_copy: '© 2026 Pantry',
+    meta_desc: 'Envanteri takip edin, alışveriş listeleri oluşturun ve yemek planlayın — hepsi tek bir yerde.',
+  }},
+};
+
+const SUPPORTED = Object.keys(LOCALES);
+
+function detectLang() {
+  // Check URL param first (?lang=fr)
+  const params = new URLSearchParams(location.search);
+  const p = params.get('lang');
+  if (p && LOCALES[p]) return p;
+  // Check localStorage
+  const stored = localStorage.getItem('pantry-lang');
+  if (stored && LOCALES[stored]) return stored;
+  // Browser preference
+  for (const pref of navigator.languages || [navigator.language]) {
+    const base = pref.split('-')[0];
+    if (LOCALES[pref]) return pref;
+    if (LOCALES[base]) return base;
+  }
+  return 'en';
+}
+
+function applyLang(lang) {
+  const loc = LOCALES[lang];
+  if (!loc) return;
+  const { t, dir } = loc;
+
+  document.documentElement.lang = lang;
+  document.documentElement.dir = dir;
+
+  // Meta
+  document.title = 'Pantry';
+  document.getElementById('meta-desc').content = t.meta_desc;
+
+  // Hero headline: pre + <em>em</em> + post
+  const h1 = document.getElementById('hero-h1');
+  if (t.hero_em) {
+    h1.innerHTML = t.hero_pre + '<em>' + t.hero_em + '</em>' + t.hero_post;
+  } else {
+    h1.textContent = t.hero_pre;
+  }
+  document.getElementById('hero-sub').textContent = t.hero_sub;
+
+  // All data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+
+  // Screenshots — try locale-specific, fall back to en
+  document.querySelectorAll('.screen-img').forEach(img => {
+    const n = img.dataset.n;
+    const localePath = '/screenshots/' + lang + '/feature-' + n + '.png';
+    const fallbackPath = '/screenshots/en/feature-' + n + '.png';
+    img.onerror = function() {
+      if (this.src.indexOf('/screenshots/en/') === -1) {
+        this.src = fallbackPath;
+      } else {
+        // Both failed — keep placeholder visible
+        this.style.display = 'none';
+      }
+    };
+    img.onload = function() {
+      this.style.display = 'block';
+      // Hide the placeholder behind it
+      const ph = this.closest('.screen-frame').querySelector('.screen-ph');
+      if (ph) ph.style.display = 'none';
+    };
+    img.src = localePath;
+  });
+
+  // Language selector
+  const sel = document.getElementById('lang-sel');
+  sel.value = lang;
+
+  localStorage.setItem('pantry-lang', lang);
+}
+
+function setLang(lang) {
+  applyLang(lang);
+}
+
+// Populate language selector
+(function() {
+  const sel = document.getElementById('lang-sel');
+  SUPPORTED.forEach(code => {
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = LOCALES[code].name;
+    sel.appendChild(opt);
+  });
+})();
+
+// Init
+applyLang(detectLang());
+</script>
+</body>
+</html>
