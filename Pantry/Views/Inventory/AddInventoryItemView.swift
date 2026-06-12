@@ -42,6 +42,7 @@ struct AddInventoryItemView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scrollProxy in
             Form {
                 Section("Item Info") {
                     TextField("Name (e.g., Chicken Breast)", text: $name)
@@ -185,6 +186,7 @@ struct AddInventoryItemView: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+                            .id(batch.id)
                         }
 
                         Button {
@@ -344,6 +346,10 @@ struct AddInventoryItemView: View {
                             try? await Task.sleep(for: .milliseconds(50))
                             if let id = refocusID {
                                 focusedField = .batchQty(id)
+                                try? await Task.sleep(for: .milliseconds(200))
+                                withAnimation {
+                                    scrollProxy.scrollTo(id, anchor: .center)
+                                }
                             }
                         }
                     } label: {
@@ -359,6 +365,7 @@ struct AddInventoryItemView: View {
                 }
                 .presentationDetents([.medium])
             }
+            } // ScrollViewReader
         }
     }
 
