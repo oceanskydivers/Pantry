@@ -85,7 +85,7 @@ struct ShoppingToInventoryService {
             )
             context.insert(item)
 
-            let log = InventoryLog(change: qty, note: "Added from shopping list")
+            let log = InventoryLog(change: qty, note: "Initial stock")
             log.item = item
             context.insert(log)
 

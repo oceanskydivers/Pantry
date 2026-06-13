@@ -22,22 +22,48 @@ struct InventoryItemDetailView: View {
     }
 
     private var chartData: [(date: Date, quantity: Double)] {
-        var running = item.currentQuantity
-        var points: [(date: Date, quantity: Double)] = [(date: Date(), quantity: running)]
+        // Synthetic logs are bookkeeping entries created at item-creation time.
+        // They encode the starting baseline and any pre-tracking consumption into
+        // acquiredQuantity / currentQuantity already, so we exclude them from
+        // the chart to avoid double-counting.
+        let syntheticNotes: Set<String> = [
+            "Initial stock",
+            "Pre-tracking consumption (date estimated as midpoint between purchase and app entry)"
+        ]
 
-        let sortedLogs = item.logs
-            .filter { $0.date > item.dateBought }
-            .sorted(by: { $0.date > $1.date })
+        let logs = item.logs
+            .filter { $0.date >= item.dateBought && !syntheticNotes.contains($0.note) }
+            .sorted { $0.date < $1.date }
 
-        for log in sortedLogs {
-            running -= log.change
-            points.append((date: log.date, quantity: max(0, running)))
+        // Derive the true starting stock by rewinding all real logs from currentQuantity.
+        // acquiredQuantity is a cumulative lifetime total (grows with every restock) and
+        // cannot be used directly as the chart origin.
+        // Exception: if there are no real logs, the item was just created and hasn't had
+        // any user activity yet. In that case the initial stock IS acquiredQuantity
+        // (which equals the "Acquired Stock" the user entered, or currentQuantity if they
+        // didn't use the advanced field).
+        var startingQuantity: Double
+        if logs.isEmpty {
+            startingQuantity = max(item.acquiredQuantity, item.currentQuantity)
+        } else {
+            startingQuantity = item.currentQuantity
+            for log in logs { startingQuantity -= log.change }
+            startingQuantity = max(0, startingQuantity)
         }
 
-        var result = points.reversed() as [(date: Date, quantity: Double)]
-        result.insert((date: item.dateBought, quantity: item.acquiredQuantity), at: 0)
+        var points: [(date: Date, quantity: Double)] = []
+        points.append((date: item.dateBought, quantity: startingQuantity))
 
-        return result
+        var running = startingQuantity
+        for log in logs {
+            running = max(0, running + log.change)
+            points.append((date: log.date, quantity: running))
+        }
+
+        // Cap with current quantity at now in case edits shifted things
+        points.append((date: Date(), quantity: item.currentQuantity))
+
+        return points
     }
 
     var body: some View {

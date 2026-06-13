@@ -21,6 +21,12 @@ final class SyncService {
 
     // MARK: - User Settings
 
+    /// The app version string (e.g. "1.0") from the very first install, cached in UserDefaults
+    /// and written once to Firestore. Useful for grandfathering users into free features.
+    var firstInstalledVersion: String? {
+        UserDefaults.standard.string(forKey: "firstInstalledVersion")
+    }
+
     var autoAddToInventory: Bool {
         get { UserDefaults.standard.bool(forKey: "autoAddToInventory") }
         set {
@@ -76,6 +82,7 @@ final class SyncService {
         isApplyingCloudUpdate = false
         isSyncing = false
 
+        await writeFirstInstalledVersionIfNeeded(uid: userId)
         setupListeners(userId: userId, container: container)
     }
 
@@ -175,6 +182,9 @@ final class SyncService {
               let data = doc.data() else { return }
         if let autoAdd = data["autoAddToInventory"] as? Bool {
             UserDefaults.standard.set(autoAdd, forKey: "autoAddToInventory")
+        }
+        if let version = data["firstInstalledVersion"] as? String {
+            UserDefaults.standard.set(version, forKey: "firstInstalledVersion")
         }
     }
 
@@ -329,6 +339,21 @@ final class SyncService {
         let data: [String: Any] = ["autoAddToInventory": UserDefaults.standard.bool(forKey: "autoAddToInventory")]
         let path = "users/\(uid)/settings/preferences"
         Task { try? await self.db.document(path).setData(data, merge: true) }
+    }
+
+    /// Records the app version at first install in Firestore, only if not already stored.
+    /// Uses Firestore's server-side `FieldValue.serverTimestamp()` is not needed here since
+    /// we just want the version string. We use a conditional write so the field is immutable
+    /// once set — upgrades never overwrite it.
+    private func writeFirstInstalledVersionIfNeeded(uid: String) async {
+        guard let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
+        let path = "users/\(uid)/settings/preferences"
+        let docRef = db.document(path)
+        // Read first; only write if the field is absent so we never overwrite it.
+        if let doc = try? await docRef.getDocument(), doc.data()?["firstInstalledVersion"] != nil {
+            return
+        }
+        try? await docRef.setData(["firstInstalledVersion": currentVersion], merge: true)
     }
 
     func syncStorageLocation(_ location: StorageLocation) {
