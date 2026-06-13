@@ -1,14 +1,9 @@
 import SwiftUI
 import AuthenticationServices
-import GoogleSignIn
 
 struct AuthView: View {
     @Environment(FirebaseManager.self) private var auth
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-
-    @State private var showEmailAuth = false
-    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -32,6 +27,66 @@ struct AuthView: View {
     // MARK: - Sign-in screen
 
     private var signInContent: some View {
+        SignInPromptView()
+            .environment(auth)
+    }
+
+    // MARK: - Account screen
+
+    private var accountContent: some View {
+        Form {
+            Section {
+                HStack(spacing: 16) {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(Color.appAccent)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(auth.displayName)
+                            .font(.headline)
+                        if !auth.isAnonymous {
+                            Text(auth.displayEmail)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Sharing") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Share Access")
+                        .font(.subheadline).fontWeight(.medium)
+                    Text("Share your sign-in credentials with your household members so everyone sees the same data in real time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    try? auth.signOut()
+                    dismiss()
+                } label: {
+                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sign-in prompt (anonymous users)
+
+struct SignInPromptView: View {
+    @Environment(FirebaseManager.self) private var auth
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var showEmailAuth = false
+    @State private var errorMessage: String?
+
+    var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
@@ -130,51 +185,6 @@ struct AuthView: View {
                     ProgressView("Signing in…")
                         .padding(24)
                         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
-                }
-            }
-        }
-    }
-
-    // MARK: - Account screen
-
-    private var accountContent: some View {
-        Form {
-            Section {
-                HStack(spacing: 16) {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Color.appAccent)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(auth.displayName)
-                            .font(.headline)
-                        if !auth.isAnonymous {
-                            Text(auth.displayEmail)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-
-            Section("Sharing") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Share Access")
-                        .font(.subheadline).fontWeight(.medium)
-                    Text("Share your sign-in credentials with your household members so everyone sees the same data in real time.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
-            }
-
-            Section {
-                Button(role: .destructive) {
-                    try? auth.signOut()
-                    dismiss()
-                } label: {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundStyle(.red)
                 }
             }
         }

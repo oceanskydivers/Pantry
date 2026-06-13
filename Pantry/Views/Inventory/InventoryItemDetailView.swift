@@ -277,9 +277,7 @@ struct StockLevelCard: View {
         .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 14))
     }
 
-    private func formatQty(_ v: Double) -> String {
-        v.formatted(.number.precision(.fractionLength(0...1)))
-    }
+    private func formatQty(_ v: Double) -> String { v.formattedQuantity() }
 }
 
 struct ChartCard: View {
@@ -361,13 +359,28 @@ struct ExpirationCard: View {
     }
 
     private func expirationLabel(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        formatter.dateTimeStyle = .named
         let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: date)).day ?? 0
-        if days < 0 { return "Expired \(abs(days)) day\(abs(days) == 1 ? "" : "s") ago" }
-        if days == 0 { return "Expires today" }
-        if days <= 14 {
-            return "Expires in \(days) day\(days == 1 ? "" : "s")"
+        if days == 0 { return String(localized: "Expires today") }
+        if days < 0 {
+            let components = DateComponents(day: abs(days))
+            let dcf = DateComponentsFormatter()
+            dcf.unitsStyle = .full
+            dcf.allowedUnits = [.day]
+            let duration = dcf.string(from: components) ?? "\(abs(days))"
+            return String(localized: "Expired \(duration) ago")
         }
-        return "Expires \(date.formatted(date: .abbreviated, time: .omitted))"
+        if days <= 14 {
+            let components = DateComponents(day: days)
+            let dcf = DateComponentsFormatter()
+            dcf.unitsStyle = .full
+            dcf.allowedUnits = [.day]
+            let duration = dcf.string(from: components) ?? "\(days)"
+            return String(localized: "Expires in \(duration)")
+        }
+        return String(localized: "Expires \(date.formatted(date: .abbreviated, time: .omitted))")
     }
 }
 
@@ -388,11 +401,20 @@ struct EstimateCard: View {
                 let daysPerUnit = 1.0 / rate
                 let daysFormatted = days.formatted(.number.precision(.fractionLength(0)))
                 let weeksFormatted = (days / 7).formatted(.number.precision(.fractionLength(0...1)))
-                let unitDurationLabel = daysPerUnit < 1
-                    ? "< 1 day"
-                    : daysPerUnit < 14
-                        ? "\(daysPerUnit.formatted(.number.precision(.fractionLength(0...1)))) days"
-                        : "\(( daysPerUnit / 7).formatted(.number.precision(.fractionLength(0...1)))) wks"
+                let unitDurationLabel: String = {
+                    let dcf = DateComponentsFormatter()
+                    dcf.unitsStyle = .abbreviated
+                    dcf.maximumUnitCount = 1
+                    if daysPerUnit < 1 {
+                        return String(localized: "< 1 day")
+                    } else if daysPerUnit < 14 {
+                        dcf.allowedUnits = [.day]
+                        return dcf.string(from: DateComponents(day: Int(daysPerUnit))) ?? daysFormatted
+                    } else {
+                        dcf.allowedUnits = [.weekOfMonth]
+                        return dcf.string(from: DateComponents(weekOfMonth: Int(daysPerUnit / 7))) ?? weeksFormatted
+                    }
+                }()
                 HStack {
                     EstimateCell(label: "Days Left", value: daysFormatted, icon: "calendar")
                     Divider()

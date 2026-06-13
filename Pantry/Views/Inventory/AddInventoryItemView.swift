@@ -62,7 +62,7 @@ struct AddInventoryItemView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                             .focused($focusedField, equals: .currentQty)
-                        Text(unit.isEmpty ? "units" : unit)
+                        Text(unit.isEmpty ? String(localized: "units") : unit)
                             .foregroundStyle(.secondary)
                     }
                     .contentShape(Rectangle())
@@ -76,7 +76,7 @@ struct AddInventoryItemView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                             .focused($focusedField, equals: .desiredQty)
-                        Text(unit.isEmpty ? "units" : unit)
+                        Text(unit.isEmpty ? String(localized: "units") : unit)
                             .foregroundStyle(.secondary)
                     }
                     .contentShape(Rectangle())
@@ -292,7 +292,7 @@ struct AddInventoryItemView: View {
                                     .multilineTextAlignment(.trailing)
                                     .frame(width: 80)
                                     .focused($focusedField, equals: .acquiredQty)
-                                Text(unit.isEmpty ? "units" : unit)
+                                Text(unit.isEmpty ? String(localized: "units") : unit)
                                     .foregroundStyle(.secondary)
                             }
                             .contentShape(Rectangle())
@@ -547,9 +547,7 @@ struct AddInventoryItemView: View {
         }
     }
 
-    private func formatQty(_ v: Double) -> String {
-        v == 0 ? "" : v.formatted(.number.precision(.fractionLength(0...1)))
-    }
+    private func formatQty(_ v: Double) -> String { v.formattedQuantity() }
 }
 // MARK: - Reusable Date Picker Sheet
 

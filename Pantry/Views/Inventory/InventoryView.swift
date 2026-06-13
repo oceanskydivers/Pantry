@@ -11,6 +11,15 @@ enum SupplyUnit: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var label: LocalizedStringKey {
+        switch self {
+        case .days:   return "Days"
+        case .weeks:  return "Weeks"
+        case .months: return "Months"
+        case .years:  return "Years"
+        }
+    }
+
     var inDays: Double {
         switch self {
         case .days:   return 1
@@ -556,7 +565,7 @@ struct SupplyFilterSheet: View {
                     Text("Show items with less than")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text("\(localValue) \(localUnit.rawValue)")
+                    Text(localUnit.formatted(value: localValue))
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(Color.appAccent)
@@ -580,7 +589,7 @@ struct SupplyFilterSheet: View {
 
                     Picker("Unit", selection: $localUnit) {
                         ForEach(SupplyUnit.allCases) { u in
-                            Text(u.rawValue).tag(u)
+                            Text(u.label).tag(u)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -669,7 +678,7 @@ struct ExpirationFilterSheet: View {
                     Text("Show items expiring within")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text("\(localValue) \(localUnit.rawValue)")
+                    Text(localUnit.formatted(value: localValue))
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(Color.appAccent)
@@ -692,7 +701,7 @@ struct ExpirationFilterSheet: View {
 
                     Picker("Unit", selection: $localUnit) {
                         ForEach(SupplyUnit.allCases) { u in
-                            Text(u.rawValue).tag(u)
+                            Text(u.label).tag(u)
                         }
                     }
                     .pickerStyle(.wheel)
@@ -1109,12 +1118,22 @@ struct InventoryRowView: View {
         return ("", .clear)
     }
 
-    @ViewBuilder
-    private func remainingTimeText(_ days: Double) -> some View {
-        if days < 1 { Text("< 1 day") }
-        else if days < 7 { Text("\(Int(days), specifier: "%lld") days") }
-        else if days < 30 { Text("\(Int(days / 7), specifier: "%lld") wks") }
-        else { Text("\(Int(days / 30), specifier: "%lld") mo") }
+    private func remainingTimeText(_ days: Double) -> Text {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 1
+        if days < 1 {
+            return Text("< 1 day")
+        } else if days < 7 {
+            formatter.allowedUnits = [.day]
+            return Text(formatter.string(from: DateComponents(day: Int(days))) ?? "")
+        } else if days < 30 {
+            formatter.allowedUnits = [.weekOfMonth]
+            return Text(formatter.string(from: DateComponents(weekOfMonth: Int(days / 7))) ?? "")
+        } else {
+            formatter.allowedUnits = [.month]
+            return Text(formatter.string(from: DateComponents(month: Int(days / 30))) ?? "")
+        }
     }
 }
 

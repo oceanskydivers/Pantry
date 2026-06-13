@@ -322,65 +322,48 @@ private struct PickerCategorySection: View {
     @Binding var selectedIDs: Set<UUID>
     var onSelect: (InventoryCategory) -> Void
 
-    struct CategoryRow: Identifiable {
-        let id: UUID
-        var name: String
-        var depth: Int
-        var parentID: UUID
-    }
-
-    @State private var rows: [CategoryRow] = []
-    @State private var focusedRowID: UUID? = nil
+    @State private var mgr: CategoryTreeManager = CategoryTreeManager.placeholder
     @State private var isRenaming = false
     @State private var renameDraft = ""
-    @State private var isFlushing = false
-    @State private var collapsedIDs: Set<UUID> = []
-
-    private var visibleRows: [CategoryRow] {
-        rows.filter { row in
-            var parentID = row.parentID
-            while parentID != rootCategory.id {
-                if collapsedIDs.contains(parentID) { return false }
-                guard let parentRow = rows.first(where: { $0.id == parentID }) else { break }
-                parentID = parentRow.parentID
-            }
-            return true
-        }
-    }
-
-    private func hasChildren(_ row: CategoryRow) -> Bool {
-        rows.contains { $0.parentID == row.id }
-    }
-
-    private func isVisible(_ row: CategoryRow) -> Bool {
-        var parentID = row.parentID
-        while parentID != rootCategory.id {
-            if collapsedIDs.contains(parentID) { return false }
-            guard let parentRow = rows.first(where: { $0.id == parentID }) else { break }
-            parentID = parentRow.parentID
-        }
-        return true
-    }
 
     var body: some View {
+        @Bindable var bMgr = mgr
         Section {
-            ForEach($rows) { $row in
-                if isVisible(row) {
-                    rowView(row: $row)
+            ForEach($bMgr.rows) { $row in
+                if mgr.isVisible(row) {
+                    PickerCategoryRowView(
+                        row: $row,
+                        shouldBeFocused: mgr.focusedRowID == row.id,
+                        isCollapsible: mgr.hasChildren(row),
+                        isCollapsed: mgr.collapsedIDs.contains(row.id),
+                        multiSelect: multiSelect,
+                        isSelected: selectedIDs.contains(row.id),
+                        onSelect: {
+                            if multiSelect {
+                                if selectedIDs.contains(row.id) {
+                                    selectedIDs.remove(row.id)
+                                } else {
+                                    selectedIDs.insert(row.id)
+                                }
+                            } else {
+                                if let cat = mgr.resolveCategory(id: row.id) {
+                                    onSelect(cat)
+                                }
+                            }
+                        },
+                        onSubmit: { mgr.handleSubmit(rowID: row.id) },
+                        onEndEditing: { mgr.handleEndEditing(rowID: row.id) },
+                        onFocusForEdit: { mgr.focusedRowID = row.id },
+                        onAddChild: { mgr.addChildRow(afterRowID: row.id) },
+                        onToggleCollapse: { mgr.toggleCollapse(rowID: row.id) }
+                    )
                 }
             }
-            .onDelete(perform: multiSelect ? nil : { offsets in
-                let visibleIDs = offsets.map { visibleRows[$0].id }
-                let fullOffsets = IndexSet(visibleIDs.compactMap { id in
-                    rows.firstIndex(where: { $0.id == id })
-                })
-                deleteRows(at: fullOffsets)
-            })
+            .onDelete(perform: multiSelect ? nil : { offsets in mgr.deleteVisibleRows(at: offsets) })
 
-            // "Add Subcategory" — edit mode only
             if !multiSelect {
                 Button {
-                    addNewRow(depth: 0, parentID: rootCategory.id)
+                    mgr.addNewRow(depth: 0, parentID: rootCategory.id)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
@@ -393,7 +376,6 @@ private struct PickerCategorySection: View {
             }
         } header: {
             HStack {
-                // Tapping the header selects the root category
                 Button {
                     if multiSelect {
                         if selectedIDs.contains(rootCategory.id) {
@@ -419,7 +401,6 @@ private struct PickerCategorySection: View {
                 }
                 .buttonStyle(.plain)
 
-                // Rename / delete menu — edit mode only
                 if !multiSelect {
                     Spacer()
                     Menu {
@@ -430,7 +411,7 @@ private struct PickerCategorySection: View {
                             Label("Rename", systemImage: "pencil")
                         }
                         Button(role: .destructive) {
-                            deleteRootCategory()
+                            mgr.deleteRootCategory()
                         } label: {
                             Label("Delete Category", systemImage: "trash")
                         }
@@ -443,239 +424,15 @@ private struct PickerCategorySection: View {
         }
         .alert("Rename Category", isPresented: $isRenaming) {
             TextField("Category name", text: $renameDraft)
-            Button("Rename") {
-                let trimmed = renameDraft.trimmingCharacters(in: .whitespaces)
-                if !trimmed.isEmpty {
-                    rootCategory.name = trimmed
-                    SyncService.shared.syncInventoryCategory(rootCategory)
-                }
-            }
+            Button("Rename") { mgr.renameRootCategory(to: renameDraft) }
             Button("Cancel", role: .cancel) {}
         }
-        .onAppear { loadRows() }
+        .onAppear {
+            mgr = CategoryTreeManager(rootCategory: rootCategory, modelContext: modelContext)
+            mgr.loadRows()
+        }
         .onChange(of: rootCategory.subcategories.count) { _, _ in
-            if !isFlushing && focusedRowID == nil { loadRows() }
-        }
-    }
-
-    // MARK: - Row view
-
-    @ViewBuilder
-    private func rowView(row: Binding<CategoryRow>) -> some View {
-        let r = row.wrappedValue
-        PickerCategoryRowView(
-            row: row,
-            shouldBeFocused: focusedRowID == r.id,
-            isCollapsible: hasChildren(r),
-            isCollapsed: collapsedIDs.contains(r.id),
-            multiSelect: multiSelect,
-            isSelected: selectedIDs.contains(r.id),
-            onSelect: {
-                if multiSelect {
-                    if selectedIDs.contains(r.id) {
-                        selectedIDs.remove(r.id)
-                    } else {
-                        selectedIDs.insert(r.id)
-                    }
-                } else {
-                    if let cat = resolveCategory(id: r.id) {
-                        onSelect(cat)
-                    }
-                }
-            },
-            onSubmit: { handleSubmit(rowID: r.id) },
-            onEndEditing: { handleEndEditing(rowID: r.id) },
-            onFocusForEdit: { focusedRowID = r.id },
-            onAddChild: { addChildRow(afterRowID: r.id) },
-            onToggleCollapse: { toggleCollapse(rowID: r.id) }
-        )
-    }
-
-    private func resolveCategory(id: UUID) -> InventoryCategory? {
-        var dict: [UUID: InventoryCategory] = [:]
-        collectDescendants(of: rootCategory, into: &dict)
-        return dict[id]
-    }
-
-    // MARK: - Collapse
-
-    private func toggleCollapse(rowID: UUID) {
-        if collapsedIDs.contains(rowID) {
-            collapsedIDs.remove(rowID)
-        } else {
-            let descendantIDs = rows.filter { isDescendantOf(rowID: $0.id, ancestorID: rowID) }.map { $0.id }
-            collapsedIDs.formUnion(descendantIDs)
-            collapsedIDs.insert(rowID)
-        }
-    }
-
-    private func isDescendantOf(rowID: UUID, ancestorID: UUID) -> Bool {
-        guard let row = rows.first(where: { $0.id == rowID }) else { return false }
-        if row.parentID == ancestorID { return true }
-        return isDescendantOf(rowID: row.parentID, ancestorID: ancestorID)
-    }
-
-    // MARK: - Row actions
-
-    private func handleSubmit(rowID: UUID) {
-        guard let idx = rows.firstIndex(where: { $0.id == rowID }) else { return }
-        let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            focusedRowID = nil
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            withAnimation(.easeInOut(duration: 0.2)) {
-                rows.remove(at: idx)
-                flushToSwiftData()
-            }
-        } else {
-            rows[idx].name = trimmed
-            flushRow(at: idx)
-            let newRow = CategoryRow(id: UUID(), name: "", depth: rows[idx].depth, parentID: rows[idx].parentID)
-            var insertAt = idx + 1
-            while insertAt < rows.count && rows[insertAt].depth > rows[idx].depth { insertAt += 1 }
-            rows.insert(newRow, at: insertAt)
-            focusedRowID = newRow.id
-        }
-    }
-
-    private func handleEndEditing(rowID: UUID) {
-        guard let idx = rows.firstIndex(where: { $0.id == rowID }) else { return }
-        let trimmed = rows[idx].name.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            rows.remove(at: idx)
-        } else {
-            rows[idx].name = trimmed
-        }
-        if focusedRowID == rowID { focusedRowID = nil }
-        flushToSwiftData()
-    }
-
-    private func addNewRow(depth: Int, parentID: UUID) {
-        let newRow = CategoryRow(id: UUID(), name: "", depth: depth, parentID: parentID)
-        rows.append(newRow)
-        focusedRowID = newRow.id
-        flushToSwiftData()
-    }
-
-    private func addChildRow(afterRowID: UUID) {
-        guard let idx = rows.firstIndex(where: { $0.id == afterRowID }) else { return }
-        let parentRow = rows[idx]
-        var insertAt = idx + 1
-        while insertAt < rows.count && rows[insertAt].depth > parentRow.depth {
-            insertAt += 1
-        }
-        let newRow = CategoryRow(id: UUID(), name: "", depth: parentRow.depth + 1, parentID: parentRow.id)
-        rows.insert(newRow, at: insertAt)
-        focusedRowID = newRow.id
-        flushToSwiftData()
-    }
-
-    private func deleteRows(at offsets: IndexSet) {
-        let toDelete = offsets.map { rows[$0] }
-        let deletedIDs = Set(toDelete.map { $0.id })
-        rows.removeAll { row in
-            deletedIDs.contains(row.id) || isDescendant(of: deletedIDs, rowID: row.id)
-        }
-        flushToSwiftData()
-    }
-
-    private func isDescendant(of ancestorIDs: Set<UUID>, rowID: UUID) -> Bool {
-        guard let row = rows.first(where: { $0.id == rowID }) else { return false }
-        if ancestorIDs.contains(row.parentID) { return true }
-        if let parentRow = rows.first(where: { $0.id == row.parentID }) {
-            return isDescendant(of: ancestorIDs, rowID: parentRow.id)
-        }
-        return false
-    }
-
-    private func deleteRootCategory() {
-        SyncService.shared.deleteInventoryCategory(id: rootCategory.id)
-        modelContext.delete(rootCategory)
-    }
-
-    // MARK: - SwiftData sync
-
-    private func loadRows() {
-        rows = flattenChildren(of: rootCategory, depth: 0, parentID: rootCategory.id)
-    }
-
-    private func flattenChildren(of parent: InventoryCategory, depth: Int, parentID: UUID) -> [CategoryRow] {
-        let sorted = parent.subcategories.sorted { $0.name < $1.name }
-        var result: [CategoryRow] = []
-        for child in sorted {
-            result.append(CategoryRow(id: child.id, name: child.name, depth: depth, parentID: parentID))
-            result += flattenChildren(of: child, depth: depth + 1, parentID: child.id)
-        }
-        return result
-    }
-
-    /// Persist only a single already-named row without touching the rest of the array.
-    /// Used after Return on a non-empty row so the new empty sibling isn't persisted yet,
-    /// avoiding a subcategory count change that would reload rows and drop focus.
-    private func flushRow(at idx: Int) {
-        let row = rows[idx]
-        guard !row.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        var existingByID: [UUID: InventoryCategory] = [:]
-        collectDescendants(of: rootCategory, into: &existingByID)
-        let parentCategory: InventoryCategory
-        if row.parentID == rootCategory.id {
-            parentCategory = rootCategory
-        } else if let p = existingByID[row.parentID] {
-            parentCategory = p
-        } else { return }
-        if let existing = existingByID[row.id] {
-            existing.name = row.name
-            SyncService.shared.syncInventoryCategory(existing)
-        } else {
-            let newCat = InventoryCategory(name: row.name, parent: parentCategory)
-            newCat.id = row.id
-            modelContext.insert(newCat)
-            SyncService.shared.syncInventoryCategory(newCat)
-        }
-        try? modelContext.save()
-    }
-
-    private func flushToSwiftData() {
-        isFlushing = true
-        var existingByID: [UUID: InventoryCategory] = [:]
-        collectDescendants(of: rootCategory, into: &existingByID)
-        var wantedIDs = Set<UUID>()
-        for row in rows {
-            wantedIDs.insert(row.id)
-            let parentCategory: InventoryCategory
-            if row.parentID == rootCategory.id {
-                parentCategory = rootCategory
-            } else if let p = existingByID[row.parentID] {
-                parentCategory = p
-            } else {
-                continue
-            }
-            if let existing = existingByID[row.id] {
-                existing.name = row.name
-                if existing.parent?.id != parentCategory.id {
-                    existing.parent = parentCategory
-                }
-                SyncService.shared.syncInventoryCategory(existing)
-            } else {
-                let newCat = InventoryCategory(name: row.name, parent: parentCategory)
-                newCat.id = row.id
-                modelContext.insert(newCat)
-                existingByID[newCat.id] = newCat
-                SyncService.shared.syncInventoryCategory(newCat)
-            }
-        }
-        for (id, cat) in existingByID where !wantedIDs.contains(id) {
-            SyncService.shared.deleteInventoryCategory(id: cat.id)
-            modelContext.delete(cat)
-        }
-        try? modelContext.save()
-        isFlushing = false
-    }
-
-    private func collectDescendants(of category: InventoryCategory, into dict: inout [UUID: InventoryCategory]) {
-        for child in category.subcategories {
-            dict[child.id] = child
-            collectDescendants(of: child, into: &dict)
+            if !mgr.isFlushing && mgr.focusedRowID == nil { mgr.loadRows() }
         }
     }
 }
@@ -683,7 +440,7 @@ private struct PickerCategorySection: View {
 // MARK: - PickerCategoryRowView
 
 private struct PickerCategoryRowView: View {
-    @Binding var row: PickerCategorySection.CategoryRow
+    @Binding var row: CategoryRow
     let shouldBeFocused: Bool
     let isCollapsible: Bool
     let isCollapsed: Bool

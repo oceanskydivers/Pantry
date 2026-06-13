@@ -24,6 +24,8 @@
 		77713E4178C67B5B3A5A7638 /* IMG_7775.png in Resources */ = {isa = PBXBuildFile; fileRef = 6FB34249720C70432C145653 /* IMG_7775.png */; };
 		892ABB8E2FD99D1A00369B4B /* PantryShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 892ABB842FD99D1900369B4B /* PantryShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		892ABB992FDA0A1200369B4B /* ShoppingToInventoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */; };
+		8934BE8D2FDDA88F00A105C9 /* CategoryTreeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8934BE8C2FDDA88F00A105C9 /* CategoryTreeManager.swift */; };
+		8934BE8F2FDDA96200A105C9 /* Double+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8934BE8E2FDDA96200A105C9 /* Double+Formatting.swift */; };
 		899328C02FD395E40026D3C3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 899328BF2FD395E40026D3C3 /* FirebaseStorage */; };
 		899328C22FD451790026D3C3 /* ReusableViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899328C12FD451790026D3C3 /* ReusableViews.swift */; };
 		89956B8B2FDC5D4300C6DBFB /* ExpirationBatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89956B8A2FDC5D4300C6DBFB /* ExpirationBatch.swift */; };
@@ -99,6 +101,8 @@
 		759922EFC579800336ECBAEC /* FirebaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseManager.swift; sourceTree = "<group>"; };
 		892ABB842FD99D1900369B4B /* PantryShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PantryShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		892ABB982FDA0A1200369B4B /* ShoppingToInventoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingToInventoryService.swift; sourceTree = "<group>"; };
+		8934BE8C2FDDA88F00A105C9 /* CategoryTreeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryTreeManager.swift; sourceTree = "<group>"; };
+		8934BE8E2FDDA96200A105C9 /* Double+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Double+Formatting.swift"; sourceTree = "<group>"; };
 		899328C12FD451790026D3C3 /* ReusableViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReusableViews.swift; sourceTree = "<group>"; };
 		89956B8A2FDC5D4300C6DBFB /* ExpirationBatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpirationBatch.swift; sourceTree = "<group>"; };
 		89956BA42FDD96F300C6DBFB /* RecipeMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeMetadata.swift; sourceTree = "<group>"; };
@@ -258,6 +262,7 @@
 				0CF24D87B07EA77455998622 /* InventoryView.swift */,
 				89A3ACF82FD5E7ED00175632 /* ManageCategoriesView.swift */,
 				89A3ACFA2FD5F7F500175632 /* CategoryPickerSheet.swift */,
+				8934BE8C2FDDA88F00A105C9 /* CategoryTreeManager.swift */,
 			);
 			path = Inventory;
 			sourceTree = "<group>";
@@ -275,6 +280,7 @@
 				C22B7CAC133877507349B5CE /* Color+App.swift */,
 				35370F224A331D604A850784 /* GoogleService-Info.plist */,
 				6FB34249720C70432C145653 /* IMG_7775.png */,
+				8934BE8E2FDDA96200A105C9 /* Double+Formatting.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -474,6 +480,7 @@
 				70EDFF8E07D24CB1EFF9EF39 /* AddInventoryItemView.swift in Sources */,
 				32E94303CBB0109DAE878C11 /* AddRecipeView.swift in Sources */,
 				CA82D6ACD006D331FBF5B67D /* AuthView.swift in Sources */,
+				8934BE8F2FDDA96200A105C9 /* Double+Formatting.swift in Sources */,
 				F2D43BFBB03378A84F03B411 /* Color+App.swift in Sources */,
 				89A3ACF92FD5E7ED00175632 /* ManageCategoriesView.swift in Sources */,
 				89A3AD012FD8440600175632 /* IngredientMatcher.swift in Sources */,
@@ -499,6 +506,7 @@
 				B36D9CB4A115395F01E49266 /* RecipeDetailView.swift in Sources */,
 				FC6A9965E247830F48FA8957 /* RecipeImporter.swift in Sources */,
 				E85AAB4C07E9FDA91E712AD1 /* RecipesView.swift in Sources */,
+				8934BE8D2FDDA88F00A105C9 /* CategoryTreeManager.swift in Sources */,
 				ACEC4EBF25266AE4919BCB58 /* ShoppingCategory.swift in Sources */,
 				D67706EDD342A159D074E8D4 /* ShoppingIntents.swift in Sources */,
 				89A3ACFF2FD7A62300175632 /* InstructionGroup.swift in Sources */,
