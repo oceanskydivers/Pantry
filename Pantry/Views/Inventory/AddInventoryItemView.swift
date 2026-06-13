@@ -299,9 +299,21 @@ struct AddInventoryItemView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .padding(.top, 4)
+                            .id("advancedSectionBottom")
                         } label: {
                             Text("Advanced")
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: showAdvanced) { _, expanded in
+                        if expanded {
+                            focusedField = nil
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(350))
+                                withAnimation {
+                                    scrollProxy.scrollTo("advancedSectionBottom", anchor: .bottom)
+                                }
+                            }
                         }
                     }
                 }
@@ -372,6 +384,7 @@ struct AddInventoryItemView: View {
                     title: String(localized: "Date First Bought"),
                     selection: $pendingDateBought
                 ) {
+                    focusedField = nil
                     dateBought = pendingDateBought
                     showingDateBoughtPicker = false
                 }
@@ -384,6 +397,7 @@ struct AddInventoryItemView: View {
                     title: String(localized: "Expiration Date"),
                     selection: $pendingBatchDate
                 ) {
+                    focusedField = nil
                     if let id = editingBatchDateID, let idx = expirationBatches.firstIndex(where: { $0.id == id }) {
                         expirationBatches[idx].expiresOn = pendingBatchDate
                     }
