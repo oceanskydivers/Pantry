@@ -9639,6 +9639,16 @@
         }
       }
     },
+    "e.g. 2 cups milk or salt to taste" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p. ex. 240 mL de lait ou sel au goût"
+          }
+        }
+      }
+    },
     "e.g., Food, Cleaning, Personal" : {
       "localizations" : {
         "ar" : {
@@ -13705,6 +13715,16 @@
         }
       }
     },
+    "New Group" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau groupe"
+          }
+        }
+      }
+    },
     "New Ingredient Group" : {
       "localizations" : {
         "ar" : {
@@ -15705,7 +15725,14 @@
       }
     },
     "OK" : {
-
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
     },
     "Oldest" : {
       "localizations" : {
@@ -20817,6 +20844,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Espagnole"
+          }
+        }
+      }
+    },
+    "Step %lld" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étape %lld"
           }
         }
       }

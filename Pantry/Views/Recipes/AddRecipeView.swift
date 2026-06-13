@@ -409,7 +409,7 @@ struct AddRecipeView: View {
                         ForEach($section.ingredients) { $line in
                             RecipeItemTextField(
                                 text: $line.text,
-                                placeholder: "e.g. 2 cups milk or salt to taste",
+                                placeholder: String(localized: "e.g. 2 cups milk or salt to taste"),
                                 shouldBeFocused: focusedIngredientID == line.id,
                                 onSubmit: {
                                     let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -463,7 +463,13 @@ struct AddRecipeView: View {
                         }
                     } header: {
                         HStack {
-                            Text(section.isUngroupedSink ? "Ingredients" : section.name.isEmpty ? "New Group" : section.name)
+                            if section.isUngroupedSink {
+                                Text("Ingredients")
+                            } else if section.name.isEmpty {
+                                Text("New Group")
+                            } else {
+                                Text(section.name)
+                            }
                             Spacer()
                             // Edit button only on the first section to avoid duplicate controls
                             if ingredientSections.first?.id == section.id {
@@ -518,7 +524,7 @@ struct AddRecipeView: View {
                             let stepNum = stepNumberInSection(step, section: section)
                             RecipeItemTextField(
                                 text: $step.text,
-                                placeholder: "Step \(stepNum)",
+                                placeholder: String(localized: "Step \(stepNum)"),
                                 shouldBeFocused: focusedInstructionID == step.id,
                                 onSubmit: {
                                     let trimmed = step.text.trimmingCharacters(in: .whitespacesAndNewlines)
