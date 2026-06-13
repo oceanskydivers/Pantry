@@ -424,6 +424,12 @@ async function buildFromUserRecipe(recipeId) {
   for (const group of (r.ingredientGroups || [])) {
     ingredientCount += (group.ingredients || []).length;
   }
+  // Fall back to the flat "ingredients" list that encodeRecipe always writes for backward compat.
+  // This handles the case where ingredientGroups/ungroupedIngredients were saved with empty
+  // nested arrays due to SwiftData relationship loading timing at sync time.
+  if (ingredientCount === 0) {
+    ingredientCount = (r.ingredients || []).length;
+  }
 
   const sharedData = {
     id: recipeId,
@@ -434,6 +440,7 @@ async function buildFromUserRecipe(recipeId) {
     ingredientCount,
     ingredientGroups: r.ingredientGroups || [],
     ungroupedIngredients: r.ungroupedIngredients || [],
+    ingredients: r.ingredients || [],
     instructionGroups: r.instructionGroups || [],
     sharedAt: new Date(),
     createdBy: ownerId,
