@@ -130,8 +130,14 @@ struct AddInventoryItemView: View {
                                 Text("Location")
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                Text(selectedLocation?.name ?? "None")
-                                    .foregroundStyle(.secondary)
+                                if let selectedLocationName = selectedLocation?.name {
+                                    Text(selectedLocationName)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("None")
+                                        .foregroundStyle(.secondary)
+                                }
+                                
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -149,8 +155,14 @@ struct AddInventoryItemView: View {
                             Text("Category")
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Text(selectedCategory?.displayPath ?? "None")
-                                .foregroundStyle(.secondary)
+                            if let selectedCategoryDP = selectedCategory?.displayPath {
+                                Text(selectedCategoryDP)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("None")
+                                    .foregroundStyle(.secondary)
+                            }
+                            
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
