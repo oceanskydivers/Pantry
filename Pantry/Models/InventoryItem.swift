@@ -177,6 +177,13 @@ final class InventoryItem {
         return currentQuantity / rate
     }
 
+    // MARK: - Last update
+
+    /// The date of the most recent quantity change, or createdAt if no logs exist.
+    var lastQuantityUpdate: Date {
+        logs.map(\.date).max() ?? createdAt
+    }
+
     // MARK: - Expiration helpers
 
     /// The soonest expiration date among batches that still have stock.

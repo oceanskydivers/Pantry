@@ -48,12 +48,14 @@ enum InventoryGroupMode: String, CaseIterable {
     case alphabetical = "Alphabetical"
     case location = "Location"
     case category = "Category"
+    case recentlyUpdated = "Recently Updated"
 
     var icon: String {
         switch self {
         case .alphabetical: return "textformat.abc"
         case .location: return "mappin.and.ellipse"
         case .category: return "tag"
+        case .recentlyUpdated: return "clock.arrow.circlepath"
         }
     }
 }
@@ -276,7 +278,7 @@ struct InventoryView: View {
                 )
             }
 
-            if groupMode != .alphabetical {
+            if groupMode != .alphabetical && groupMode != .recentlyUpdated {
                 Divider()
                     .frame(height: 24)
             }
@@ -349,6 +351,8 @@ struct InventoryView: View {
         switch groupMode {
         case .alphabetical:
             alphabeticalList
+        case .recentlyUpdated:
+            recentlyUpdatedList
         case .location:
             groupedList(
                 groups: locationGroups,
@@ -360,6 +364,35 @@ struct InventoryView: View {
                 noGroupLabel: "Uncategorized"
             )
         }
+    }
+
+    private var recentlyUpdatedList: some View {
+        let sorted = filteredItems.sorted { $0.lastQuantityUpdate > $1.lastQuantityUpdate }
+        return List {
+            ForEach(sorted) { item in
+                ZStack {
+                    NavigationLink(destination: InventoryItemDetailView(item: item)) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+
+                    InventoryRowView(item: item, onAdjust: { message, undo in
+                        toastMessage = message
+                        toastUndo = undo
+                        withAnimation { showToast = true }
+                    })
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            }
+            .onDelete { offsets in
+                let sortedItems = filteredItems.sorted { $0.lastQuantityUpdate > $1.lastQuantityUpdate }
+                deleteItems(from: sortedItems, at: offsets)
+            }
+        }
+        .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
     }
 
     private var alphabeticalList: some View {
