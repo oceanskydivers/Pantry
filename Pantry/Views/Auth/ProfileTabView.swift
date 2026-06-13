@@ -28,9 +28,6 @@ private struct AccountView: View {
         Form {
             Section {
                 HStack(spacing: 16) {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Color.appAccent)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(auth.displayName)
                             .font(.headline)

@@ -284,6 +284,7 @@ struct AddInventoryItemView: View {
                             }
                             .contentShape(Rectangle())
                             .onTapGesture { focusedField = .acquiredQty }
+                            .highPriorityGesture(TapGesture().onEnded { focusedField = .acquiredQty })
 
                             Button {
                                 pendingDateBought = dateBought
