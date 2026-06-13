@@ -67,6 +67,7 @@ struct AddInventoryItemView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .currentQty }
+                    .highPriorityGesture(TapGesture().onEnded { focusedField = .currentQty })
 
                     HStack {
                         Text("Desired Stock")
@@ -81,6 +82,7 @@ struct AddInventoryItemView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .desiredQty }
+                    .highPriorityGesture(TapGesture().onEnded { focusedField = .desiredQty })
 
                     HStack {
                         Text("Unit")
