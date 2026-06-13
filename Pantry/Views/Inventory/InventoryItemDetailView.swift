@@ -580,6 +580,7 @@ struct LogSection: View {
                                 if !log.note.isEmpty {
                                     Text(log.note)
                                         .font(.caption)
+                                        .dynamicTypeSize(.small)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -588,6 +589,7 @@ struct LogSection: View {
 
                             Text(log.date.formatted(date: .abbreviated, time: .shortened))
                                 .font(.caption)
+                                .dynamicTypeSize(.small)
                                 .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)

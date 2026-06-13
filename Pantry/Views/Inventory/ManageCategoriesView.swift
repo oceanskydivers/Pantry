@@ -14,6 +14,7 @@ struct ManageCategoriesView: View {
     @State private var showingAddCategory = false
     @State private var newTopLevelName = ""
     @State private var isKeyboardVisible = false
+    @State private var scrollToID: UUID? = nil
 
     private var topCategories: [InventoryCategory] {
         categories.filter { $0.parent == nil }.sorted { $0.name < $1.name }
@@ -68,6 +69,7 @@ struct ManageCategoriesView: View {
                         description: Text("Tap + to add your first category.")
                     )
                 } else {
+                    ScrollViewReader { proxy in
                     List {
                         Section {
                             explanationCard
@@ -78,9 +80,20 @@ struct ManageCategoriesView: View {
                                 rootCategory: cat,
                                 onCategoryCreated: onCategoryCreated
                             )
+                            .id(cat.id)
                         }
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .onChange(of: scrollToID) { _, id in
+                        guard let id else { return }
+                        // Small delay to let SwiftData/SwiftUI insert the row first
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            withAnimation {
+                                proxy.scrollTo(id, anchor: .top)
+                            }
+                            scrollToID = nil
+                        }
+                    }
                     .safeAreaInset(edge: .bottom) {
                         if !isKeyboardVisible {
                             VStack(spacing: 0) {
@@ -99,6 +112,7 @@ struct ManageCategoriesView: View {
                             .background(.ultraThinMaterial)
                         }
                     }
+                    } // ScrollViewReader
                 }
             }
             .navigationTitle("Categories")
@@ -136,6 +150,7 @@ struct ManageCategoriesView: View {
         modelContext.insert(category)
         SyncService.shared.syncInventoryCategory(category)
         onCategoryCreated?(category)
+        scrollToID = category.id
         newTopLevelName = ""
     }
 }
@@ -150,6 +165,7 @@ struct CategorySection: View {
     @State private var mgr: CategoryTreeManager = CategoryTreeManager.placeholder
     @State private var isRenaming = false
     @State private var renameDraft = ""
+    @State private var isConfirmingDelete = false
 
     var body: some View {
         @Bindable var bMgr = mgr
@@ -194,13 +210,15 @@ struct CategorySection: View {
                         Label("Rename", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
-                        mgr.deleteRootCategory()
+                        isConfirmingDelete = true
                     } label: {
                         Label("Delete Category", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.caption)
+                        .font(.body)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
             }
         }
@@ -208,6 +226,12 @@ struct CategorySection: View {
             TextField("Category name", text: $renameDraft)
             Button("Rename") { mgr.renameRootCategory(to: renameDraft) }
             Button("Cancel", role: .cancel) {}
+        }
+        .alert("Delete \"\(rootCategory.name)\"?", isPresented: $isConfirmingDelete) {
+            Button("Delete", role: .destructive) { mgr.deleteRootCategory() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will also delete all subcategories underneath it. This action cannot be undone.")
         }
         .onAppear {
             mgr = CategoryTreeManager(rootCategory: rootCategory, modelContext: modelContext)

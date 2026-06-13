@@ -122,19 +122,21 @@ struct AddInventoryItemView: View {
                             Button("Save") { saveNewLocation() }
                                 .disabled(newLocationName.trimmingCharacters(in: .whitespaces).isEmpty)
                             Button("Cancel") {
+                                focusedField = nil
                                 isAddingNewLocation = false
                                 newLocationName = ""
                             }
                             .foregroundStyle(.secondary)
                         }
+
                     } else {
                         Menu(content: {
+                            Button("New Location…") { isAddingNewLocation = true }
+                            Divider()
                             Button("None") { selectedLocation = nil }
                             ForEach(locations) { loc in
                                 Button(loc.name) { selectedLocation = loc }
                             }
-                            Divider()
-                            Button("New Location…") { isAddingNewLocation = true }
                         }, label: {
                             HStack {
                                 Text("Location")
@@ -389,12 +391,19 @@ struct AddInventoryItemView: View {
                     .glassBackground()
                     .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
                     .padding(.bottom, 20)
+                    .opacity(focusedField == .newLocation ? 0 : 1)
                 }
                 .hideSharedBackgroundIfAvailable()
             }
             .onAppear { loadExisting() }
             .onChange(of: isAddingNewLocation) { _, newValue in
-                if newValue { focusedField = .newLocation }
+                if newValue {
+                    focusedField = nil
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(50))
+                        focusedField = .newLocation
+                    }
+                }
             }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet { chosen in

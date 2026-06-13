@@ -1392,30 +1392,43 @@ struct ManageLocationsView: View {
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
 
     @State private var newName = ""
+    @State private var showingAddLocation = false
     @State private var locationToDelete: StorageLocation?
+    @State private var locationNameToDelete: String = ""
+    @State private var showDeleteConfirmation = false
+    @State private var scrollToID: UUID? = nil
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    HStack {
-                        TextField("New location name", text: $newName)
-                        Button("Add") { addLocation() }
-                            .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                }
-
-                Section("Locations") {
-                    if locations.isEmpty {
-                        Text("No locations yet")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(locations) { loc in
-                            Text(loc.name)
+            Group {
+                if locations.isEmpty {
+                    ContentUnavailableView(
+                        "No Locations",
+                        systemImage: "mappin.and.ellipse",
+                        description: Text("Tap + to add your first location.")
+                    )
+                } else {
+                    ScrollViewReader { proxy in
+                        List {
+                            ForEach(locations) { loc in
+                                Text(loc.name)
+                                    .id(loc.id)
+                            }
+                            .onDelete { offsets in
+                                for index in offsets {
+                                    locationToDelete = locations[index]
+                                    locationNameToDelete = locations[index].name
+                                    showDeleteConfirmation = true
+                                }
+                            }
                         }
-                        .onDelete { offsets in
-                            for index in offsets {
-                                locationToDelete = locations[index]
+                        .onChange(of: scrollToID) { _, id in
+                            guard let id else { return }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation {
+                                    proxy.scrollTo(id, anchor: .center)
+                                }
+                                scrollToID = nil
                             }
                         }
                     }
@@ -1424,15 +1437,32 @@ struct ManageLocationsView: View {
             .navigationTitle("Locations")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
                 }
             }
-            .confirmationDialog(
-                "Delete \"\(locationToDelete?.name ?? "")\"?",
-                isPresented: Binding(get: { locationToDelete != nil }, set: { if !$0 { locationToDelete = nil } }),
-                titleVisibility: .visible
-            ) {
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    Button {
+                        showingAddLocation = true
+                    } label: {
+                        Label("Add Location", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .padding()
+                }
+                .background(.ultraThinMaterial)
+            }
+            .alert("New Location", isPresented: $showingAddLocation) {
+                TextField("e.g., Pantry, Fridge, Freezer", text: $newName)
+                Button("Add") { addLocation() }
+                Button("Cancel", role: .cancel) { newName = "" }
+            }
+            .alert("Delete \"\(locationNameToDelete)\"?", isPresented: $showDeleteConfirmation) {
                 Button("Delete", role: .destructive) {
                     if let loc = locationToDelete {
                         SyncService.shared.deleteStorageLocation(id: loc.id)
@@ -1440,7 +1470,7 @@ struct ManageLocationsView: View {
                         locationToDelete = nil
                     }
                 }
-                Button("Cancel", role: .cancel) { locationToDelete = nil }
+                Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Items assigned to this location will become unassigned.")
             }
@@ -1453,6 +1483,7 @@ struct ManageLocationsView: View {
         let location = StorageLocation(name: name)
         modelContext.insert(location)
         SyncService.shared.syncStorageLocation(location)
+        scrollToID = location.id
         newName = ""
     }
 }
