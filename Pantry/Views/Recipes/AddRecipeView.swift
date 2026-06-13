@@ -3,15 +3,17 @@ import SwiftData
 import PhotosUI
 import UIKit
 
-// MARK: - UITextView wrapper for ingredients (supports multiline wrapping)
+// MARK: - UITextView wrapper for recipe text entry (ingredients & instructions)
 
-private struct IngredientTextField: UIViewRepresentable {
+private struct RecipeItemTextField: UIViewRepresentable {
     @Binding var text: String
     let placeholder: String
     let shouldBeFocused: Bool
     let onSubmit: () -> Void
     let onEndEditing: () -> Void
     var onDidFocus: (() -> Void)? = nil
+    /// When true the placeholder label wraps across multiple lines (used for ingredients).
+    var wrapPlaceholder: Bool = false
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -50,11 +52,11 @@ private struct IngredientTextField: UIViewRepresentable {
     }
 
     class Coordinator: NSObject, UITextViewDelegate {
-        var parent: IngredientTextField
+        var parent: RecipeItemTextField
         weak var placeholderLabel: UILabel?
         var submitHandled = false
 
-        init(_ parent: IngredientTextField) { self.parent = parent }
+        init(_ parent: RecipeItemTextField) { self.parent = parent }
 
         func updatePlaceholder(_ tv: UITextView) {
             if placeholderLabel == nil {
@@ -62,114 +64,17 @@ private struct IngredientTextField: UIViewRepresentable {
                 label.text = parent.placeholder
                 label.font = tv.font
                 label.textColor = .placeholderText
-                label.numberOfLines = 0
+                label.numberOfLines = parent.wrapPlaceholder ? 0 : 1
                 label.translatesAutoresizingMaskIntoConstraints = false
                 tv.addSubview(label)
-                NSLayoutConstraint.activate([
-                    label.topAnchor.constraint(equalTo: tv.topAnchor),
-                    label.leadingAnchor.constraint(equalTo: tv.leadingAnchor),
-                    label.trailingAnchor.constraint(equalTo: tv.trailingAnchor)
-                ])
-                placeholderLabel = label
-            }
-            placeholderLabel?.isHidden = !tv.text.isEmpty
-        }
-
-        func textViewDidChange(_ tv: UITextView) {
-            parent.text = tv.text
-            placeholderLabel?.isHidden = !tv.text.isEmpty
-            tv.invalidateIntrinsicContentSize()
-        }
-
-        func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-            if text == "\n" {
-                let trimmed = tv.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty { submitHandled = true }
-                parent.onSubmit()
-                return false
-            }
-            return true
-        }
-
-        func textViewDidEndEditing(_ tv: UITextView) {
-            if submitHandled {
-                submitHandled = false
-                return
-            }
-            parent.onEndEditing()
-        }
-    }
-}
-
-// MARK: - UITextView wrapper for multi-line instruction steps
-
-private struct InstructionTextView: UIViewRepresentable {
-    @Binding var text: String
-    let placeholder: String
-    let shouldBeFocused: Bool
-    let onSubmit: () -> Void
-    let onEndEditing: () -> Void
-    var onDidFocus: (() -> Void)? = nil
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView()
-        tv.delegate = context.coordinator
-        tv.font = UIFont.preferredFont(forTextStyle: .body)
-        tv.backgroundColor = .clear
-        tv.isScrollEnabled = false
-        tv.textContainerInset = .zero
-        tv.textContainer.lineFragmentPadding = 0
-        // Use "next" return key to match ingredient behaviour
-        tv.returnKeyType = .next
-        tv.autocorrectionType = .yes
-        tv.autocapitalizationType = .sentences
-        tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        return tv
-    }
-
-    func updateUIView(_ tv: UITextView, context: Context) {
-        context.coordinator.parent = self
-        // Update text only when it differs to avoid clobbering the cursor
-        if tv.text != text {
-            tv.text = text
-        }
-        context.coordinator.updatePlaceholder(tv)
-        if shouldBeFocused && !tv.isFirstResponder {
-            tv.becomeFirstResponder()
-            // Clear the focus intent immediately so re-renders don't re-trigger becomeFirstResponder
-            let callback = onDidFocus
-            DispatchQueue.main.async { callback?() }
-        }
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView tv: UITextView, context: Context) -> CGSize? {
-        let width = proposal.width ?? UIScreen.main.bounds.width
-        let size = tv.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
-        return CGSize(width: width, height: size.height)
-    }
-
-    class Coordinator: NSObject, UITextViewDelegate {
-        var parent: InstructionTextView
-        weak var placeholderLabel: UILabel?
-        var submitHandled = false
-
-        init(_ parent: InstructionTextView) { self.parent = parent }
-
-        func updatePlaceholder(_ tv: UITextView) {
-            if placeholderLabel == nil {
-                let label = UILabel()
-                label.text = parent.placeholder
-                label.font = tv.font
-                label.textColor = .placeholderText
-                label.translatesAutoresizingMaskIntoConstraints = false
-                tv.addSubview(label)
-                NSLayoutConstraint.activate([
+                var constraints: [NSLayoutConstraint] = [
                     label.topAnchor.constraint(equalTo: tv.topAnchor),
                     label.leadingAnchor.constraint(equalTo: tv.leadingAnchor)
-                ])
+                ]
+                if parent.wrapPlaceholder {
+                    constraints.append(label.trailingAnchor.constraint(equalTo: tv.trailingAnchor))
+                }
+                NSLayoutConstraint.activate(constraints)
                 placeholderLabel = label
             }
             placeholderLabel?.isHidden = !tv.text.isEmpty
@@ -182,7 +87,6 @@ private struct InstructionTextView: UIViewRepresentable {
         }
 
         func textView(_ tv: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-            // Treat return key as "submit / next step"
             if text == "\n" {
                 let trimmed = tv.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty { submitHandled = true }
@@ -503,7 +407,7 @@ struct AddRecipeView: View {
                 ForEach($ingredientSections) { $section in
                     Section {
                         ForEach($section.ingredients) { $line in
-                            IngredientTextField(
+                            RecipeItemTextField(
                                 text: $line.text,
                                 placeholder: "e.g. 2 cups milk or salt to taste",
                                 shouldBeFocused: focusedIngredientID == line.id,
@@ -526,7 +430,8 @@ struct AddRecipeView: View {
                                     // Intentionally left empty — blank rows are filtered at save time.
                                     // Auto-removing here causes focus to jump unpredictably across sections.
                                 },
-                                onDidFocus: { focusedIngredientID = nil }
+                                onDidFocus: { focusedIngredientID = nil },
+                                wrapPlaceholder: true
                             )
                             .id(line.id)
                             .frame(maxWidth: .infinity)
@@ -611,7 +516,7 @@ struct AddRecipeView: View {
                     Section {
                         ForEach($section.steps) { $step in
                             let stepNum = stepNumberInSection(step, section: section)
-                            InstructionTextView(
+                            RecipeItemTextField(
                                 text: $step.text,
                                 placeholder: "Step \(stepNum)",
                                 shouldBeFocused: focusedInstructionID == step.id,

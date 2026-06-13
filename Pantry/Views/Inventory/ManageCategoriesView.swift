@@ -120,12 +120,7 @@ struct ManageCategoriesView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: isKeyboardVisible)
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                isKeyboardVisible = true
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                isKeyboardVisible = false
-            }
+            .trackKeyboardVisibility($isKeyboardVisible)
             .alert("New Category", isPresented: $showingAddCategory) {
                 TextField("e.g., Food, Cleaning, Personal", text: $newTopLevelName)
                 Button("Add") { addTopLevelCategory() }

@@ -174,6 +174,28 @@ struct FloatingSearchBar: View {
     }
 }
 
+// MARK: - KeyboardVisibility
+
+private struct KeyboardVisibilityModifier: ViewModifier {
+    @Binding var isVisible: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isVisible = false
+            }
+    }
+}
+
+extension View {
+    func trackKeyboardVisibility(_ isVisible: Binding<Bool>) -> some View {
+        modifier(KeyboardVisibilityModifier(isVisible: isVisible))
+    }
+}
+
 // MARK: - PantryItemTextField
 // Shared UITextView wrapper used by ShoppingListView and ManageCategoriesView.
 // Supports single-line entry with Return-key submission and focus management.

@@ -3,10 +3,6 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-extension Notification.Name {
-    static let shoppingListSaveAll = Notification.Name("shoppingListSaveAll")
-}
-
 // Lightweight reference type used as the undo target so registerUndo(withTarget:) compiles.
 private final class ShoppingUndoTarget {
     static let shared = ShoppingUndoTarget()
@@ -108,12 +104,7 @@ struct ShoppingListView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: isKeyboardVisible)
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                isKeyboardVisible = true
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                isKeyboardVisible = false
-            }
+            .trackKeyboardVisibility($isKeyboardVisible)
             .alert("New Category", isPresented: $showingAddCategory) {
                 TextField("e.g., Produce, Dairy, Frozen", text: $newCategoryName)
                 Button("Add") { addCategory() }

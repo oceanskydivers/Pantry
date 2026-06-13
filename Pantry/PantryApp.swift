@@ -84,4 +84,5 @@ struct PantryApp: App {
 
 extension Notification.Name {
     static let pendingShareImport = Notification.Name("pendingShareImport")
+    static let shoppingListSaveAll = Notification.Name("shoppingListSaveAll")
 }
