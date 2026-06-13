@@ -321,7 +321,7 @@ struct RecipeRowView: View {
                     .font(.headline)
                     .lineLimit(1)
                 Group {
-                    Text("\(recipe.ingredients.count, specifier: "%lld") ingredients") + Text(" · ") + Text("\(Int(recipe.servings), specifier: "%lld") servings")
+                    Text("\(recipe.ingredients.count) ingredients") + Text(" · ") + Text("\(Int(recipe.servings)) servings")
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -419,7 +419,7 @@ struct RecipeCardView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "list.bullet")
                                 .font(.caption2)
-                            Text("\(recipe.ingredients.count)")
+                            Text(recipe.ingredients.count, format: .number)
                                 .font(.caption2)
                         }
                         .foregroundStyle(.primary)
@@ -430,7 +430,7 @@ struct RecipeCardView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "person.2")
                                 .font(.caption2)
-                            Text("\(Int(recipe.servings))")
+                            Text(recipe.servings, format: .number.precision(.fractionLength(0)))
                                 .font(.caption2)
                         }
                         .foregroundStyle(.primary)

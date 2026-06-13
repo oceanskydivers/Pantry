@@ -217,11 +217,22 @@ struct AddInventoryItemView: View {
                         let batchTotal = expirationBatches.compactMap { Double($0.quantityText) }.reduce(0, +)
                         let current = Double(currentQuantityText) ?? 0
                         if current > 0 && batchTotal < current {
-                            let remaining = (current - batchTotal).formatted(.number.precision(.fractionLength(0...1)))
-                            let unitLabel = unit.isEmpty ? "units" : unit
-                            Text("\(remaining) \(unitLabel) have no expiration assigned.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            let remainingValue = current - batchTotal
+                            if unit.isEmpty {
+                                if remainingValue == 1 {
+                                    Text("\(remainingValue, format: .number.precision(.fractionLength(0...1))) unit has no expiration assigned.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("\(remainingValue, format: .number.precision(.fractionLength(0...1))) units have no expiration assigned.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                Text("\(remainingValue, format: .number.precision(.fractionLength(0...1))) \(unit) have no expiration assigned.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     } else {
                         Button {

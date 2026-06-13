@@ -549,7 +549,7 @@ private struct QuantityPickerPopover: View {
     var body: some View {
         VStack(spacing: 16) {
             // Stepper for quick +/−
-            Stepper("\(quantity)", value: $quantity, in: 1...999)
+            Stepper(quantity.formatted(), value: $quantity, in: 1...999)
                 .labelsHidden()
                 .fixedSize()
 
@@ -557,7 +557,7 @@ private struct QuantityPickerPopover: View {
 
             // Number pad for typing a specific value
             HStack(spacing: 10) {
-                TextField("\(quantity)", text: $inputText)
+                TextField(quantity.formatted(), text: $inputText)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
                     .font(.title3.monospacedDigit())

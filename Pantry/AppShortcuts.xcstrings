@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "Add to my ${applicationName} shopping list" : {
-      "extractionState" : "stale",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "ar" : {
           "stringSet" : {
