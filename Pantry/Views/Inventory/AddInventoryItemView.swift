@@ -36,7 +36,7 @@ struct AddInventoryItemView: View {
     @State private var editingBatchDateID: UUID? = nil
     @State private var pendingBatchDate: Date = Date()
 
-    enum FocusedField: Hashable { case name, unit, currentQty, desiredQty, acquiredQty, newLocation, batchQty(UUID) }
+    enum FocusedField: Hashable { case name, unit, currentQty, desiredQty, acquiredQty, batchQty(UUID) }
     @FocusState private var focusedField: FocusedField?
 
     @Query(sort: \StorageLocation.name) private var locations: [StorageLocation]
@@ -67,6 +67,7 @@ struct AddInventoryItemView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .currentQty }
+                    .highPriorityGesture(TapGesture().onEnded { focusedField = .currentQty })
 
                     HStack {
                         Text("Desired Stock")
@@ -81,6 +82,7 @@ struct AddInventoryItemView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .desiredQty }
+                    .highPriorityGesture(TapGesture().onEnded { focusedField = .desiredQty })
 
                     HStack {
                         Text("Unit")
@@ -114,48 +116,31 @@ struct AddInventoryItemView: View {
 
                 // MARK: Location
                 Section("Location") {
-                    if isAddingNewLocation {
-                        HStack {
-                            TextField("New location name", text: $newLocationName)
-                                .focused($focusedField, equals: .newLocation)
-                                .onSubmit { saveNewLocation() }
-                            Button("Save") { saveNewLocation() }
-                                .disabled(newLocationName.trimmingCharacters(in: .whitespaces).isEmpty)
-                            Button("Cancel") {
-                                focusedField = nil
-                                isAddingNewLocation = false
-                                newLocationName = ""
-                            }
-                            .foregroundStyle(.secondary)
+                    Menu(content: {
+                        Button("New Location…") { isAddingNewLocation = true }
+                        Divider()
+                        Button("None") { selectedLocation = nil }
+                        ForEach(locations) { loc in
+                            Button(loc.name) { selectedLocation = loc }
                         }
-
-                    } else {
-                        Menu(content: {
-                            Button("New Location…") { isAddingNewLocation = true }
-                            Divider()
-                            Button("None") { selectedLocation = nil }
-                            ForEach(locations) { loc in
-                                Button(loc.name) { selectedLocation = loc }
-                            }
-                        }, label: {
-                            HStack {
-                                Text("Location")
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if let selectedLocationName = selectedLocation?.name {
-                                    Text(selectedLocationName)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text("None")
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption)
+                    }, label: {
+                        HStack {
+                            Text("Location")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if let selectedLocationName = selectedLocation?.name {
+                                Text(selectedLocationName)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("None")
                                     .foregroundStyle(.secondary)
                             }
-                        })
-                    }
+
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    })
                 }
 
                 // MARK: Category
@@ -299,6 +284,7 @@ struct AddInventoryItemView: View {
                             }
                             .contentShape(Rectangle())
                             .onTapGesture { focusedField = .acquiredQty }
+                            .highPriorityGesture(TapGesture().onEnded { focusedField = .acquiredQty })
 
                             Button {
                                 pendingDateBought = dateBought
@@ -391,19 +377,15 @@ struct AddInventoryItemView: View {
                     .glassBackground()
                     .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
                     .padding(.bottom, 20)
-                    .opacity(focusedField == .newLocation ? 0 : 1)
+
                 }
                 .hideSharedBackgroundIfAvailable()
             }
             .onAppear { loadExisting() }
-            .onChange(of: isAddingNewLocation) { _, newValue in
-                if newValue {
-                    focusedField = nil
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(50))
-                        focusedField = .newLocation
-                    }
-                }
+            .alert("New Location", isPresented: $isAddingNewLocation) {
+                TextField("e.g., Pantry, Fridge, Freezer", text: $newLocationName)
+                Button("Add") { saveNewLocation() }
+                Button("Cancel", role: .cancel) { newLocationName = "" }
             }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet { chosen in

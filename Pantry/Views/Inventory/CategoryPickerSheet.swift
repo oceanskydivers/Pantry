@@ -27,6 +27,26 @@ struct CategoryPickerSheet: View {
     @State private var isKeyboardVisible = false
     @FocusState private var searchFocused: Bool
 
+    /// Persisted comma-separated UUIDs of the last 2 selected categories (single-select mode only).
+    @AppStorage("recentCategoryIDs") private var recentCategoryIDsRaw: String = ""
+
+    private var recentCategories: [InventoryCategory] {
+        guard !multiSelect else { return [] }
+        let ids = recentCategoryIDsRaw
+            .split(separator: ",")
+            .compactMap { UUID(uuidString: String($0)) }
+        return ids.compactMap { id in allCategories.first { $0.id == id } }
+    }
+
+    private func recordRecent(_ category: InventoryCategory) {
+        var ids = recentCategoryIDsRaw
+            .split(separator: ",")
+            .compactMap { UUID(uuidString: String($0)) }
+        ids.removeAll { $0 == category.id }
+        ids.insert(category.id, at: 0)
+        recentCategoryIDsRaw = ids.prefix(2).map(\.uuidString).joined(separator: ",")
+    }
+
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespaces).isEmpty
     }
@@ -139,6 +159,32 @@ struct CategoryPickerSheet: View {
                 }
             }
 
+            // Recent categories — single-select mode only, hidden while searching
+            if !multiSelect && !isSearching && !recentCategories.isEmpty {
+                Section("Recent") {
+                    HStack(spacing: 8) {
+                        ForEach(recentCategories) { cat in
+                            Button {
+                                recordRecent(cat)
+                                onSelect(cat)
+                                dismiss()
+                            } label: {
+                                Text(cat.displayPath)
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
             if isSearching {
                 Section(searchResults.isEmpty ? "No Results" : "Results") {
                     ForEach(searchResults) { cat in
@@ -159,6 +205,7 @@ struct CategoryPickerSheet: View {
                         multiSelect: multiSelect,
                         selectedIDs: $selectedIDs,
                         onSelect: { chosen in
+                            recordRecent(chosen)
                             onSelect(chosen)
                             dismiss()
                         }
@@ -199,6 +246,7 @@ struct CategoryPickerSheet: View {
             if multiSelect {
                 toggleSelection(cat)
             } else {
+                recordRecent(cat)
                 onSelect(cat)
                 dismiss()
             }

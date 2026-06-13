@@ -14044,6 +14044,7 @@
       }
     },
     "New location name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

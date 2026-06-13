@@ -567,9 +567,9 @@ private struct QuantityPickerPopover: View {
             }
         }
         .padding(20)
-        .frame(minWidth: 220)
+        .frame(width: 240)
+        .fixedSize()
         .presentationCompactAdaptation(.popover)
-        .ignoresSafeArea(.keyboard)
     }
 }
 
