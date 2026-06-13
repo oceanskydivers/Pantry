@@ -172,6 +172,19 @@ struct InventoryView: View {
                     VStack(spacing: 0) {
                         filterBar
                         Divider()
+                        HStack {
+                            if isAnyFilterActive {
+                                Text("\(filteredItems.count) of \(items.count) items")
+                            } else {
+                                Text("\(items.count) items")
+                            }
+                        }
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .padding(.bottom, 2)
                         itemList
                     }
                 }
@@ -249,11 +262,34 @@ struct InventoryView: View {
 
     // MARK: - Filter Bar
 
+    private var isAnyFilterActive: Bool {
+        filterLocation != nil || !filterCategoryIDs.isEmpty || isSupplyFilterActive || isExpirationFilterActive
+    }
+
     private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            filterChips
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                filterChips
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+            }
+
+            if isAnyFilterActive {
+                Divider()
+                    .frame(height: 24)
+                    .padding(.horizontal, 8)
+
+                Button {
+                    filterLocation = nil
+                    filterCategoryIDs = []
+                    isSupplyFilterActive = false
+                    isExpirationFilterActive = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.trailing, 16)
+            }
         }
         .background(Color(.systemBackground))
     }
@@ -339,17 +375,6 @@ struct InventoryView: View {
                 )
             }
 
-            if filterLocation != nil || !filterCategoryIDs.isEmpty || isSupplyFilterActive || isExpirationFilterActive {
-                Button {
-                    filterLocation = nil
-                    filterCategoryIDs = []
-                    isSupplyFilterActive = false
-                    isExpirationFilterActive = false
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-            }
         }
     }
 

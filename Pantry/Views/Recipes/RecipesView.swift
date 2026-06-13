@@ -48,11 +48,23 @@ struct RecipesView: View {
     @State private var recipeToDelete: Recipe?
     @State private var sortMode: RecipeSortMode = .newest
     @State private var showFavoritesOnly = false
+    @State private var filterCuisine: RecipeCuisine? = nil
+    @State private var filterRecipeType: RecipeType? = nil
 
     private let columns = [
         GridItem(.flexible()),
         GridItem(.flexible())
     ]
+
+    private var availableCuisines: [RecipeCuisine] {
+        let used = Set(recipes.compactMap(\.cuisine))
+        return RecipeCuisine.allCases.filter { used.contains($0) }
+    }
+
+    private var availableRecipeTypes: [RecipeType] {
+        let used = Set(recipes.compactMap(\.recipeType))
+        return RecipeType.allCases.filter { used.contains($0) }
+    }
 
     var filtered: [Recipe] {
         var result = recipes
@@ -63,6 +75,14 @@ struct RecipesView: View {
 
         if showFavoritesOnly {
             result = result.filter { $0.isFavorite }
+        }
+
+        if let cuisine = filterCuisine {
+            result = result.filter { $0.cuisine == cuisine }
+        }
+
+        if let recipeType = filterRecipeType {
+            result = result.filter { $0.recipeType == recipeType }
         }
 
         switch sortMode {
@@ -182,11 +202,33 @@ struct RecipesView: View {
 
     // MARK: - Filter Bar
 
+    private var isAnyFilterActive: Bool {
+        showFavoritesOnly || filterCuisine != nil || filterRecipeType != nil
+    }
+
     private var recipeFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            recipeFilterChips
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                recipeFilterChips
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+            }
+
+            if isAnyFilterActive {
+                Divider()
+                    .frame(height: 24)
+                    .padding(.horizontal, 8)
+
+                Button {
+                    showFavoritesOnly = false
+                    filterCuisine = nil
+                    filterRecipeType = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.trailing, 16)
+            }
         }
         .background(Color(.systemBackground))
     }
@@ -235,15 +277,56 @@ struct RecipesView: View {
                 )
             }
 
-            // Clear button
-            if showFavoritesOnly {
-                Button {
-                    showFavoritesOnly = false
+            // Cuisine filter (only when recipes have cuisine set)
+            if !availableCuisines.isEmpty {
+                Menu {
+                    Button("All Cuisines") { filterCuisine = nil }
+                    Divider()
+                    ForEach(availableCuisines) { option in
+                        Button {
+                            filterCuisine = option
+                        } label: {
+                            if filterCuisine == option {
+                                Label(option.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(option.displayName)
+                            }
+                        }
+                    }
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                    FilterChip(
+                        label: filterCuisine?.displayName ?? "Cuisine",
+                        icon: "fork.knife",
+                        isActive: filterCuisine != nil
+                    )
                 }
             }
+
+            // Recipe type filter (only when recipes have type set)
+            if !availableRecipeTypes.isEmpty {
+                Menu {
+                    Button("All Types") { filterRecipeType = nil }
+                    Divider()
+                    ForEach(availableRecipeTypes) { option in
+                        Button {
+                            filterRecipeType = option
+                        } label: {
+                            if filterRecipeType == option {
+                                Label(option.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(option.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    FilterChip(
+                        label: filterRecipeType?.displayName ?? "Type",
+                        icon: "menucard",
+                        isActive: filterRecipeType != nil
+                    )
+                }
+            }
+
         }
     }
 

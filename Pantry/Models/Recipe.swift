@@ -13,6 +13,8 @@ final class Recipe {
     var servings: Double
     var createdAt: Date
     var isFavorite: Bool = false
+    var cuisine: RecipeCuisine?
+    var recipeType: RecipeType?
 
     @Relationship(deleteRule: .cascade, inverse: \IngredientGroup.recipe)
     var ingredientGroups: [IngredientGroup]
@@ -45,7 +47,9 @@ final class Recipe {
         instructions: [String] = [],
         imageData: Data? = nil,
         servings: Double = 4,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        cuisine: RecipeCuisine? = nil,
+        recipeType: RecipeType? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -56,6 +60,8 @@ final class Recipe {
         self.servings = servings
         self.createdAt = Date()
         self.isFavorite = isFavorite
+        self.cuisine = cuisine
+        self.recipeType = recipeType
         self.ingredients = []
         self.ingredientGroups = []
         self.instructionGroups = []

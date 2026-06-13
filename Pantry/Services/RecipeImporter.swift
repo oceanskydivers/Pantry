@@ -29,6 +29,8 @@ struct ImportedRecipe: Codable {
     /// The original web URL the recipe came from (carried through sharing so the recipient can see the source).
     var sourceURL: String?
     var notes: String
+    var cuisine: RecipeCuisine? = nil
+    var recipeType: RecipeType? = nil
 
     // MARK: - Share URL encoding/decoding
 
@@ -281,6 +283,17 @@ actor RecipeImporter {
 
         let description = decodeHTMLEntities(dict["description"] as? String ?? "")
 
+        // Extract cuisine and recipe type from schema.org fields, matching to known enum values
+        let rawCuisine = (dict["recipeCuisine"] as? String) ?? (dict["recipeCuisine"] as? [String])?.first
+        let importedCuisine = rawCuisine.flatMap { raw in
+            RecipeCuisine.allCases.first { $0.rawValue.lowercased() == raw.lowercased() }
+        }
+
+        let rawCategory = (dict["recipeCategory"] as? String) ?? (dict["recipeCategory"] as? [String])?.first
+        let importedRecipeType = rawCategory.flatMap { raw in
+            RecipeType.allCases.first { $0.rawValue.lowercased() == raw.lowercased() }
+        }
+
         return ImportedRecipe(
             name: name,
             servings: servings,
@@ -289,7 +302,9 @@ actor RecipeImporter {
             instructions: instructions,
             instructionGroups: [],
             imageURL: imageURL,
-            notes: description
+            notes: description,
+            cuisine: importedCuisine,
+            recipeType: importedRecipeType
         )
     }
 

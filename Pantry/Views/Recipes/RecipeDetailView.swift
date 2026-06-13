@@ -351,6 +351,41 @@ struct RecipeDetailView: View {
                         )
                 }
 
+                // MARK: - Cuisine & Type Tags
+                if recipe.cuisine != nil || recipe.recipeType != nil {
+                    HStack(spacing: 8) {
+                        if let c = recipe.cuisine {
+                            Label {
+                                Text(c.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            } icon: {
+                                Image(systemName: "globe")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.systemGray6), in: Capsule())
+                        }
+                        if let t = recipe.recipeType {
+                            Label {
+                                Text(t.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            } icon: {
+                                Image(systemName: t.icon)
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(.systemGray6), in: Capsule())
+                        }
+                        Spacer()
+                    }
+                }
+
                 // MARK: - Servings Quote Card
                 ServingsScalerView(
                     originalServings: recipe.servings,

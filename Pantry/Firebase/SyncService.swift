@@ -442,6 +442,8 @@ final class SyncService {
         ]
         if let url = imagePublicURL { data["imagePublicUrl"] = url }
         if let sourceURL = recipe.sourceURL { data["sourceURL"] = sourceURL }
+        if let cuisine = recipe.cuisine { data["cuisine"] = cuisine.rawValue }
+        if let recipeType = recipe.recipeType { data["recipeType"] = recipeType.rawValue }
         data["ingredientGroups"] = recipe.sortedGroups.map { group in
             [
                 "name": group.name,
@@ -472,6 +474,8 @@ final class SyncService {
         let sourceURL = data["sourceURL"] as? String
         let imageURL = data["imagePublicUrl"] as? String
         let instructions = data["instructions"] as? [String] ?? []
+        let sharedCuisine = (data["cuisine"] as? String).flatMap { RecipeCuisine(rawValue: $0) }
+        let sharedRecipeType = (data["recipeType"] as? String).flatMap { RecipeType(rawValue: $0) }
 
         var ingredients: [ImportedIngredient] = []
         if let ings = data["ungroupedIngredients"] as? [[String: Any]] {
@@ -505,7 +509,9 @@ final class SyncService {
             imageURL: imageURL,
             imageStoragePath: nil,
             sourceURL: sourceURL,
-            notes: notes
+            notes: notes,
+            cuisine: sharedCuisine,
+            recipeType: sharedRecipeType
         )
     }
 
@@ -522,6 +528,8 @@ final class SyncService {
         ]
         if let url = recipe.sourceURL { d["sourceURL"] = url }
         if let path = recipe.imageStoragePath { d["imageStoragePath"] = path }
+        if let cuisine = recipe.cuisine { d["cuisine"] = cuisine.rawValue }
+        if let recipeType = recipe.recipeType { d["recipeType"] = recipeType.rawValue }
         // Named instruction groups
         d["instructionGroups"] = recipe.sortedInstructionGroups.map { group in
             [
@@ -644,6 +652,8 @@ final class SyncService {
             Task { await self.fetchAndCacheImage(path: path, recipeID: recipeID) }
         }
         if let ts = data["createdAt"] as? Timestamp { recipe.createdAt = ts.dateValue() }
+        recipe.cuisine = (data["cuisine"] as? String).flatMap { RecipeCuisine(rawValue: $0) }
+        recipe.recipeType = (data["recipeType"] as? String).flatMap { RecipeType(rawValue: $0) }
 
         // Delete existing groups (cascade deletes their ingredients)
         for existingGroup in recipe.ingredientGroups { context.delete(existingGroup) }

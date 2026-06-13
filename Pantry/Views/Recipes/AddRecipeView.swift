@@ -302,6 +302,8 @@ struct AddRecipeView: View {
     @State private var servings = 4.0
     @State private var notes = ""
     @State private var sourceURL = ""
+    @State private var cuisine: RecipeCuisine?
+    @State private var recipeType: RecipeType?
     @State private var instructionSections: [InstructionGroupSection] = [InstructionGroupSection(isUngroupedSink: true)]
     @State private var showAddInstructionGroupAlert = false
     @State private var pendingInstructionGroupName = ""
@@ -358,6 +360,8 @@ struct AddRecipeView: View {
         }
 
         _ingredientSections = State(initialValue: sections)
+        _cuisine = State(initialValue: importedRecipe.cuisine)
+        _recipeType = State(initialValue: importedRecipe.recipeType)
     }
 
     // Separate edit modes for each reorderable section
@@ -383,6 +387,74 @@ struct AddRecipeView: View {
                         .textInputAutocapitalization(.never)
 
                     ServingsTextField(servings: $servings, minimum: 0.5)
+                }
+
+                Section("Details") {
+                    HStack {
+                        Text("Cuisine")
+                        Spacer()
+                        Menu {
+                            Button("None") { cuisine = nil }
+                            Divider()
+                            ForEach(RecipeCuisine.allCases) { option in
+                                Button {
+                                    cuisine = option
+                                } label: {
+                                    if cuisine == option {
+                                        Label(option.displayName, systemImage: "checkmark")
+                                    } else {
+                                        Text(option.displayName)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                if let c = cuisine {
+                                    Text(c.displayName)
+                                        .foregroundStyle(.primary)
+                                } else {
+                                    Text("None")
+                                        .foregroundStyle(.secondary)
+                                }
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Text("Type")
+                        Spacer()
+                        Menu {
+                            Button("None") { recipeType = nil }
+                            Divider()
+                            ForEach(RecipeType.allCases) { option in
+                                Button {
+                                    recipeType = option
+                                } label: {
+                                    if recipeType == option {
+                                        Label(option.displayName, systemImage: "checkmark")
+                                    } else {
+                                        Text(option.displayName)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                if let t = recipeType {
+                                    Text(t.displayName)
+                                        .foregroundStyle(.primary)
+                                } else {
+                                    Text("None")
+                                        .foregroundStyle(.secondary)
+                                }
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 }
 
                 Section("Photo") {
@@ -692,6 +764,8 @@ struct AddRecipeView: View {
         notes = recipe.notes
         sourceURL = recipe.sourceURL ?? ""
         imageData = recipe.imageData
+        cuisine = recipe.cuisine
+        recipeType = recipe.recipeType
 
         // Build instruction sections: ungrouped sink first, then named groups
         let ungroupedSteps = recipe.instructions.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -824,6 +898,8 @@ struct AddRecipeView: View {
         recipe.notes = notes
         recipe.sourceURL = sourceURL.isEmpty ? nil : sourceURL
         recipe.imageData = imageData
+        recipe.cuisine = cuisine
+        recipe.recipeType = recipeType
         if existingRecipe == nil {
             modelContext.insert(recipe)
         }
