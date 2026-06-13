@@ -442,6 +442,9 @@ struct InventoryView: View {
         }
         .listStyle(.plain)
         .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .bottom) {
+            if isSearching { Color.clear.frame(height: 80) }
+        }
     }
 
     private var alphabeticalList: some View {
@@ -467,6 +470,9 @@ struct InventoryView: View {
         }
         .listStyle(.plain)
         .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .bottom) {
+            if isSearching { Color.clear.frame(height: 80) }
+        }
     }
 
     private func groupedList(groups: [(key: String, items: [InventoryItem])], noGroupLabel: String) -> some View {
@@ -498,6 +504,9 @@ struct InventoryView: View {
         }
         .listStyle(.plain)
         .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .bottom) {
+            if isSearching { Color.clear.frame(height: 80) }
+        }
     }
 
     // MARK: - Grouping Helpers

@@ -361,6 +361,9 @@ struct RecipesView: View {
             }
             .onDelete(perform: deleteRecipes)
         }
+        .safeAreaInset(edge: .bottom) {
+            if isSearching { Color.clear.frame(height: 80) }
+        }
     }
 
     private var recipeGrid: some View {
@@ -388,6 +391,9 @@ struct RecipesView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .bottom) {
+            if isSearching { Color.clear.frame(height: 80) }
+        }
     }
 
     private func deleteRecipes(at offsets: IndexSet) {
