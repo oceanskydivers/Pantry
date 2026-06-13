@@ -580,6 +580,7 @@ struct LogSection: View {
                                 if !log.note.isEmpty {
                                     Text(log.note)
                                         .font(.caption)
+                                        .dynamicTypeSize(.small)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -588,6 +589,7 @@ struct LogSection: View {
 
                             Text(log.date.formatted(date: .abbreviated, time: .shortened))
                                 .font(.caption)
+                                .dynamicTypeSize(.small)
                                 .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)
@@ -598,14 +600,17 @@ struct LogSection: View {
                                     onDelete(log)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
-                                }
+                                        .foregroundStyle(Color.red.opacity(0.6))
+                                }.tint(Color.red.opacity(0.6))
                             }
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(displayedLogs.count) * 56)
+                .frame(height: displayedLogs.reduce(0) { sum, log in
+                    sum + (log.note.isEmpty ? 52 : 80)
+                })
 
                 if remainingCount > 0 {
                     Button {

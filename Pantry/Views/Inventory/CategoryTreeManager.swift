@@ -152,8 +152,17 @@ final class CategoryTreeManager {
     }
 
     func deleteRootCategory() {
+        deleteAllDescendants(of: rootCategory)
         SyncService.shared.deleteInventoryCategory(id: rootCategory.id)
         modelContext.delete(rootCategory)
+    }
+
+    private func deleteAllDescendants(of category: InventoryCategory) {
+        for child in category.subcategories {
+            deleteAllDescendants(of: child)
+            SyncService.shared.deleteInventoryCategory(id: child.id)
+            modelContext.delete(child)
+        }
     }
 
     func renameRootCategory(to newName: String) {
