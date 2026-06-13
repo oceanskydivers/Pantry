@@ -20,5 +20,6 @@ service cloud.firestore {
       allow delete: if request.auth != null
         && resource.data.createdBy == request.auth.uid;
     }
+
   }
 }
