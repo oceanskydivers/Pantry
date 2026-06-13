@@ -14,6 +14,15 @@ enum RecipeSortMode: String, CaseIterable {
     case alphabetical = "A–Z"
     case reverseAlphabetical = "Z–A"
 
+    var label: LocalizedStringKey {
+        switch self {
+        case .newest: return "Newest"
+        case .oldest: return "Oldest"
+        case .alphabetical: return "A–Z"
+        case .reverseAlphabetical: return "Z–A"
+        }
+    }
+
     var icon: String {
         switch self {
         case .newest: return "clock.arrow.trianglehead.counterclockwise.rotate.90"
@@ -201,7 +210,7 @@ struct RecipesView: View {
                     Button {
                         sortMode = mode
                     } label: {
-                        Label(mode.rawValue, systemImage: mode.icon)
+                        Label(mode.label, systemImage: mode.icon)
                     }
                 }
             } label: {

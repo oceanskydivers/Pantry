@@ -50,6 +50,15 @@ enum InventoryGroupMode: String, CaseIterable {
     case category = "Category"
     case recentlyUpdated = "Recently Updated"
 
+    var label: LocalizedStringKey {
+        switch self {
+        case .alphabetical: return "Alphabetical"
+        case .location: return "Location"
+        case .category: return "Category"
+        case .recentlyUpdated: return "Recently Updated"
+        }
+    }
+
     var icon: String {
         switch self {
         case .alphabetical: return "textformat.abc"
@@ -267,7 +276,7 @@ struct InventoryView: View {
                     Button {
                         groupMode = mode
                     } label: {
-                        Label(mode.rawValue, systemImage: mode.icon)
+                        Label(mode.label, systemImage: mode.icon)
                     }
                 }
             } label: {
