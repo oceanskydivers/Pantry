@@ -211,7 +211,7 @@ struct InventoryView: View {
                     isActive: $isExpirationFilterActive
                 )
             }
-            .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() }, bottomPadding: isSearching ? 85 : 24)
+            .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() }, bottomPadding: isSearching ? 80 : 24)
         }
     }
 
