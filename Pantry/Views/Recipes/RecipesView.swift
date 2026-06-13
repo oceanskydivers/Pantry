@@ -201,11 +201,10 @@ struct RecipesView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .onDisappear {
-                // Navigation pushed — reset search so returning doesn't show a keyboardless bar
+            .onAppear {
+                // Re-focus the search bar when returning from a detail view.
                 if isSearching {
-                    isSearching = false
-                    searchText = ""
+                    searchFocusID += 1
                 }
             }
         }

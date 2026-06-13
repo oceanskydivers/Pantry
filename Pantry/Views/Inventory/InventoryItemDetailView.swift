@@ -598,14 +598,17 @@ struct LogSection: View {
                                     onDelete(log)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
-                                }
+                                        .foregroundStyle(Color.red.opacity(0.6))
+                                }.tint(Color.red.opacity(0.6))
                             }
                         }
                     }
                 }
                 .listStyle(.plain)
                 .scrollDisabled(true)
-                .frame(height: CGFloat(displayedLogs.count) * 56)
+                .frame(height: displayedLogs.reduce(0) { sum, log in
+                    sum + (log.note.isEmpty ? 52 : 80)
+                })
 
                 if remainingCount > 0 {
                     Button {

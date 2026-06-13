@@ -232,6 +232,12 @@ struct InventoryView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .onAppear {
+                // Re-focus the search bar when returning from a detail view.
+                if isSearching {
+                    searchFocusID += 1
+                }
+            }
             .sheet(isPresented: $showingAdd) {
                 AddInventoryItemView()
             }
