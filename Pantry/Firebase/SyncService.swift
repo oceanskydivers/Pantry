@@ -16,6 +16,7 @@ final class SyncService {
     private var listeners: [ListenerRegistration] = []
     private var currentUID: String?
     private var isApplyingCloudUpdate = false
+    private var syncActor: SyncActor?
 
     var modelContainer: ModelContainer?
 
@@ -44,7 +45,7 @@ final class SyncService {
     private func observeAuth() async {
         for await uid in authStateStream() {
             if let uid {
-                await startSync(userId: uid)
+                startSync(userId: uid)
             } else {
                 stopSync()
             }
@@ -70,20 +71,24 @@ final class SyncService {
 
     // MARK: - Lifecycle
 
-    private func startSync(userId: String) async {
+    private func startSync(userId: String) {
         guard userId != currentUID else { return }
         stopSync()
         currentUID = userId
         guard let container = modelContainer else { return }
 
         isSyncing = true
-        isApplyingCloudUpdate = true
-        await downloadAll(userId: userId, context: container.mainContext)
-        isApplyingCloudUpdate = false
-        isSyncing = false
+        let actor = SyncActor(modelContainer: container)
+        syncActor = actor
 
-        await writeFirstInstalledVersionIfNeeded(uid: userId)
-        setupListeners(userId: userId, container: container)
+        // Fire download on the background actor — returns immediately so UI shows cached data
+        Task { [weak self] in
+            await actor.downloadAll(userId: userId)
+            guard let self else { return }
+            await self.writeFirstInstalledVersionIfNeeded(uid: userId)
+            self.setupListeners(userId: userId, container: container)
+            self.isSyncing = false
+        }
     }
 
     private func stopSync() {
@@ -113,78 +118,6 @@ final class SyncService {
         if let doc = try? await oldSettings.getDocument(), let data = doc.data() {
             try? await newSettings.setData(data, merge: true)
             try? await oldSettings.delete()
-        }
-    }
-
-    // MARK: - Initial Download
-
-    private func downloadAll(userId: String, context: ModelContext) async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.downloadRecipes(userId: userId, context: context) }
-            group.addTask { await self.downloadInventory(userId: userId, context: context) }
-            group.addTask { await self.downloadShopping(userId: userId, context: context) }
-            group.addTask { await self.downloadStorageLocations(userId: userId, context: context) }
-            group.addTask { await self.downloadInventoryCategories(userId: userId, context: context) }
-            group.addTask { await self.downloadSettings(userId: userId) }
-        }
-        try? context.save()
-    }
-
-    private func downloadRecipes(userId: String, context: ModelContext) async {
-        guard let snapshot = try? await db.collection("users").document(userId)
-            .collection("recipes").getDocuments() else { return }
-        for doc in snapshot.documents {
-            upsertRecipe(from: doc.data(), context: context)
-        }
-    }
-
-    private func downloadInventory(userId: String, context: ModelContext) async {
-        guard let snapshot = try? await db.collection("users").document(userId)
-            .collection("inventoryItems").getDocuments() else { return }
-        for doc in snapshot.documents {
-            upsertInventoryItem(from: doc.data(), context: context)
-        }
-    }
-
-    private func downloadShopping(userId: String, context: ModelContext) async {
-        guard let snapshot = try? await db.collection("users").document(userId)
-            .collection("shoppingCategories").getDocuments() else { return }
-        for doc in snapshot.documents {
-            upsertShoppingCategory(from: doc.data(), context: context)
-        }
-    }
-
-    private func downloadStorageLocations(userId: String, context: ModelContext) async {
-        guard let snapshot = try? await db.collection("users").document(userId)
-            .collection("storageLocations").getDocuments() else { return }
-        for doc in snapshot.documents {
-            upsertStorageLocation(from: doc.data(), context: context)
-        }
-    }
-
-    private func downloadInventoryCategories(userId: String, context: ModelContext) async {
-        guard let snapshot = try? await db.collection("users").document(userId)
-            .collection("inventoryCategories").getDocuments() else { return }
-        // Two-pass: insert all categories first, then wire up parents
-        var allDatas: [[String: Any]] = []
-        for doc in snapshot.documents {
-            upsertInventoryCategory(from: doc.data(), context: context, wireParent: false)
-            allDatas.append(doc.data())
-        }
-        for data in allDatas {
-            upsertInventoryCategoryParent(from: data, context: context)
-        }
-    }
-
-    private func downloadSettings(userId: String) async {
-        guard let doc = try? await db.collection("users").document(userId)
-            .collection("settings").document("preferences").getDocument(),
-              let data = doc.data() else { return }
-        if let autoAdd = data["autoAddToInventory"] as? Bool {
-            UserDefaults.standard.set(autoAdd, forKey: "autoAddToInventory")
-        }
-        if let version = data["firstInstalledVersion"] as? String {
-            UserDefaults.standard.set(version, forKey: "firstInstalledVersion")
         }
     }
 
@@ -905,7 +838,6 @@ final class SyncService {
         context.delete(location)
     }
 
-    /// First pass: insert/update the category itself without wiring the parent.
     private func upsertInventoryCategory(from data: [String: Any], context: ModelContext, wireParent: Bool) {
         guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
         let descriptor = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == id })
@@ -926,20 +858,6 @@ final class SyncService {
             } else {
                 category.parent = nil
             }
-        }
-    }
-
-    /// Second pass: wire up parent relationships after all categories are inserted.
-    private func upsertInventoryCategoryParent(from data: [String: Any], context: ModelContext) {
-        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
-        let descriptor = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == id })
-        guard let category = (try? context.fetch(descriptor))?.first else { return }
-
-        if let parentIDStr = data["parentID"] as? String, let parentID = UUID(uuidString: parentIDStr) {
-            let parentDesc = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == parentID })
-            category.parent = (try? context.fetch(parentDesc))?.first
-        } else {
-            category.parent = nil
         }
     }
 

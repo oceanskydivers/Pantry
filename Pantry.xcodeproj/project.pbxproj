@@ -45,6 +45,7 @@
 		BEE001F37C3C86590D993987 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354DAD9BD7301BDFA725F7C4 /* SyncService.swift */; };
 		CA82D6ACD006D331FBF5B67D /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76311C6E8B73F4D67B2EFD0 /* AuthView.swift */; };
 		CDF357993DB1D8816BF024CB /* InventoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = D831C5DCB4887DACE8D29B07 /* InventoryItem.swift */; };
+		D201638B2FDE0D7100D92BCB /* SyncActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D201638A2FDE0D7100D92BCB /* SyncActor.swift */; };
 		D27513602FDADE9600A652F0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D275135F2FDADE9600A652F0 /* Localizable.xcstrings */; };
 		D27513612FDADE9600A652F0 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D275135E2FDADE9600A652F0 /* InfoPlist.xcstrings */; };
 		D28EC0912FDC5BB00047034D /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D28EC0902FDC5BB00047034D /* AppShortcuts.xcstrings */; };
@@ -118,6 +119,7 @@
 		A5D9C477F3C5795D7803EFF1 /* Ingredient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ingredient.swift; sourceTree = "<group>"; };
 		BC0D5937FD091A3B2329C015 /* ProfileTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileTabView.swift; sourceTree = "<group>"; };
 		C22B7CAC133877507349B5CE /* Color+App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+App.swift"; sourceTree = "<group>"; };
+		D201638A2FDE0D7100D92BCB /* SyncActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncActor.swift; sourceTree = "<group>"; };
 		D275135E2FDADE9600A652F0 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		D275135F2FDADE9600A652F0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		D28EC0902FDC5BB00047034D /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
@@ -221,6 +223,7 @@
 			children = (
 				759922EFC579800336ECBAEC /* FirebaseManager.swift */,
 				354DAD9BD7301BDFA725F7C4 /* SyncService.swift */,
+				D201638A2FDE0D7100D92BCB /* SyncActor.swift */,
 			);
 			path = Firebase;
 			sourceTree = "<group>";
@@ -483,6 +486,7 @@
 				8934BE8F2FDDA96200A105C9 /* Double+Formatting.swift in Sources */,
 				F2D43BFBB03378A84F03B411 /* Color+App.swift in Sources */,
 				89A3ACF92FD5E7ED00175632 /* ManageCategoriesView.swift in Sources */,
+				D201638B2FDE0D7100D92BCB /* SyncActor.swift in Sources */,
 				89A3AD012FD8440600175632 /* IngredientMatcher.swift in Sources */,
 				89956BA52FDD96F300C6DBFB /* RecipeMetadata.swift in Sources */,
 				89A3ACFB2FD5F7F500175632 /* CategoryPickerSheet.swift in Sources */,
