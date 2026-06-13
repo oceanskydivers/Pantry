@@ -196,7 +196,6 @@ struct RecipeDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var selectedTab: RecipeDetailTab = .ingredients
     @State private var shareURL: URL? = nil
-    @State private var isPreparingShare = false
 
     // Cache the decoded UIImage to prevent main-thread re-decoding during animations
     @State private var cachedImage: UIImage?
@@ -216,11 +215,12 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Publishes the recipe to the shared collection and returns its universal link URL.
-    private func prepareAndShare() async {
-        isPreparingShare = true
-        defer { isPreparingShare = false }
-        shareURL = await SyncService.shared.publishSharedRecipe(recipe)
+    /// Generates the share URL immediately and kicks off a background publish to Firestore.
+    /// The URL is derived from the recipe's local UUID, so it's available instantly — even offline.
+    /// Firestore will sync the recipe data when the device is next online.
+    private func prepareAndShare() {
+        shareURL = SyncService.shared.shareURL(for: recipe)
+        Task { await SyncService.shared.publishSharedRecipe(recipe) }
     }
 
     /// Recomputes the inventory status for every ingredient in the recipe.
@@ -537,17 +537,11 @@ struct RecipeDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: 4) {
-                    if isPreparingShare {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                    Button {
+                        prepareAndShare()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
                             .padding(.leading, 8)
-                    } else {
-                        Button {
-                            Task { await prepareAndShare() }
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                                .padding(.leading, 8)
-                        }
                     }
                     Button("Edit") { showingEdit = true }
                 }

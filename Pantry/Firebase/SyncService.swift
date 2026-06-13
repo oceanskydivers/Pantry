@@ -402,10 +402,19 @@ final class SyncService {
 
     // MARK: - Public Recipe Sharing
 
-    /// Publishes the recipe to the public `sharedRecipes` collection and returns its share URL.
+    /// Returns the share URL for a recipe without any network call.
+    /// The UUID is locally known, so the URL can be generated and shared immediately,
+    /// even offline. The actual Firestore publish happens via `publishSharedRecipe(_:)`.
+    func shareURL(for recipe: Recipe) -> URL {
+        URL(string: "https://pantrymanager.app/recipe/\(recipe.id.uuidString)")!
+    }
+
+    /// Publishes the recipe to the public `sharedRecipes` collection in the background.
+    /// Call `shareURL(for:)` to get the URL immediately — this method handles the data
+    /// sync separately and is safe to call without awaiting its result.
     /// Uploads the image to a public Storage path so the Cloud Function can embed it in OG tags.
-    func publishSharedRecipe(_ recipe: Recipe) async -> URL? {
-        guard let uid = currentUID else { return nil }
+    func publishSharedRecipe(_ recipe: Recipe) async {
+        guard let uid = currentUID else { return }
         var imagePublicURL: String? = nil
 
         if let imageData = recipe.imageData {
@@ -449,12 +458,7 @@ final class SyncService {
             ["name": group.name, "sortOrder": group.sortOrder, "steps": group.steps] as [String: Any]
         }
 
-        do {
-            try await db.collection("sharedRecipes").document(recipe.id.uuidString).setData(data)
-            return URL(string: "https://pantrymanager.app/recipe/\(recipe.id.uuidString)")
-        } catch {
-            return nil
-        }
+        try? await db.collection("sharedRecipes").document(recipe.id.uuidString).setData(data)
     }
 
     /// Fetches a shared recipe from the public `sharedRecipes` collection for import.
