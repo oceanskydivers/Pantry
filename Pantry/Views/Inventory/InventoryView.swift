@@ -885,9 +885,11 @@ struct InventoryRowView: View {
                             .foregroundStyle(.primary)
 
                         HStack(spacing: 4) {
-                            Text(item.unit)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            if !item.unit.isEmpty {
+                                Text(item.unit)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
 
                             if let days = item.estimatedDaysRemaining {
                                 HStack(spacing: 0) {
@@ -1126,7 +1128,7 @@ struct InventoryRowView: View {
 
     private func remainingTimeText(_ days: Double) -> Text {
         let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .abbreviated
+        formatter.unitsStyle = .brief
         formatter.maximumUnitCount = 1
         if days < 1 {
             return Text("< 1 day")

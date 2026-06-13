@@ -178,8 +178,8 @@ enum RecipeDetailTab: Int, CaseIterable, Identifiable {
     var id: Int { self.rawValue }
     var title: String {
         switch self {
-        case .ingredients: return "Ingredients"
-        case .instructions: return "Instructions"
+        case .ingredients: return String(localized: "Ingredients")
+        case .instructions: return String(localized: "Instructions")
         }
     }
 }
