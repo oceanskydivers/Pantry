@@ -203,6 +203,11 @@ struct RecipeDetailView: View {
     /// Maps ingredient ID → inventory status, computed once when the view appears or inventory changes.
     @State private var inventoryStatusCache: [PersistentIdentifier: IngredientInventoryStatus] = [:]
 
+    /// Persists checked state across tab switches; keyed by ingredient persistent ID.
+    @State private var checkedIngredients: [PersistentIdentifier: Bool] = [:]
+    /// Persists checked state across tab switches; keyed by a stable step key "groupID-index" or "ungrouped-index".
+    @State private var checkedSteps: [String: Bool] = [:]
+
     init(recipe: Recipe) {
         self.recipe = recipe
         _scaledServings = State(initialValue: recipe.servings)
@@ -280,8 +285,16 @@ struct RecipeDetailView: View {
                     .padding(.bottom, 2)
 
                 ForEach(Array(group.steps.enumerated()), id: \.offset) { index, step in
-                    InstructionStepView(number: index + 1, text: step)
-                        .padding(.vertical, 16)
+                    let stepKey = "\(group.id)-\(index)"
+                    InstructionStepView(
+                        number: index + 1,
+                        text: step,
+                        isChecked: Binding(
+                            get: { checkedSteps[stepKey] ?? false },
+                            set: { checkedSteps[stepKey] = $0 }
+                        )
+                    )
+                    .padding(.vertical, 16)
 
                     if index < group.steps.count - 1 {
                         Divider()
@@ -306,8 +319,16 @@ struct RecipeDetailView: View {
                     .padding(.bottom, 2)
             }
             ForEach(Array(ungroupedInstructions.enumerated()), id: \.offset) { index, step in
-                InstructionStepView(number: index + 1, text: step)
-                    .padding(.vertical, 16)
+                let stepKey = "ungrouped-\(index)"
+                InstructionStepView(
+                    number: index + 1,
+                    text: step,
+                    isChecked: Binding(
+                        get: { checkedSteps[stepKey] ?? false },
+                        set: { checkedSteps[stepKey] = $0 }
+                    )
+                )
+                .padding(.vertical, 16)
 
                 if index < ungroupedInstructions.count - 1 {
                     Divider()
@@ -429,7 +450,11 @@ struct RecipeDetailView: View {
                                         ingredient: ingredient,
                                         scaledServings: scaledServings,
                                         originalServings: recipe.servings,
-                                        inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound
+                                        inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound,
+                                        isChecked: Binding(
+                                            get: { checkedIngredients[ingredient.persistentModelID] ?? false },
+                                            set: { checkedIngredients[ingredient.persistentModelID] = $0 }
+                                        )
                                     )
                                     .padding(.vertical, 16)
 
@@ -461,7 +486,11 @@ struct RecipeDetailView: View {
                                     ingredient: ingredient,
                                     scaledServings: scaledServings,
                                     originalServings: recipe.servings,
-                                    inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound
+                                    inventoryStatus: inventoryStatusCache[ingredient.persistentModelID] ?? .notFound,
+                                    isChecked: Binding(
+                                        get: { checkedIngredients[ingredient.persistentModelID] ?? false },
+                                        set: { checkedIngredients[ingredient.persistentModelID] = $0 }
+                                    )
                                 )
                                 .padding(.vertical, 16)
 
@@ -688,7 +717,7 @@ struct IngredientRowView: View {
     let originalServings: Double
     var inventoryStatus: IngredientInventoryStatus = .notFound
 
-    @State private var isChecked = false
+    @Binding var isChecked: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -780,9 +809,9 @@ private struct ShareSheet: UIViewControllerRepresentable {
 struct InstructionStepView: View {
     let number: Int
     let text: String
+    @Binding var isChecked: Bool
 
     @State private var isMultiline: Bool = false
-    @State private var isChecked: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
