@@ -51,11 +51,9 @@ struct AddInventoryItemView: View {
                 Section("Item Info") {
                     TextField("Name (e.g., Chicken Breast)", text: $name)
                         .focused($focusedField, equals: .name)
-                    TextField("Unit (e.g., lbs, cans, oz)", text: $unit)
-                        .focused($focusedField, equals: .unit)
                 }
 
-                Section("Quantity") {
+                Section(header: Text("Quantity"), footer: Text("Unit is optional. If left blank, quantities are tracked as generic units.")) {
                     HStack {
                         Text("Current Stock")
                         Spacer()
@@ -83,6 +81,18 @@ struct AddInventoryItemView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { focusedField = .desiredQty }
+
+                    HStack {
+                        Text("Unit")
+                        Spacer()
+                        TextField("Optional (e.g., lbs, g, cans)", text: $unit)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(unit.isEmpty ? .secondary : .primary)
+                            .textInputAutocapitalization(.never)
+                            .focused($focusedField, equals: .unit)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { focusedField = .unit }
 
                     if isEditing {
                         Button {
@@ -345,10 +355,10 @@ struct AddInventoryItemView: View {
                     HStack {
                         Button {
                             switch focusedField {
-                            case .unit:         focusedField = .name
-                            case .currentQty:   focusedField = .unit
+                            case .currentQty:   focusedField = .name
                             case .desiredQty:   focusedField = .currentQty
-                            case .acquiredQty:  focusedField = .desiredQty
+                            case .unit:         focusedField = .desiredQty
+                            case .acquiredQty:  focusedField = .unit
                             default:            focusedField = nil
                             }
                         } label: {
@@ -358,10 +368,10 @@ struct AddInventoryItemView: View {
 
                         Button {
                             switch focusedField {
-                            case .name:         focusedField = .unit
-                            case .unit:         focusedField = .currentQty
+                            case .name:         focusedField = .currentQty
                             case .currentQty:   focusedField = .desiredQty
-                            case .desiredQty:   focusedField = showAdvanced ? .acquiredQty : nil
+                            case .desiredQty:   focusedField = .unit
+                            case .unit:         focusedField = showAdvanced ? .acquiredQty : nil
                             default:            focusedField = nil
                             }
                         } label: {

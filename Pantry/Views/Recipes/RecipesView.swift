@@ -111,7 +111,19 @@ struct RecipesView: View {
                 } else {
                     VStack(spacing: 0) {
                         recipeFilterBar
-                        Divider()
+                        HStack {
+                            if isAnyFilterActive {
+                                Text("\(filtered.count) of \(recipes.count) recipes")
+                            } else {
+                                Text("\(recipes.count) recipes")
+                            }
+                        }
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .padding(.bottom, 2)
                         if layout == .list {
                             recipeList
                         } else {
