@@ -406,6 +406,12 @@
             "value" : "%1$@ %2$@ have no expiration assigned."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ n'ont pas de date d'expiration définie."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -460,6 +466,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "%1$@ %2$@%3$@ · exp. %4$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%1$@ %2$@%3$@ · exp. %4$@"
           }
         },
@@ -708,6 +720,12 @@
             "value" : "%@ Einheit hat kein zugewiesenes Ablaufdatum."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ unité n'a pas de date d'expiration définie."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -746,6 +764,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ Einheiten haben kein zugewiesenes Ablaufdatum."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ unités n'ont pas de date d'expiration définie."
           }
         },
         "ja" : {
@@ -962,6 +986,24 @@
                 "stringUnit" : {
                   "state" : "new",
                   "value" : "%lld Categories"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld catégorie"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld catégories"
                 }
               }
             }
@@ -2656,6 +2698,12 @@
             "value" : "< %@"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "< %@"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3644,6 +3692,12 @@
             "value" : "Weitere Charge hinzufügen"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un autre lot"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3872,6 +3926,12 @@
             "value" : "Ablaufdatum hinzufügen"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une date d'expiration"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3910,6 +3970,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ablaufdatum hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une date d'expiration"
           }
         },
         "ja" : {
@@ -5182,6 +5248,12 @@
             "value" : "Hinzugefügt"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouté"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5414,6 +5486,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alle Kategorien"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les catégories"
           }
         },
         "ja" : {
@@ -8020,6 +8098,12 @@
             "value" : "Kaufdatum"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date d'achat"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10045,6 +10129,12 @@
             "value" : "Exp < %@"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exp < %@"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10083,6 +10173,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ablauf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expiration"
           }
         },
         "ja" : {
@@ -10125,6 +10221,12 @@
             "value" : "Ablaufdatum"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date d'expiration"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10163,6 +10265,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "läuft ab"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "expire"
           }
         },
         "ja" : {
@@ -10207,6 +10315,12 @@
             "value" : "Läuft ab"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expire"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10247,6 +10361,12 @@
             "value" : "Ablaufend"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expire bientôt"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10285,6 +10405,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Favoriten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoris"
           }
         },
         "ja" : {
@@ -10419,6 +10545,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nach Ablaufdatum filtern"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtrer par expiration"
           }
         },
         "ja" : {
@@ -10649,6 +10781,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aus welcher Charge?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De quel lot ?"
           }
         },
         "ja" : {
@@ -11735,6 +11873,12 @@
             "value" : "Auf Lager"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En stock"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11773,6 +11917,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bereits abgelaufene einschließen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclure les éléments déjà expirés"
           }
         },
         "ja" : {
@@ -15037,6 +15187,12 @@
             "value" : "Nur Artikel mit nachverfolgten Ablaufchargen werden angezeigt."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuls les articles avec des lots d'expiration suivis sont affichés."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15075,6 +15231,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nicht auf Lager"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rupture de stock"
           }
         },
         "ja" : {
@@ -15873,6 +16035,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Menge"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qté"
           }
         },
         "ja" : {
@@ -17997,6 +18165,12 @@
             "value" : "Artikel, Ort, Kategorie suchen"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des articles, un emplacement, une catégorie"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18035,6 +18209,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rezepte suchen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des recettes"
           }
         },
         "ja" : {
@@ -19215,6 +19395,12 @@
             "value" : "Artikel anzeigen, die ablaufen innerhalb von"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les articles expirant dans"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20203,6 +20389,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vorrat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approvisionnement"
           }
         },
         "ja" : {
