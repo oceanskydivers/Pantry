@@ -217,7 +217,7 @@ struct RecipeDetailView: View {
 
     /// Generates the share URL immediately and kicks off a background publish to Firestore.
     /// The URL is derived from the recipe's local UUID, so it's available instantly — even offline.
-    /// Firestore will sync the recipe data when the device is next online.
+    /// The Cloud Function will reconstruct the sharedRecipes doc on demand if it hasn't synced yet.
     private func prepareAndShare() {
         shareURL = SyncService.shared.shareURL(for: recipe)
         Task { await SyncService.shared.publishSharedRecipe(recipe) }

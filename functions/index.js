@@ -1,6 +1,8 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
+const crypto = require("crypto");
 
 initializeApp();
 
@@ -383,6 +385,68 @@ function renderPage({ title, description, imageUrl, recipeId, t }) {
 </html>`;
 }
 
+// Finds the recipe via a collection group query, copies the image to the public sharedRecipes
+// storage path, and writes + returns the sharedRecipes document data.
+// Returns null if the recipe can't be found across any user's collection.
+async function buildFromUserRecipe(recipeId) {
+  // Collection group query finds the recipe regardless of which user owns it.
+  // The "id" field is written by the app's encodeRecipe and always equals the document ID.
+  const snapshot = await db.collectionGroup("recipes").where("id", "==", recipeId).limit(1).get();
+  if (snapshot.empty) return null;
+
+  const recipeDoc = snapshot.docs[0];
+  // Path is users/{ownerId}/recipes/{recipeId} — extract ownerId from the ref
+  const ownerId = recipeDoc.ref.parent.parent.id;
+
+  const r = recipeDoc.data();
+
+  let imagePublicUrl = null;
+  if (r.imageStoragePath) {
+    try {
+      const bucket = getStorage().bucket();
+      const srcFile = bucket.file(r.imageStoragePath);
+      const [srcExists] = await srcFile.exists();
+      if (srcExists) {
+        const publicPath = `sharedRecipes/${recipeId}/photo.jpg`;
+        const destFile = bucket.file(publicPath);
+        await srcFile.copy(destFile);
+        // Set a permanent download token so the URL never expires
+        const token = crypto.randomUUID();
+        await destFile.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
+        imagePublicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(publicPath)}?alt=media&token=${token}`;
+      }
+    } catch (e) {
+      console.error("recipeShare image copy error:", e);
+    }
+  }
+
+  let ingredientCount = (r.ungroupedIngredients || []).length;
+  for (const group of (r.ingredientGroups || [])) {
+    ingredientCount += (group.ingredients || []).length;
+  }
+
+  const sharedData = {
+    id: recipeId,
+    name: r.name || "",
+    servings: r.servings || 4,
+    notes: r.notes || "",
+    instructions: r.instructions || [],
+    ingredientCount,
+    ingredientGroups: r.ingredientGroups || [],
+    ungroupedIngredients: r.ungroupedIngredients || [],
+    instructionGroups: r.instructionGroups || [],
+    sharedAt: new Date(),
+    createdBy: ownerId,
+    ...(imagePublicUrl && { imagePublicUrl }),
+    ...(r.sourceURL && { sourceURL: r.sourceURL }),
+    ...(r.cuisine && { cuisine: r.cuisine }),
+    ...(r.recipeType && { recipeType: r.recipeType }),
+  };
+
+  await db.collection("sharedRecipes").doc(recipeId).set(sharedData);
+  return sharedData;
+}
+
 exports.recipeShare = onRequest({ region: "us-central1" }, async (req, res) => {
   // Path is /recipe/{uuid} — extract the last segment
   const parts = req.path.split("/").filter(Boolean);
@@ -403,17 +467,24 @@ exports.recipeShare = onRequest({ region: "us-central1" }, async (req, res) => {
   try {
     const doc = await db.collection("sharedRecipes").doc(recipeId).get();
 
-    if (!doc.exists) {
-      return res.status(404).send(renderPage({
-        title: t.recipeNotFound,
-        description: t.deletedRecipe,
-        imageUrl: null,
-        recipeId,
-        t,
-      }));
+    let data;
+    if (doc.exists) {
+      data = doc.data();
+    } else {
+      // sharedRecipes doc is missing — the app may have been offline/killed before it could
+      // publish. Fall back to building from the owner's private recipe via sharePointers.
+      data = await buildFromUserRecipe(recipeId);
+      if (!data) {
+        return res.status(404).send(renderPage({
+          title: t.recipeNotFound,
+          description: t.deletedRecipe,
+          imageUrl: null,
+          recipeId,
+          t,
+        }));
+      }
     }
 
-    const data = doc.data();
     const name = data.name || t.fallbackName;
     const servings = data.servings || 4;
     const count = data.ingredientCount || 0;
