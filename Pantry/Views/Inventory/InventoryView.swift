@@ -108,6 +108,8 @@ struct InventoryView: View {
     @State private var showToast = false
     @State private var toastMessage: LocalizedStringKey = ""
     @State private var toastUndo: (() -> Void)? = nil
+    @State private var itemsToDelete: [InventoryItem] = []
+    @State private var showingDeleteConfirmation = false
 
     private var categoryFilterLabel: LocalizedStringKey {
         let selected = categories.filter { filterCategoryIDs.contains($0.id) }
@@ -272,6 +274,20 @@ struct InventoryView: View {
                 )
             }
             .toast(isPresented: $showToast, message: toastMessage, onUndo: { toastUndo?() }, bottomPadding: isSearching ? 80 : 24)
+            .alert("Delete Item", isPresented: $showingDeleteConfirmation) {
+                Button("Delete", role: .destructive) {
+                    confirmDelete()
+                }
+                Button("Cancel", role: .cancel) {
+                    itemsToDelete = []
+                }
+            } message: {
+                if itemsToDelete.count == 1 {
+                    Text("Are you sure you want to delete \"\(itemsToDelete[0].name)\"?")
+                } else {
+                    Text("Are you sure you want to delete \(itemsToDelete.count) items?")
+                }
+            }
         }
     }
 
@@ -543,19 +559,21 @@ struct InventoryView: View {
     // MARK: - Delete
 
     private func deleteItems(at offsets: IndexSet) {
-        for index in offsets {
-            let item = filteredItems[index]
-            SyncService.shared.deleteInventoryItem(id: item.id)
-            modelContext.delete(item)
-        }
+        itemsToDelete = offsets.map { filteredItems[$0] }
+        showingDeleteConfirmation = true
     }
 
     private func deleteItems(from group: [InventoryItem], at offsets: IndexSet) {
-        for index in offsets {
-            let item = group[index]
+        itemsToDelete = offsets.map { group[$0] }
+        showingDeleteConfirmation = true
+    }
+
+    private func confirmDelete() {
+        for item in itemsToDelete {
             SyncService.shared.deleteInventoryItem(id: item.id)
             modelContext.delete(item)
         }
+        itemsToDelete = []
     }
 }
 
