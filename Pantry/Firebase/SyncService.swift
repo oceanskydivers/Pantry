@@ -130,9 +130,11 @@ final class SyncService {
             guard let self, let snapshot else { return }
             let context = container.mainContext
             self.isApplyingCloudUpdate = true
+            let allRecipes = (try? context.fetch(FetchDescriptor<Recipe>())) ?? []
+            var recipeMap = Dictionary(uniqueKeysWithValues: allRecipes.map { ($0.id, $0) })
             for change in snapshot.documentChanges {
                 switch change.type {
-                case .added, .modified: self.upsertRecipe(from: change.document.data(), context: context)
+                case .added, .modified: self.upsertRecipe(from: change.document.data(), context: context, existingMap: &recipeMap)
                 case .removed:
                     if let id = UUID(uuidString: change.document.documentID) {
                         self.deleteLocalRecipe(id: id, context: context)
@@ -147,9 +149,16 @@ final class SyncService {
             guard let self, let snapshot else { return }
             let context = container.mainContext
             self.isApplyingCloudUpdate = true
+            let allItems = (try? context.fetch(FetchDescriptor<InventoryItem>())) ?? []
+            var itemMap = Dictionary(uniqueKeysWithValues: allItems.map { ($0.id, $0) })
+            let allLocations = (try? context.fetch(FetchDescriptor<StorageLocation>())) ?? []
+            let locationMap = Dictionary(uniqueKeysWithValues: allLocations.map { ($0.id, $0) })
+            let allCategories = (try? context.fetch(FetchDescriptor<InventoryCategory>())) ?? []
+            let categoryMap = Dictionary(uniqueKeysWithValues: allCategories.map { ($0.id, $0) })
             for change in snapshot.documentChanges {
                 switch change.type {
-                case .added, .modified: self.upsertInventoryItem(from: change.document.data(), context: context)
+                case .added, .modified:
+                    self.upsertInventoryItem(from: change.document.data(), context: context, existingMap: &itemMap, locationMap: locationMap, categoryMap: categoryMap)
                 case .removed:
                     if let id = UUID(uuidString: change.document.documentID) {
                         self.deleteLocalInventoryItem(id: id, context: context)
@@ -592,10 +601,17 @@ final class SyncService {
     private func upsertRecipe(from data: [String: Any], context: ModelContext) {
         guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
         let descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.id == id })
-        let existing = (try? context.fetch(descriptor))?.first
+        var map = Dictionary(uniqueKeysWithValues: ((try? context.fetch(descriptor)) ?? []).map { ($0.id, $0) })
+        upsertRecipe(from: data, context: context, existingMap: &map)
+    }
+
+    private func upsertRecipe(from data: [String: Any], context: ModelContext, existingMap: inout [UUID: Recipe]) {
+        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
+        let existing = existingMap[id]
         let recipe = existing ?? {
             let r = Recipe()
             context.insert(r)
+            existingMap[id] = r
             return r
         }()
         recipe.id = id
@@ -708,10 +724,19 @@ final class SyncService {
     private func upsertInventoryItem(from data: [String: Any], context: ModelContext) {
         guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
         let descriptor = FetchDescriptor<InventoryItem>(predicate: #Predicate { $0.id == id })
-        let existing = (try? context.fetch(descriptor))?.first
+        var itemMap = Dictionary(uniqueKeysWithValues: ((try? context.fetch(descriptor)) ?? []).map { ($0.id, $0) })
+        let locationMap = Dictionary(uniqueKeysWithValues: ((try? context.fetch(FetchDescriptor<StorageLocation>())) ?? []).map { ($0.id, $0) })
+        let categoryMap = Dictionary(uniqueKeysWithValues: ((try? context.fetch(FetchDescriptor<InventoryCategory>())) ?? []).map { ($0.id, $0) })
+        upsertInventoryItem(from: data, context: context, existingMap: &itemMap, locationMap: locationMap, categoryMap: categoryMap)
+    }
+
+    private func upsertInventoryItem(from data: [String: Any], context: ModelContext, existingMap: inout [UUID: InventoryItem], locationMap: [UUID: StorageLocation], categoryMap: [UUID: InventoryCategory]) {
+        guard let idStr = data["id"] as? String, let id = UUID(uuidString: idStr) else { return }
+        let existing = existingMap[id]
         let item = existing ?? {
             let i = InventoryItem()
             context.insert(i)
+            existingMap[id] = i
             return i
         }()
         item.id = id
@@ -726,18 +751,14 @@ final class SyncService {
         if let ts = data["dateBought"] as? Timestamp { item.dateBought = ts.dateValue() }
         if let ts = data["createdAt"] as? Timestamp { item.createdAt = ts.dateValue() }
 
-        // Wire up location
         if let locIDStr = data["locationID"] as? String, let locID = UUID(uuidString: locIDStr) {
-            let locDesc = FetchDescriptor<StorageLocation>(predicate: #Predicate { $0.id == locID })
-            item.location = (try? context.fetch(locDesc))?.first
+            item.location = locationMap[locID]
         } else {
             item.location = nil
         }
 
-        // Wire up category
         if let catIDStr = data["categoryID"] as? String, let catID = UUID(uuidString: catIDStr) {
-            let catDesc = FetchDescriptor<InventoryCategory>(predicate: #Predicate { $0.id == catID })
-            item.category = (try? context.fetch(catDesc))?.first
+            item.category = categoryMap[catID]
         } else {
             item.category = nil
         }
